@@ -38,13 +38,14 @@ class ServerUtil:
 
         from codec.ccdc import CodedCommunicationCtrl
         from codec.plain import PlainCommunicationCtrl
+        from codec.pacodec import PAClientCodec
 
-        return PlainCommunicationCtrl
+        return PAClientCodec
 
     @staticmethod
     def psgd_type():
 
-        from psgd.asgd import ASGD
+        from psgd.asgd import AsynchronizedSGD
         from psgd.ssgd import SynchronizedSGD
 
         return SynchronizedSGD
@@ -67,3 +68,13 @@ class ServerUtil:
     def learn_rate():
 
         return 0.05
+
+    def train_data():
+        from dataset.mnist_input import load_mnist
+
+        return load_mnist(kind='train')
+
+    def eval_data():
+        from dataset.mnist_input import load_mnist
+
+        return load_mnist(kind='t10k')

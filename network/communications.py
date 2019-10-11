@@ -168,7 +168,7 @@ class ComConstructor:
 
 class CommunicationController:
 
-    static_server_address = '127.0.0.1'
+    static_server_address = '192.168.1.115'
     static_server_port = 15387
 
     def __init__(self):
@@ -215,14 +215,13 @@ class CommunicationController:
         """
         self.com.close()
         sleep(1)
-        self.com.kill()
 
     def is_closed(self):
         """
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return self.com.Exit.value == 0
+        return self.com.Exit.value == True
 
 
 if __name__ == "__main__":

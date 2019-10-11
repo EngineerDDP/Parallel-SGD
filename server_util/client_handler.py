@@ -4,12 +4,11 @@ from threading import Thread
 
 from threading import Lock
 
-from network.agreements import General, Initialize, Transfer
+from network.agreements import General, Initialize, Transfer, DefaultNodes, Data
 from network.serialization import Serialize
 from settings import GlobalSettings
 
 from server_util.init_model import ServerUtil
-
 
 class DoAsync(Thread):
 
@@ -136,6 +135,7 @@ class ClientHandler(socketserver.BaseRequestHandler):
     GC_PER_ITERS = 100
 
     Client_List = NodeClients()
+    PA_Server = None
 
     def handle(self):
 
@@ -178,17 +178,27 @@ class ClientHandler(socketserver.BaseRequestHandler):
                                     Initialize.CodeType: ServerUtil.codec_ctrl(),
                                     Initialize.SyncClass: ServerUtil.psgd_type(),
                                     Initialize.Epoches: ServerUtil.epoches(),
-                                    Initialize.LOSS:ServerUtil.loss_type()
+                                    Initialize.LOSS:ServerUtil.loss_type(),
+                                    Initialize.Learn_Rate:ServerUtil.learn_rate()
                                     }
                         print('Weights assigned: {}'.format(dic_back.keys()))
-
+                    elif dic[General.Type] == Data.Type:
+                        dic_back = {
+                            General.Type: Initialize.Init_Weight,
+                            General.From: (-1),
+                            General.To: (-1),
+                            Data.Train_Data: ServerUtil.train_data(),
+                            Data.Eval_Data: ServerUtil.eval_data()
+                        }
+                        print('Data loaded: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Initialize.Current_State:
                         state = ClientHandler.Client_List.isGreen()
-                        dic_back = {General.Type: Initialize.Current_State,
-                                    General.From: (-1),
-                                    General.To: (-1),
-                                    Initialize.Current_State: state
-                                    }
+                        self.state_ = {General.Type: Initialize.Current_State,
+                                       General.From: (-1),
+                                       General.To: (-1),
+                                       Initialize.Current_State: state
+                                       }
+                        dic_back = self.state_
                         ClientHandler.Client_List.setGreen(Node_ID)
                         # print('States check, node: {}'.format(Node_ID))
                     # Write back
@@ -198,15 +208,18 @@ class ClientHandler(socketserver.BaseRequestHandler):
 
                 else:
                     targets = dic[General.To]
+
                     for target in targets:
-                        con = ClientHandler.Client_List.getClient(target)
-                        if con is not None:
-                            task = DoAsync(data.send, (con,))
-                            task.start()
+                        # Send to PA first
+                        if target == DefaultNodes.Parameter_Server:
+                            ClientHandler.PA_Server.post(dic[General.From], dic)
                         else:
-                            print('Transfer failed, node {} not found.'.format(target))
-                    # print('Transfer data, from {} to {}, size: {}, keys: {}.'
-                    #       .format(dic[General.From], targets, len(data.Content), dic.keys()))
+                            con = ClientHandler.Client_List.getClient(target)
+                            if con is not None:
+                                task = DoAsync(data.send, (con,))
+                                task.start()
+                            else:
+                                print('Transfer failed, node {} not found.'.format(target))
 
                 if iters > ClientHandler.GC_PER_ITERS:
                     gc.collect()
@@ -214,15 +227,8 @@ class ClientHandler(socketserver.BaseRequestHandler):
         except Exception as e:
             if Node_ID is not None:
                 ClientHandler.Client_List.removeNode(Node_ID)
-            print('Exception occurred while connecting with : {}, args : {}.'.format(self.client_address, e.args))
+            print('Exception occurred while connecting with : {}, args : {}.'.format(self.client_address, e))
+            import traceback
+            traceback.print_exc()
 
         print('Connection aborted.')
-
-
-if __name__ == '__main__':
-    GlobalSettings.setDefault(4, 2, 360)
-    ServerUtil.initWeights()
-
-    server = socketserver.ThreadingTCPServer(("", 15387), ClientHandler)
-    server.serve_forever()
-    # ServerUtil.getWeightsInit()

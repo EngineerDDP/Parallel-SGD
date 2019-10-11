@@ -5,7 +5,7 @@ from threading import Thread
 from settings import GlobalSettings
 
 from network.communications import CommunicationController
-from network.agreements import General, Initialize, DefaultNodes
+from network.agreements import General, Initialize, DefaultNodes, Data
 
 from neuralnetworks.layers import FCLayer
 from neuralnetworks.optimizer import ParallelGradientDecentOptimizer
@@ -63,12 +63,9 @@ def main():
     con.establish_communication()
     print('Connection established.')
     # Logger
-    log = Logger('Node {}'.format(con.Node_ID))
+    log = Logger('Node {}'.format(con.Node_ID), False)
     log.log_message('Test Log...')
 
-    log.log_message('Loading data...')
-    eval_x, eval_y = load_mnist(kind='t10k')
-    train_x, train_y = load_mnist(kind='train')
     # # take few
     # take = 60000
     # train_x = train_x[:take]
@@ -96,18 +93,27 @@ def main():
     log.log_message('Codec: {}'.format(codec))
     log.log_message('Parallel Stochastic Gradient Descent: {}'.format(psgd))
 
+    log.log_message('Requiring data...')
+    con.send_one([DefaultNodes.Initialization_Server], {General.Type: Data.Type})
+    sender, data_init_dic = con.get_one()
+
+    log.log_message('Loading data...')
+    eval_x, eval_y = data_init_dic[Data.Eval_Data]
+    train_x, train_y = data_init_dic[Data.Train_Data]
+
     log.log_message('Initialing local runtime environment...')
     init_weights = model_init_dic[Initialize.Weight_Content]
     init_w = [i[1] for i in init_weights]
     init_b = [i[2] for i in init_weights]
-    init_w.reverse()
-    init_b.reverse()
+    # init_w.reverse()
+    # init_b.reverse()
     init_weights = {'w': init_w,
                     'b': init_b}
     EPOCHES = model_init_dic[Initialize.Epoches]
     Losses = model_init_dic[Initialize.LOSS]
+    LR = model_init_dic[Initialize.Learn_Rate]
 
-    print('Setup communication thread...')
+    log.log_message('Setup communication thread...')
     # helper = TransferHelper()
     # linker = HelperLink(transfer, helper)
 

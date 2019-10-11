@@ -1,5 +1,7 @@
 import numpy as np
 
+from neuralnetworks.activations import Linear
+
 class FCLayer:
 
     def __init__(self, units, w_init=None, b_init=None, act=Linear()):

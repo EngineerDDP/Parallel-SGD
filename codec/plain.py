@@ -11,13 +11,11 @@ from log import Logger
 
 class PlainCommunicationCtrl(ICommunicationCtrl):
 
-    def __init__(self, node_id, batch_id, layer_id, logger=Logger('None')):
+    def __init__(self, node_id, logger=Logger('None')):
 
         ICommunicationCtrl.__init__(self)
 
         self.Node_ID = node_id
-        self.Batch_ID = batch_id
-        self.Layer_ID = layer_id
 
         self.BlockWeights = dict()
 
@@ -48,15 +46,18 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
 
         self.check_for_combine(blockweight.Block_ID)
 
-        return send, pack
+        if len(send) > 0:
+            return send, pack
+        else:
+            return None
 
     def receive_blocks(self, json_dict):
 
         blockweight = PlainComPack.decompose_compack(PlainComPack.from_dictionary(json_dict))
         self.BlockWeights[blockweight.Block_ID] = blockweight
-
-        self.Log.log_message('Received new block, Batch: {}, Layer: {}, Block: {}.'
-                           .format(blockweight.Batch_ID, blockweight.Layer_ID, blockweight.Block_ID))
+        #
+        # self.Log.log_message('Received new block, Batch: {}, Layer: {}, Block: {}.'
+        #                    .format(blockweight.Batch_ID, blockweight.Layer_ID, blockweight.Block_ID))
 
         self.check_for_combine(blockweight.Block_ID)
 
@@ -71,7 +72,8 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
         for i in current_values:
             batchweight += i.Content
 
-        self.updated_weight_buffer += batchweight
+        self.set_result(batchweight)
+        self.BlockWeights.clear()
 
         return
 

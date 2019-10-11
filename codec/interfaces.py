@@ -6,7 +6,8 @@ from utils.delegate import Delegation
 class ICommunicationCtrl:
 
     def __init__(self):
-        self.updated_weight_buffer = 0
+        self.__updated_weight_buffer = None
+        self.__update_complete = False
 
     def dispose(self):
         """
@@ -55,17 +56,29 @@ class ICommunicationCtrl:
             Check if all the coding and decoding process is done.
         :return: True if done, False if not done.
         """
-        return self.updated_weight_buffer != 0
+        return self.__update_complete
 
     def get_result(self):
         """
             Clear current weights buffer and return.
         :return: weights buffer: ndarray
         """
-        tmp = self.updated_weight_buffer
-        self.updated_weight_buffer = 0
+        tmp = self.__updated_weight_buffer
+        self.__updated_weight_buffer = None
+        self.__update_complete = False
 
         return tmp
+
+    def set_result(self, content):
+        """
+            Add current delta to old ones
+        """
+        if self.__updated_weight_buffer is None:
+            self.__updated_weight_buffer = content
+        else:
+            self.__updated_weight_buffer += content
+
+        self.__update_complete = True
 
 
 class IComPack(metaclass=ABCMeta):

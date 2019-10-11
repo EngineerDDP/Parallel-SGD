@@ -9,11 +9,12 @@ class AsynchronizedSGD(SynchronizedSGD):
         *Absence*
     """
 
-    INT_BATCH_SKIP = 100
+    INT_BATCH_SKIP = -1
 
     def __init__(self, node_id, layer_id, codec):
 
         super().__init__(node_id, layer_id, codec)
+        self.init_startup_setting()
 
     def init_startup_setting(self, params=None):
         """
@@ -39,8 +40,12 @@ class AsynchronizedSGD(SynchronizedSGD):
         """
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
-            self.batch_updater.receive_blocks(obj)
-        return
+            pack_to_send = self.batch_updater.receive_blocks(obj)
+            if pack_to_send is not None:
+                target, pack = pack_to_send
+                pack[SynchronizedSGD.STR_BATCH_NO] = sender_batch
+                return target, pack
+        return None
 
     def require_weights(self, tag):
 

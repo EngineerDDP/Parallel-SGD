@@ -23,7 +23,14 @@ class Initialize:
     SyncClass = 'SyncState'
     Epoches = 'EPO'
     LOSS = 'LOSS_FUNCTION'
+    Learn_Rate = 'LRate'
 
+
+class Data:
+
+    Type = 'Init_Data'
+    Train_Data = 'TDATA'
+    Eval_Data = 'EDATA'
 
 class Transfer:
 

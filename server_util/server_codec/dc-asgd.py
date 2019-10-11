@@ -1,6 +1,6 @@
 import numpy as np
 
-from server_util.codec.interfaces import PACodec
+from codec.pacodec import PACodec
 
 from settings import GlobalSettings
 

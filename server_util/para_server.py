@@ -1,46 +1,29 @@
+from log import Logger
+
 from server_util.init_model import ServerUtil
 
-from psgd.interfaces import IParallelSGD
-from codec.pacodec import PAServerCompack, PAClientComPack
+from psgd.asgd import AsynchronizedSGD
+from psgd.transfer import NTransfer
 
-from server_util.codec.interfaces import PACodec
-from network.agreements import DefaultNodes
-
-
-class ParameterServer(IParallelSGD):
-
-    def __init__(self,node_id, layer_id, codec):
-
-        super().__init__(node_id, layer_id, codec)
-
-
-    def init_startup_setting(self, params=None):
-        pass
-
-    def release_memory(self):
-        pass
-
+from codec.pacodec import PAServerCodec
 
 
 class ParameterServer:
 
-    def __init__(self, ctrl=PACodec):
+    def __init__(self, com):
 
-        self.Layer_Controller = {}
-        self.Controller_Builder = ctrl
+        self.Com = com
+        self.Node_ID = self.Com.Node_ID
+        self.Log = Logger('*PA*', False)
 
-        lr = ServerUtil.learn_rate()
-        layer_no = 0
+        updater = [{} for i in ServerUtil.getWeightsInit()]
 
-        for i in ServerUtil.getWeightsInit():
-            self.Layer_Controller[layer_no] = {'w': self.Controller_Builder(i[1], layer_no, lr),
-                                               'b': self.Controller_Builder(i[2], layer_no, lr)}
+        for layer_id in range(len(updater)):
+            for t in ['w', 'b']:
+                updater[layer_id][t] = AsynchronizedSGD(self.Node_ID, layer_id, PAServerCodec)
 
-    def putWeights(self, obj):
+        self.Transfer = NTransfer(updater, self.Com)
+        self.Transfer.start_transfer()
 
-        compack = PAClientComPack.decompose_compack(obj)
-        ctrl = self.Layer_Controller[compack.Layer_ID]
-
-    def acquireWeights(self):
-
-        pass
+    def post(self, sender, content):
+        self.Com.SendQue.put((sender, content))

@@ -29,7 +29,7 @@ class SynchronizedSGD(IParallelSGD):
     """
 
     STR_BATCH_NO = 'SSGD_BATCH_NO'
-    INT_READ_TIMEOUT_MS = 1000
+    INT_READ_TIMEOUT_MS = 2000
 
     def __init__(self, node_id, layer_id, codec):
         """
@@ -71,7 +71,7 @@ class SynchronizedSGD(IParallelSGD):
 
         self.current_batch = tag.Batch_No
 
-        block = BlockWeight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company)
+        block = BlockWeight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, content=content)
 
         update_pack = self.batch_updater.update_blocks(block)
         if update_pack is not None:
@@ -88,7 +88,8 @@ class SynchronizedSGD(IParallelSGD):
         """
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch >= self.current_batch:
-            self.receive_buffer[sender_batch] = self.receive_buffer.get(sender_batch, Queue()).put(obj)
+            self.receive_buffer[sender_batch] = self.receive_buffer.get(sender_batch, Queue())
+            self.receive_buffer[sender_batch].put(obj)
         else:
             raise OutdatedUpdates()
 
@@ -104,15 +105,15 @@ class SynchronizedSGD(IParallelSGD):
 
         while not self.batch_updater.is_done():
             # wait until more data is available
-            if self.receive_buffer[self.current_batch].empty():
+            if self.receive_buffer.get(self.current_batch) is None \
+                    or self.receive_buffer[self.current_batch].empty():
                 sleep(0.001)
                 time_out += 1
-                if time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
+                if time_out >= SynchronizedSGD.INT_READ_TIMEOUT_MS:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
                     raise ReadTimeOut()
-                continue
-
-            self.batch_updater.receive_blocks(self.receive_buffer[self.current_batch].get())
+            if self.receive_buffer.get(self.current_batch) is not None:
+                self.batch_updater.receive_blocks(self.receive_buffer[self.current_batch].get())
 
         if self.batch_updater.is_done():
-            return self.batch_updater.updated_weight_buffer
+            return self.batch_updater.get_result()

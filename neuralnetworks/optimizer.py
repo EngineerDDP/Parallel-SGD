@@ -127,17 +127,18 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
         for nn in self.Layers:
 
             for j in range(len(self.Tags)):
-                w, b, y = nn.delta_wb(intermediate[-1 * i][slices_to_take[j]], grad[slices_to_take[j]])
+                # Note:列向量!
+                w, b, y = nn.delta_wb(intermediate[-1 * i][:, slices_to_take[j]], grad[:, slices_to_take[j]])
                 non_exec_start = time()
-                self.Com.putWeights(w, self.Tags[j], 'w')
-                self.Com.putWeights(b, self.Tags[j], 'b')
+                self.Com.put_weights(w, self.Tags[j], 'w')
+                self.Com.put_weights(b, self.Tags[j], 'b')
                 non_exec_end = time()
                 self.total_non_execution_time += non_exec_end - non_exec_start
 
             non_exec_start = time()
 
-            w_new = self.Com.acquireweights(self.Tags[0], 'w') / total
-            b_new = self.Com.acquireweights(self.Tags[0], 'b') / total
+            w_new = self.Com.get_weights(self.Tags[0], 'w') / total
+            b_new = self.Com.get_weights(self.Tags[0], 'b') / total
 
             non_exec_end = time()
             self.total_non_execution_time += non_exec_end - non_exec_start

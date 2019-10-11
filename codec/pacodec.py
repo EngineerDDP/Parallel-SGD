@@ -9,15 +9,13 @@ from settings import GlobalSettings
 
 from log import Logger
 
-class PACodec(ICommunicationCtrl):
+class PAClientCodec(ICommunicationCtrl):
 
-    def __init__(self, node_id, layer_id, logger=Logger('None')):
+    def __init__(self, node_id, logger=Logger('None')):
 
         ICommunicationCtrl.__init__(self)
 
         self.Node_ID = node_id
-        self.Layer_ID = layer_id
-
         self.Log = logger
 
     def dispose(self):
@@ -28,14 +26,14 @@ class PACodec(ICommunicationCtrl):
 
     def update_blocks(self, block_weight):
 
-        send, pack = PAClientComPack.compose_compack(block_weight)
-
+        send, pack = PAClientComPack.compose_compack(block_weight, self.Node_ID)
+        pack = PAClientComPack.to_dictionary(pack)
         return send, pack
 
     def receive_blocks(self, json_dict):
 
         compack = PAServerCompack.decompose_compack(json_dict)
-        self.updated_weight_buffer = compack.Content
+        self.set_result(compack.Content)
 
 
 class PAClientComPack(IComPack):
@@ -66,10 +64,10 @@ class PAClientComPack(IComPack):
 
         return PAClientComPack(node_id, layer_id, block_id, content)
 
-    def compose_compack(blockweights, params=None):
+    def compose_compack(blockweights, node_id=None):
 
-        send_target = DefaultNodes.Parameter_Server
-        pack = PAClientComPack(blockweights.Node_ID, BlockWeight.Layer_ID, BlockWeight.Block_ID, BlockWeight.Content)
+        send_target = [DefaultNodes.Parameter_Server]
+        pack = PAClientComPack(node_id, blockweights.Layer_ID, blockweights.Block_ID, blockweights.Content)
 
         return send_target, pack
 
@@ -80,18 +78,20 @@ class PAClientComPack(IComPack):
 
 class PAServerCodec(ICommunicationCtrl):
 
-    def __init__(self, node_id, layer_id, logger=Logger('PAS')):
+    def __init__(self, node_id, logger=Logger('PAS')):
 
         super().__init__()
 
         self.Node_ID = node_id
-        self.Layer_ID = layer_id
         self.Learn_Rate = ServerUtil.learn_rate()
 
-        self.Bak_Weights_Node = {}
+        # save PA current state
+        self.Current_Weights = 0
 
         self.Log = logger
 
+        # save previous state for each node
+        self.Bak_Weights_Node = {}
         # init w_bak
         for key in GlobalSettings.getDefault().Nodes:
             self.Bak_Weights_Node[key] = 0
@@ -113,7 +113,20 @@ class PAServerCodec(ICommunicationCtrl):
         :param json_dict:
         :return: 
         """
-        pass
+        # analyze received data
+        compack = PAClientComPack.decompose_compack(json_dict)
+        # get last state of working node
+        last_state = self.Bak_Weights_Node[compack.Node_ID]
+        # update global current state
+        self.Current_Weights = self.Current_Weights + compack.Content
+        # get difference
+        grad_diff = self.Current_Weights - last_state
+        # update last state of working node
+        self.Bak_Weights_Node[compack.Node_ID] = self.Current_Weights
+        # build communication package
+        comback = PAServerCompack.compose_compack(grad_diff)
+
+        return [compack.Node_ID], comback.to_dictionary()
 
 
 class PAServerCompack(PAClientComPack):
