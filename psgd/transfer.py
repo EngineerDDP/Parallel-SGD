@@ -78,18 +78,21 @@ class NTransfer(ITransfer):
             Quit if self.communication_process is not alive.
         :return: None
         """
-        while not self.communication_process.is_closed():
-            sender, dic = self.communication_process.get_one()
-            self.Log.log_message('Recv from node {}'.format(dic[General.From]))
-            # quit processing if the object is not sent by the class instance like NTransfer
-            try:
-                layer_no = dic[NTransfer.STR_LAYER_NO]
-                w_type = dic[NTransfer.STR_W_TYPE]
-                update_pack = self.type_weights_controller[layer_no][w_type].accept_data(dic)
-                self.Log.log_message('Message accepted.')
-                if update_pack is not None:
-                    sender, dic = update_pack
-                    self.__send(sender, dic, layer_no, w_type)
-                    self.Log.log_message('Message back to node {}'.format(sender))
-            except KeyError:
-                continue
+        try:
+            while not self.communication_process.is_closed():
+                sender, dic = self.communication_process.get_one()
+                self.Log.log_message('Recv from node {}'.format(dic[General.From]))
+                # quit processing if the object is not sent by the class instance like NTransfer
+                try:
+                    layer_no = dic[NTransfer.STR_LAYER_NO]
+                    w_type = dic[NTransfer.STR_W_TYPE]
+                    update_pack = self.type_weights_controller[layer_no][w_type].accept_data(dic)
+                    self.Log.log_message('Message accepted.')
+                    if update_pack is not None:
+                        sender, dic = update_pack
+                        self.__send(sender, dic, layer_no, w_type)
+                        self.Log.log_message('Message back to node {}'.format(sender))
+                except KeyError:
+                    continue
+        except TypeError:
+            pass

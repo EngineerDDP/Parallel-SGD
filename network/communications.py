@@ -10,33 +10,31 @@ from network.serialization import Serialize
 from network.agreements import General, Initialize
 
 
-
 class TLVPack:
+    Block_Size = 1024 * 1024
+    TLV_Type_Normal = 1
+    TLV_Type_Exit = 0
 
-    Block_Size = 1024*1024
-
-    def __init__(self, content, type=1):
-
+    def __init__(self, content):
         self.Content = content
-        self.Type = type
         self.Length = len(content)
 
     def send(self, io):
-        tlv_package = self.Type.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
-        i = 0
+        tlv_package = TLVPack.TLV_Type_Normal.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
         io.sendall(tlv_package)
 
     def flush_garbage(io):
-
-        b = int(0).to_bytes(10, 'big')
+        b = int(0).to_bytes(4, 'big')
         io.sendall(b)
 
     def recv(io):
-
         type_ = io.recv(1)
         length = io.recv(4)
         type_ = int.from_bytes(type_, 'big')
         length = int.from_bytes(length, 'big')
+
+        if type_ == TLVPack.TLV_Type_Exit:
+            raise OSError('Connection closed by remote computer.')
 
         content = b''
         take = 0
@@ -45,7 +43,11 @@ class TLVPack:
             content += io.recv(read_len)
             take = len(content)
 
-        return TLVPack(content, type_)
+        return TLVPack(content)
+
+    def request_close(io):
+        io.send(TLVPack.TLV_Type_Exit.to_bytes(1, 'big'))
+        TLVPack.flush_garbage(io)
 
 
 class Com(Process):
@@ -77,11 +79,23 @@ class Com(Process):
         self.send_thread.start()
         self.recv_thread.start()
 
+        self.Connection.settimeout(1)
+
         while not self.Exit.value:
             sleep(1)
 
+        self.send_que.put(None)
+
+        TLVPack.request_close(self.Connection)
+        self.Connection.close()
+
         self.send_thread.join()
         self.recv_thread.join()
+
+        self.send_que.close()
+        self.recv_que.close()
+
+        print('Communication process exited.')
 
     def run_send(self):
         try:
@@ -98,16 +112,17 @@ class Com(Process):
                 data = Serialize.pack(dic)
                 pack = TLVPack(data)
                 pack.send(self.Connection)
-        except ConnectionAbortedError as e:
+        except TypeError as e:
             pass
-        finally:
-            self.Connection.close()
 
     def run_recv(self):
 
         try:
             while not self.Exit.value:
-                pack = TLVPack.recv(self.Connection)
+                try:
+                    pack = TLVPack.recv(self.Connection)
+                except sc.timeout:
+                    continue
                 if len(pack.Content) != 0:
                     # decode data
                     dic = Serialize.unpack(pack.Content)
@@ -117,15 +132,14 @@ class Com(Process):
                     self.recv_que.put_nowait((sender, dic))
                 pack.Content = None
 
-        except ConnectionAbortedError as e:
+        except OSError as e:
             pass
         finally:
-            self.Connection.close()
+            self.recv_que.put(None)
 
     def close(self):
 
         self.Exit.value = True
-        self.Connection.close()
 
 
 class ComConstructor:
@@ -168,7 +182,6 @@ class ComConstructor:
 
 
 class CommunicationController:
-
     static_server_address = '192.168.1.115'
     static_server_port = 15387
 
@@ -216,6 +229,7 @@ class CommunicationController:
         """
         self.com.close()
         sleep(1)
+        self.com.join()
 
     def is_closed(self):
         """
@@ -226,7 +240,6 @@ class CommunicationController:
 
 
 if __name__ == "__main__":
-
     con = CommunicationController()
     con.establish_communication()
 

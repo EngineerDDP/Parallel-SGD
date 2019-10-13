@@ -15,7 +15,7 @@ class Test_PAServer(PAServerCodec):
 
     def __init__(self, node_id, logger=Logger('Test')):
 
-        PAServerCodec.__init__(node_id, logger)
+        PAServerCodec.__init__(self, node_id, logger)
 
         self.Working_Batch = [0 for node in GlobalSettings.getDefault().Nodes]
 

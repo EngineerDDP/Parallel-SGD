@@ -8,7 +8,10 @@ from network.agreements import General, Initialize, Transfer, DefaultNodes, Data
 from network.serialization import Serialize
 from settings import GlobalSettings
 
+from network.communications import TLVPack
+
 from server_util.init_model import ServerUtil
+
 
 class DoAsync(Thread):
 
@@ -22,37 +25,39 @@ class DoAsync(Thread):
         self.Function(*self.Params)
 
 
-class TLVPack:
-    Block_Size = 1024 * 1024
-
-    def __init__(self, content, type=1):
-        self.Content = content
-        self.Type = type
-        self.Length = len(content)
-
-    def send(self, io):
-        tlv_package = self.Type.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
-        i = 0
-        io.sendall(tlv_package)
-
-    def flush_garbage(io):
-        b = int(0).to_bytes(100, 'big')
-        io.sendall(b)
-
-    def recv(io):
-        type_ = io.recv(1)
-        length = io.recv(4)
-        type_ = int.from_bytes(type_, 'big')
-        length = int.from_bytes(length, 'big')
-
-        content = b''
-        take = 0
-        while take < length:
-            read_len = min(length - take, TLVPack.Block_Size)
-            content += io.recv(read_len)
-            take = len(content)
-
-        return TLVPack(content, type_)
+# class TLVPack:
+#     Block_Size = 1024 * 1024
+#     TLV_Type_Normal = 1
+#     TLV_Type_Exit = -1
+#
+#     def __init__(self, content, type):
+#         self.Content = content
+#         self.Type = type
+#         self.Length = len(content)
+#
+#     def send(self, io):
+#         tlv_package = self.Type.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
+#
+#         io.sendall(tlv_package)
+#
+#     def flush_garbage(io):
+#         b = int(0).to_bytes(100, 'big')
+#         io.sendall(b)
+#
+#     def recv(io):
+#         type_ = io.recv(1)
+#         length = io.recv(4)
+#         type_ = int.from_bytes(type_, 'big')
+#         length = int.from_bytes(length, 'big')
+#
+#         content = b''
+#         take = 0
+#         while take < length:
+#             read_len = min(length - take, TLVPack.Block_Size)
+#             content += io.recv(read_len)
+#             take = len(content)
+#
+#         return TLVPack(content, type_)
 
 
 class Node:
@@ -223,7 +228,6 @@ class ClientHandler(socketserver.BaseRequestHandler):
 
                 if iters > ClientHandler.GC_PER_ITERS:
                     gc.collect()
-
         except Exception as e:
             if Node_ID is not None:
                 ClientHandler.Client_List.removeNode(Node_ID)

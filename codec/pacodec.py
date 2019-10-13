@@ -9,6 +9,7 @@ from settings import GlobalSettings
 
 from log import Logger
 
+
 class PAClientCodec(ICommunicationCtrl):
 
     def __init__(self, node_id, logger=Logger('None')):
@@ -80,7 +81,7 @@ class PAServerCodec(ICommunicationCtrl):
 
     def __init__(self, node_id, logger=Logger('PAS')):
 
-        super().__init__()
+        ICommunicationCtrl.__init__(self)
 
         self.Node_ID = node_id
         self.Learn_Rate = ServerUtil.learn_rate()
