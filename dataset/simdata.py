@@ -94,6 +94,17 @@ def load_lin_sim():
 
     return x, sim.predict(x)
 
+def load_sin_sim():
+    x_1 = np.linspace(-1, 1, 1000)
+    x_2 = np.linspace(-1, 1.5, 1000)
+    y = 0.2*np.sin(x_1) + 0.7*np.cos(x_2)
+    y = y + np.random.normal(scale=0.1, size=x_1.shape)
+
+    y = np.reshape(y, newshape=[-1, 1])
+    x = np.asarray([x_1, x_2]).transpose()
+
+    return x, y
+
 
 if __name__ == '__main__':
     w_1 = np.linspace(-1, 1, 100)
@@ -105,29 +116,29 @@ if __name__ == '__main__':
     y = y + np.random.normal(scale=0.1, size=x_1.shape)
 
 
-    # def loss_sim(w_1, w_2):
-    #     w = np.asarray([w_1, w_2])
-    #     w = w.reshape([1,2])
-    #     x = np.asarray([x_1, x_2])
-    #     # x = x.transpose()
-    #     y_l = y.reshape([1,100])
-    #     ch = np.random.choice(100, 10)
-    #     loss_r = 0
-    #     for c in ch:
-    #         loss_r += np.mean(np.square(np.tanh(np.dot(w, x[:, c]) - y_l[:, c])))
-    #     return loss_r / len(ch)
-    #
-    #
-    # l = np.zeros([len(w_1),len(w_2)])
-    # for i in range(len(w_1)):
-    #     for j in range(len(w_2)):
-    #         l[i][j] = loss_sim(w_1[i], w_2[j])
-    #
-    # w_1_p, w_2_p = np.meshgrid(w_1, w_2)
-    # plt.contourf(w_1_p, w_2_p, l, levels=7)
-    # c = plt.contour(w_1_p, w_2_p, l, colors='black')
-    # plt.clabel(c, inline=True, fontsize=10)
-    # plt.show()
+    def loss_sim(w_1, w_2):
+        w = np.asarray([w_1, w_2])
+        w = w.reshape([1,2])
+        x = np.asarray([x_1, x_2])
+        # x = x.transpose()
+        y_l = y.reshape([1,100])
+        ch = np.random.choice(100, 100)
+        loss_r = 0
+        for c in ch:
+            loss_r += np.mean(np.square(np.tanh(np.dot(w, x[:, c]) - y_l[:, c])))
+        return loss_r / len(ch)
+
+
+    l = np.zeros([len(w_1),len(w_2)])
+    for i in range(len(w_1)):
+        for j in range(len(w_2)):
+            l[i][j] = loss_sim(w_1[i], w_2[j])
+
+    w_1_p, w_2_p = np.meshgrid(w_1, w_2)
+    plt.contourf(w_1_p, w_2_p, l, levels=7)
+    c = plt.contour(w_1_p, w_2_p, l, colors='black')
+    plt.clabel(c, inline=True, fontsize=10)
+    plt.show()
 
     from neuralnetworks.activations import Linear, Tanh
     from neuralnetworks.layers import FCLayer

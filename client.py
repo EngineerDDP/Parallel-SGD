@@ -125,7 +125,7 @@ def main():
                                 Losses, codec, psgd, con, w_types,
                                 tags, train_x, train_y,
                                 GlobalSettings.getDefault().Batch.Batch_Size,
-                                EPOCHES, learnrate=0.05)
+                                EPOCHES, learnrate=LR)
 
     log.log_message('Synchronizing timeline with cluster...')
     ready = False

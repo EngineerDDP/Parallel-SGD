@@ -16,7 +16,7 @@ class ServerUtil:
         from dataset.mnist_input import load_mnist
 
         ServerUtil.Neural_Network = [
-            FCLayer(1, act=Linear())
+            FCLayer(1, act=Tanh())
         ]
 
         x = ServerUtil.train_data()[0][0]
@@ -55,7 +55,7 @@ class ServerUtil:
         from codec.plain import PlainCommunicationCtrl
         from codec.pacodec import PAClientCodec
 
-        return PlainCommunicationCtrl
+        return PAClientCodec
 
     @staticmethod
     def psgd_type():
@@ -77,21 +77,21 @@ class ServerUtil:
     @staticmethod
     def epoches():
 
-        return 100
+        return 10000
 
     @staticmethod
     def learn_rate():
 
-        return 0.1
+        return 10
 
     T_DATA = None
 
     def train_data():
         from dataset.mnist_input import load_mnist
-        from dataset.simdata import load_lin_sim
+        from dataset.simdata import load_lin_sim, load_sin_sim
 
         if ServerUtil.T_DATA is None:
-            ServerUtil.T_DATA = load_lin_sim()
+            ServerUtil.T_DATA = load_sin_sim()
             return ServerUtil.T_DATA
         else:
             return ServerUtil.T_DATA
@@ -100,10 +100,10 @@ class ServerUtil:
 
     def eval_data():
         from dataset.mnist_input import load_mnist
-        from dataset.simdata import load_lin_sim
+        from dataset.simdata import load_lin_sim, load_sin_sim
 
         if ServerUtil.E_DATA is None:
-            ServerUtil.E_DATA = load_lin_sim()
+            ServerUtil.E_DATA = load_sin_sim()
             return ServerUtil.E_DATA
         else:
             return ServerUtil.E_DATA

@@ -11,7 +11,7 @@ from server_util.client_handler import ClientHandler
 
 
 if __name__ == '__main__':
-    GlobalSettings.setDefault(1, 1, 64)
+    GlobalSettings.setDefault(1, 1, 1000)
     ServerUtil.initWeights()
 
     server = socketserver.ThreadingTCPServer(("", 15387), ClientHandler)

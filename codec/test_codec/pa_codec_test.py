@@ -5,6 +5,7 @@ from codec.pacodec import PAServerCodec, PAClientComPack
 from server_util.init_model import ServerUtil
 
 from neuralnetworks.optimizer import GradientDecentOptimizer
+from neuralnetworks.model import Model
 
 from settings import GlobalSettings
 
@@ -18,36 +19,40 @@ class Test_PAServer(PAServerCodec):
         PAServerCodec.__init__(self, node_id, logger)
 
         self.Working_Batch = [0 for node in GlobalSettings.getDefault().Nodes]
+        self.W_copy = np.array(ServerUtil.Neural_Network[0].W)
 
     def receive_blocks(self, json_dict):
 
-        super().receive_blocks(json_dict)
-
         compack = PAClientComPack.decompose_compack(json_dict)
-        self.Working_Batch[compack.Node_ID] += 1
-        if compack.Layer_ID == 1:
-            self.run_test_method(self.Current_Weights, compack.Content)
 
-    def run_test_method(self, current_weights, content):
+        self.Working_Batch[compack.Node_ID] += 1
+        if compack.Layer_ID == 0 and json_dict['NW_Type'] == 'w' and self.Working_Batch[compack.Node_ID] % 50 == 0:
+            self.run_test_method(compack.Content)
+
+        return super().receive_blocks(json_dict)
+
+    def run_test_method(self, content):
 
         x, y = ServerUtil.train_data()
         nn = ServerUtil.Neural_Network
         loss = ServerUtil.loss_type()()
         op = GradientDecentOptimizer(loss, nn)
-        w = current_weights
+        w = self.W_copy - self.Learn_Rate * self.Current_Weights / GlobalSettings.getDefault().Batch.Batch_Size
         samples = 100
-        w_1 = np.linspace(-1 + w[0, 0], 1 + w[0, 0], samples)
-        w_2 = np.linspace(-1 + w[0, 1], 1 + w[0, 1], samples)
+        w_1 = np.linspace(-1 + w[0,0], 1 + w[0,0], samples)
+        w_2 = np.linspace(-1 + w[0,1], 1 + w[0,1], samples)
         loss_mech = np.zeros(shape=[samples, samples])
 
         for a in range(samples):
             for b in range(samples):
                 nn[-1].W = np.asarray([w_1[a], w_2[b]]).reshape(w.shape)
                 loss_mech[a][b] = op.loss(x, y)
-        nn[-1].W = w
+
         grad = content
+
         scale = 1
         grad = -1 * grad * scale
+
         import matplotlib.pyplot as plt
 
         w_1, w_2 = np.meshgrid(w_1, w_2)

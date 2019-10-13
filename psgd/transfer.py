@@ -66,6 +66,9 @@ class NTransfer(ITransfer):
         """
             Write tag and send
         """
+        # skip none
+        if len(target) == 0:
+            return
         # write tag
         dic[NTransfer.STR_LAYER_NO] = layer_no
         dic[NTransfer.STR_W_TYPE] = w_type
@@ -96,3 +99,4 @@ class NTransfer(ITransfer):
                     continue
         except TypeError:
             pass
+        print('Transfer thread exited safely.')
