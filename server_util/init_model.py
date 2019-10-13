@@ -77,12 +77,12 @@ class ServerUtil:
     @staticmethod
     def epoches():
 
-        return 10000
+        return 100
 
     @staticmethod
     def learn_rate():
 
-        return 10
+        return 1
 
     T_DATA = None
 

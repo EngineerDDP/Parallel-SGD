@@ -26,18 +26,19 @@ class Test_PAServer(PAServerCodec):
         compack = PAClientComPack.decompose_compack(json_dict)
 
         self.Working_Batch[compack.Node_ID] += 1
-        if compack.Layer_ID == 0 and json_dict['NW_Type'] == 'w' and self.Working_Batch[compack.Node_ID] % 50 == 0:
+        if compack.Layer_ID == 0 and json_dict['NW_Type'] == 'w' and self.Working_Batch[compack.Node_ID] % 1 == 0:
             self.run_test_method(compack.Content)
 
         return super().receive_blocks(json_dict)
 
     def run_test_method(self, content):
 
-        x, y = ServerUtil.train_data()
+        x, y = ServerUtil.eval_data()
         nn = ServerUtil.Neural_Network
         loss = ServerUtil.loss_type()()
         op = GradientDecentOptimizer(loss, nn)
         w = self.W_copy - self.Learn_Rate * self.Current_Weights / GlobalSettings.getDefault().Batch.Batch_Size
+        print(w)
         samples = 100
         w_1 = np.linspace(-1 + w[0,0], 1 + w[0,0], samples)
         w_2 = np.linspace(-1 + w[0,1], 1 + w[0,1], samples)

@@ -29,7 +29,7 @@ class SynchronizedSGD(IParallelSGD):
     """
 
     STR_BATCH_NO = 'SSGD_BATCH_NO'
-    INT_READ_TIMEOUT_MS = 10000
+    INT_READ_TIMEOUT_MS = -1
 
     def __init__(self, node_id, layer_id, codec):
         """
@@ -109,7 +109,7 @@ class SynchronizedSGD(IParallelSGD):
                     or self.receive_buffer[self.current_batch].empty():
                 sleep(0.001)
                 time_out += 1
-                if time_out >= SynchronizedSGD.INT_READ_TIMEOUT_MS:
+                if time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
                     raise ReadTimeOut()
             if self.receive_buffer.get(self.current_batch) is not None:

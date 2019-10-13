@@ -157,7 +157,7 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
 
             non_exec_end = time()
             self.total_non_execution_time += non_exec_end - non_exec_start
-
+            print(nn.W)
             # w_new = w / total
             # b_new = b / total
 
