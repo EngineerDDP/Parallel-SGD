@@ -19,6 +19,10 @@ class ServerUtil:
             FCLayer(1, act=Linear())
         ]
 
+        x = ServerUtil.train_data()[0][0]
+        for layer in ServerUtil.Neural_Network:
+            x = layer.F(x)
+
 
     # @staticmethod
     # def initWeights():
@@ -51,7 +55,7 @@ class ServerUtil:
         from codec.plain import PlainCommunicationCtrl
         from codec.pacodec import PAClientCodec
 
-        return PAClientCodec
+        return PlainCommunicationCtrl
 
     @staticmethod
     def psgd_type():
@@ -68,7 +72,7 @@ class ServerUtil:
         from neuralnetworks.losses import MseLoss
         from neuralnetworks.losses import CrossEntropyLoss
 
-        return CrossEntropyLossWithSigmoid
+        return MseLoss
 
     @staticmethod
     def epoches():
@@ -78,14 +82,28 @@ class ServerUtil:
     @staticmethod
     def learn_rate():
 
-        return 0.05
+        return 0.1
+
+    T_DATA = None
 
     def train_data():
         from dataset.mnist_input import load_mnist
+        from dataset.simdata import load_lin_sim
 
-        return load_mnist(kind='train')
+        if ServerUtil.T_DATA is None:
+            ServerUtil.T_DATA = load_lin_sim()
+            return ServerUtil.T_DATA
+        else:
+            return ServerUtil.T_DATA
+
+    E_DATA = None
 
     def eval_data():
         from dataset.mnist_input import load_mnist
+        from dataset.simdata import load_lin_sim
 
-        return load_mnist(kind='t10k')
+        if ServerUtil.E_DATA is None:
+            ServerUtil.E_DATA = load_lin_sim()
+            return ServerUtil.E_DATA
+        else:
+            return ServerUtil.E_DATA

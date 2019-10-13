@@ -6,6 +6,7 @@ from psgd.asgd import AsynchronizedSGD
 from psgd.transfer import NTransfer
 
 from codec.pacodec import PAServerCodec
+from test.pa_codec_test import Test_PAServer
 
 
 class ParameterServer:
@@ -20,7 +21,7 @@ class ParameterServer:
 
         for layer_id in range(len(updater)):
             for t in ['w', 'b']:
-                updater[layer_id][t] = AsynchronizedSGD(self.Node_ID, layer_id, PAServerCodec)
+                updater[layer_id][t] = AsynchronizedSGD(self.Node_ID, layer_id, Test_PAServer)
 
         self.Transfer = NTransfer(updater, self.Com)
         self.Transfer.start_transfer()

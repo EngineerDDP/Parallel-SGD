@@ -27,7 +27,8 @@ class MNISTTrainingThread(Thread):
 
         Thread.__init__(self, name='Simulated training process. Node: {}'.format(tags[0].Node_No))
 
-        nn = [FCLayer(*i) for i in model_init]
+        # pickle
+        nn = model_init
         updater = [{} for i in model_init]
 
         for layer_id in range(len(nn)):
@@ -102,13 +103,8 @@ def main():
     train_x, train_y = data_init_dic[Data.Train_Data]
 
     log.log_message('Initialing local runtime environment...')
-    init_weights = model_init_dic[Initialize.Weight_Content]
-    init_w = [i[1] for i in init_weights]
-    init_b = [i[2] for i in init_weights]
-    # init_w.reverse()
-    # init_b.reverse()
-    init_weights = {'w': init_w,
-                    'b': init_b}
+    w_types = ['w', 'b']
+
     EPOCHES = model_init_dic[Initialize.Epoches]
     Losses = model_init_dic[Initialize.LOSS]
     LR = model_init_dic[Initialize.Learn_Rate]
@@ -126,7 +122,7 @@ def main():
                   set(GlobalSettings.getDefault().BlockAssignment.Block2Node[block])))
 
     train = MNISTTrainingThread(model_init_dic[Initialize.Weight_Content],
-                                Losses, codec, psgd, con, init_weights.keys(),
+                                Losses, codec, psgd, con, w_types,
                                 tags, train_x, train_y,
                                 GlobalSettings.getDefault().Batch.Batch_Size,
                                 EPOCHES, learnrate=0.05)

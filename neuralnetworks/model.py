@@ -158,7 +158,7 @@ class Model:
     def evalute(self, x, y):
 
         predict = self.predict(x)
-        loss = self.Optimizer.loss(x, y) * 100000
+        loss = self.Optimizer.loss(x, y)
         if self.Onehot:
             y = y.argmax(axis=1)
             predict = predict.argmax(axis=1)
