@@ -19,7 +19,7 @@ class MseLoss:
         pass
 
     def loss(self, y, label):
-        return np.mean(np.square(label - y), axis=0)
+        return np.mean(np.square(label - y))
 
     def gradient(self, y, label):
         return (label - y) * -2

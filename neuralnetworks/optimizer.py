@@ -25,6 +25,21 @@ class GradientDecentOptimizer:
 
         return loss
 
+    def grad(self, x, label):
+
+        x = np.asmatrix(x).T
+        label = np.asmatrix(label).T
+
+        # forward propagation
+
+        intermediate = [x]
+        for nn in self.Layers:
+            intermediate.append(nn.F(intermediate[-1]))
+
+        grad = self.Loss.gradient(intermediate[-1], label)
+
+        return grad
+
     def train(self, x, label):
         """
             train the network with labeled samples

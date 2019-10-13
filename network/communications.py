@@ -125,6 +125,7 @@ class Com(Process):
     def close(self):
 
         self.Exit.value = True
+        self.Connection.close()
 
 
 class ComConstructor:
