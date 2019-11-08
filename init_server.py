@@ -11,7 +11,7 @@ from server_util.client_handler import ClientHandler
 
 
 if __name__ == '__main__':
-    GlobalSettings.setDefault(2, 1, 360)
+    GlobalSettings.setDefault(2, 1, 5000)
     ModelMNIST.initWeights()
 
     port = 15387

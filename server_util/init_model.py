@@ -32,10 +32,10 @@ class ModelMNIST:
         from dataset.mnist_input import load_mnist
 
         ModelMNIST.Neural_Network = [
-            FCLayer(256, act=Tanh()),
-            FCLayer(128, act=Tanh()),
-            FCLayer(128, act=Tanh()),
-            FCLayer(128, act=Tanh()),
+            FCLayer(784, act=Tanh()),
+            FCLayer(784, act=Tanh()),
+            FCLayer(392, act=Tanh()),
+            FCLayer(196, act=Tanh()),
             FCLayer(128, act=Tanh()),
             FCLayer(10, act=Sigmoid())]
 
