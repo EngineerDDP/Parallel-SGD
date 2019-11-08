@@ -1,6 +1,7 @@
 import numpy as np
 from time import time
 
+
 class GradientDecentOptimizer:
 
     def __init__(self, loss, layers, learnrate=0.01):
@@ -203,3 +204,79 @@ class AdagradOptimizer(GradientDecentOptimizer):
 
         return loss
 
+
+class GradientDecentOptimizerv2:
+
+    def __init__(self, loss, layers, learnrate=0.01):
+
+        self.LR = learnrate
+        self.Loss = loss
+        self.Layers = layers
+        self.Grad = 0
+
+    def loss(self, x, label):
+
+        x = np.asmatrix(x).T
+        label = np.asmatrix(label).T
+
+        # forward propagation
+
+        intermediate = [x]
+        for nn in self.Layers:
+            intermediate.append(nn.F(intermediate[-1]))
+
+        loss = self.Loss.loss(intermediate[-1], label)
+
+        return loss
+
+    def grad(self, x, label):
+
+        x = np.asmatrix(x).T
+        label = np.asmatrix(label).T
+
+        # forward propagation
+
+        intermediate = [x]
+        for nn in self.Layers:
+            intermediate.append(nn.F(intermediate[-1]))
+
+        grad = self.Loss.gradient(intermediate[-1], label)
+
+        return grad
+
+    def train(self, x, label):
+        """
+            train the network with labeled samples
+        """
+
+        # reshape x to [-1,1]
+        #
+        # x = np.asmatrix(x).T
+        # label = np.asmatrix(label).T
+
+        # forward propagation
+
+        intermediate = [x]
+        for nn in self.Layers:
+            intermediate.append(nn.F(intermediate[-1]))
+
+        loss = self.Loss.loss(intermediate[-1], label)
+
+        # apply learning rate
+
+        self.Grad = self.LR * self.Loss.gradient(intermediate[-1], label)
+        grad = self.Grad
+
+        # backward propagation
+
+        self.Layers.reverse()
+        i = 2
+        for nn in self.Layers:
+            grad = nn.backpropagation(intermediate[-1 * i], grad)
+            i += 1
+
+        self.Layers.reverse()
+
+        # return loss
+
+        return np.mean(loss)

@@ -1,5 +1,7 @@
 import numpy as np
 
+raise NotImplementedError()
+
 class RobustLinearRegressionCPU:
 
     def __init__(self, epoches = 100, decentlimit=1e-5):

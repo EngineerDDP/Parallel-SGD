@@ -120,10 +120,6 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         self.decoding(partial_block_weight.Block_ID)
         self.aggregate()
 
-    def is_done(self):
-
-        return self.updated_weight_buffer is not None
-
     def coding(self):
 
         if len(self.block_weights_have) < GlobalSettings.getDefault().Redundancy:
@@ -191,7 +187,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
                 layer = i.Layer_ID
                 batch = i.Batch_ID
 
-            self.updated_weight_buffer = blockweights
+            self.set_result(blockweights)
 
         return None
 
