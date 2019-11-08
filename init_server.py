@@ -14,11 +14,13 @@ if __name__ == '__main__':
     GlobalSettings.setDefault(2, 1, 360)
     ModelMNIST.initWeights()
 
-    server = socketserver.ThreadingTCPServer(("", 15387), ClientHandler)
+    port = 15387
+
+    server = socketserver.ThreadingTCPServer(("", port), ClientHandler)
     para_server = ParameterServer(FakeCom(), Test_PAServer)
     # register pa server
     ClientHandler.PA_Server = para_server
     print('Server States GOOD.')
-    print('Start listening...')
+    print('Start listening: 0.0.0.0:{} '.format(port))
     server.serve_forever()
     # ServerUtil.getWeightsInit()

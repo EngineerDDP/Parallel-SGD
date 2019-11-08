@@ -142,9 +142,12 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
         i = 2
         for nn in self.Layers:
 
+            grad_back = []
+
             for j in range(len(self.Tags)):
                 # Note:列向量!
                 w, b, y = nn.delta_wb(intermediate[-1 * i][:, slices_to_take[j]], grad[:, slices_to_take[j]])
+                grad_back.append(y)
                 non_exec_start = time()
                 self.Com.put_weights(w, self.Tags[j], 'w')
                 self.Com.put_weights(b, self.Tags[j], 'b')
@@ -161,7 +164,7 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
             # w_new = w / total
             # b_new = b / total
 
-            grad = nn.apply_wb(w_new, b_new, y)
+            grad = nn.apply_wb(w_new, b_new, np.concatenate(grad_back, axis=1))
 
             # increase layer
             for tag in self.Tags:

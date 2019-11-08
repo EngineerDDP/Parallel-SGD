@@ -46,16 +46,12 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
 
         self.check_for_combine(blockweight.Block_ID)
 
-        if len(send) > 0:
-            return send, pack
-        else:
-            return None
+        yield (send, pack)
 
     def receive_blocks(self, json_dict):
 
         blockweight = PlainComPack.decompose_compack(PlainComPack.from_dictionary(json_dict))
         self.BlockWeights[blockweight.Block_ID] = blockweight
-        #
         # self.Log.log_message('Received new block, Batch: {}, Layer: {}, Block: {}.'
         #                    .format(blockweight.Batch_ID, blockweight.Layer_ID, blockweight.Block_ID))
 

@@ -59,6 +59,7 @@ def main():
 
     # Set remote
     CommunicationController.static_server_address = '192.168.1.140'
+    CommunicationController.static_server_port = 15390
     # Communication controller
     con = CommunicationController()
     # Logger

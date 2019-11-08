@@ -29,7 +29,7 @@ class SynchronizedSGD(IParallelSGD):
     """
 
     STR_BATCH_NO = 'SSGD_BATCH_NO'
-    INT_READ_TIMEOUT_MS = 2000
+    INT_READ_TIMEOUT_MS = -1
 
     def __init__(self, node_id, layer_id, codec):
         """
@@ -73,13 +73,11 @@ class SynchronizedSGD(IParallelSGD):
 
         block = BlockWeight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, content=content)
 
-        update_pack = self.batch_updater.update_blocks(block)
-        if update_pack is not None:
+        update_packs = self.batch_updater.update_blocks(block)
+        for update_pack in update_packs:
             sender, dic = update_pack
             dic[SynchronizedSGD.STR_BATCH_NO] = tag.Batch_No
-            return sender, dic
-
-        return None
+            yield (sender, dic)
 
     def accept_data(self, obj):
         """

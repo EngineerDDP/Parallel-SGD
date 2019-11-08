@@ -148,12 +148,13 @@ class ComConstructor:
         Factory class for build class Com
     """
 
-    def __init__(self, server):
+    def __init__(self, server, port):
         """
             Typo server address
         :param server:
         """
         self.Server = server
+        self.Port = port
 
     def buildCom(self):
         """
@@ -161,7 +162,7 @@ class ComConstructor:
         :return: class Com, that can be bind with a specified computation node
         """
         ss = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
-        ss.connect((self.Server, 15387))
+        ss.connect((self.Server, self.Port))
         # build and init communication module
         # init dictionary
         init_dic = {General.Type: Initialize.Type}
@@ -191,7 +192,8 @@ class CommunicationController:
             Change CommunicationController.static_server_address and CommunicationController.static_server_port
             before initializing this class.
         """
-        self.com_builder = ComConstructor(server=CommunicationController.static_server_address)
+        self.com_builder = ComConstructor(server=CommunicationController.static_server_address,
+                                          port=CommunicationController.static_server_port)
         self.com = None
         self.Node_ID = -1
 

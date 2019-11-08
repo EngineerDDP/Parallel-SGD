@@ -41,8 +41,8 @@ class NTransfer(ITransfer):
             No waiting
         """
         # Copy tag
-        update_pack = self.type_weights_controller[tag.Layer_No][w_type].update_weights(content, tag)
-        if update_pack is not None:
+        update_packs = self.type_weights_controller[tag.Layer_No][w_type].update_weights(content, tag)
+        for update_pack in update_packs:
             sender, dic = update_pack
             self.__send(sender, dic, tag.Layer_No, w_type)
             self.Log.log_message('Message to node {}'.format(sender))

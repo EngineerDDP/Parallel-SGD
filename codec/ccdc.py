@@ -139,9 +139,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             self.ComPack_Combs.add(comb)
             compack = ComPack.to_dictionary(compack)
 
-            return targets, compack
-
-        return None
+            yield (targets, compack)
 
     def decoding(self, new_block_id):
 
