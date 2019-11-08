@@ -57,6 +57,8 @@ def main():
     # GlobalSettings.setDefault(4, 1, 96)
     # ----------------------------!!!!!!!!!!!!----------------------------
 
+    # Set remote
+    CommunicationController.static_server_address = '192.168.1.140'
     # Communication controller
     con = CommunicationController()
     # Logger
@@ -94,13 +96,15 @@ def main():
     log.log_message('Codec: {}'.format(codec))
     log.log_message('Parallel Stochastic Gradient Descent: {}'.format(psgd))
 
-    log.log_message('Requiring data...')
-    con.send_one([DefaultNodes.Initialization_Server], {General.Type: Data.Type})
-    sender, data_init_dic = con.get_one()
-
+    # log.log_message('Requiring data...')
+    # con.send_one([DefaultNodes.Initialization_Server], {General.Type: Data.Type})
+    # sender, data_init_dic = con.get_one()
+    #
     log.log_message('Loading data...')
-    eval_x, eval_y = data_init_dic[Data.Eval_Data]
-    train_x, train_y = data_init_dic[Data.Train_Data]
+    # eval_x, eval_y = data_init_dic[Data.Eval_Data]
+    # train_x, train_y = data_init_dic[Data.Train_Data]
+    eval_x, eval_y = load_mnist(kind='t10k')
+    train_x, train_y = load_mnist(kind='train')
 
     log.log_message('Initialing local runtime environment...')
     w_types = ['w', 'b']

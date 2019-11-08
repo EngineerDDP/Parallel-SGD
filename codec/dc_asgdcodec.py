@@ -5,7 +5,7 @@ from codec.pacodec import PAClientCodec, PAServerCodec, PAServerCompack
 
 from network.agreements import DefaultNodes
 
-from server_util.init_model import ServerUtil
+from server_util.init_model import ModelMNIST
 from settings import GlobalSettings
 
 from log import Logger
@@ -32,7 +32,7 @@ class DC_ASGDServerCodec(PAServerCodec):
         self.Weights_init = 0
 
         # other parameters
-        self.Learn_Rate = ServerUtil.learn_rate()
+        self.Learn_Rate = ModelMNIST.learn_rate()
         self.Bak_Weights_Node = {}
         self.Lambda_T = 2
         self.Mean_Square = 0

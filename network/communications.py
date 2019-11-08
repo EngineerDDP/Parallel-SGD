@@ -182,7 +182,7 @@ class ComConstructor:
 
 
 class CommunicationController:
-    static_server_address = '192.168.1.115'
+    static_server_address = '192.168.1.140'
     static_server_port = 15387
 
     def __init__(self):

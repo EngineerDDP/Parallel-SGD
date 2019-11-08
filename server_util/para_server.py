@@ -1,6 +1,6 @@
 from log import Logger
 
-from server_util.init_model import ServerUtil
+from server_util.init_model import ModelMNIST
 
 from psgd.asgd import AsynchronizedSGD
 from psgd.transfer import NTransfer
@@ -14,7 +14,7 @@ class ParameterServer:
         self.Node_ID = self.Com.Node_ID
         self.Log = Logger('*PA*', False)
 
-        updater = [{} for i in ServerUtil.getWeightsInit()]
+        updater = [{} for i in ModelMNIST.getWeightsInit()]
 
         for layer_id in range(len(updater)):
             for t in ['w', 'b']:

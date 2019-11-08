@@ -4,7 +4,7 @@ from codec.interfaces import ICommunicationCtrl, IComPack
 
 from network.agreements import DefaultNodes
 
-from server_util.init_model import ServerUtil
+from server_util.init_model import ModelMNIST
 from settings import GlobalSettings
 
 from log import Logger
@@ -84,7 +84,7 @@ class PAServerCodec(ICommunicationCtrl):
         ICommunicationCtrl.__init__(self)
 
         self.Node_ID = node_id
-        self.Learn_Rate = ServerUtil.learn_rate()
+        self.Learn_Rate = ModelMNIST.learn_rate()
 
         # save PA current state
         self.Current_Weights = 0

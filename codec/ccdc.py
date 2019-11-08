@@ -104,6 +104,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         self.block_weights_have[blockweight.Block_ID] = CodedBlockWeight.fromBlockWeight(blockweight)
         self.block_weights_recv[blockweight.Block_ID] = CodedBlockWeight.fromBlockWeight(blockweight)
 
+        # self.aggregate()
         # check if any of those blocks were ready to broadcast
         return self.coding()
 
@@ -112,7 +113,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             Received a communication package from other node
         """
         # self.Log.print_log('Self have: blocks {}'.format(self.BlockWeights_Send.keys()))
-        partial_block_weight = ComPack.decompose_compack(json_dict, self.block_weights_have)
+        partial_block_weight = ComPack.decompose_compack(ComPack.from_dictionary(json_dict), self.block_weights_have)
 
         self.Parts_BlockWeight_Buffers[
             (partial_block_weight.Block_ID, partial_block_weight.Position)] = partial_block_weight
@@ -136,6 +137,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             values = [self.block_weights_have[key] for key in comb]
             targets, compack = ComPack.compose_compack(self.Node_ID, values)
             self.ComPack_Combs.add(comb)
+            compack = ComPack.to_dictionary(compack)
 
             return targets, compack
 
@@ -188,6 +190,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
                 batch = i.Batch_ID
 
             self.set_result(blockweights)
+            self.dispose()
 
         return None
 
@@ -260,12 +263,15 @@ class ComPack(IComPack):
                         com_pack.Partial_Block_Weights_Content_Position)
         content = com_pack.Partial_Block_Weights_Content
 
+        # deprecated usage
+        layer_id = list(blockweights_dic.values())[0].Layer_ID
+        batch_id = list(blockweights_dic.values())[0].Batch_ID
+
         parts_absent = 0
         decompose_part_id = 0
         decompose_part_pos = 0
 
         for id, pos in iteration:
-
             if blockweights_dic.get(id):
                 content -= blockweights_dic[id].getbyPosition(pos).Content
             else:
@@ -275,7 +281,7 @@ class ComPack(IComPack):
 
         assert parts_absent == 1, 'Invalid decode process, value absent: {}'.format(parts_absent)
 
-        return PartialBlockWeight(decompose_part_id, decompose_part_pos, content)
+        return PartialBlockWeight(layer_id, batch_id, decompose_part_id, decompose_part_pos, content)
 
 
 if __name__ == '__main__':

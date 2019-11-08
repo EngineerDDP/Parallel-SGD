@@ -1,13 +1,13 @@
-class ServerUtil:
+class ModelMNIST:
     Neural_Network = None
 
     @staticmethod
     def getWeightsInit():
 
-        if ServerUtil.Neural_Network is None:
-            ServerUtil.initWeights()
+        if ModelMNIST.Neural_Network is None:
+            ModelMNIST.initWeights()
 
-        return ServerUtil.Neural_Network
+        return ModelMNIST.Neural_Network
     #
     # def initWeights():
     #
@@ -31,7 +31,7 @@ class ServerUtil:
         from neuralnetworks.activations import Sigmoid
         from dataset.mnist_input import load_mnist
 
-        ServerUtil.Neural_Network = [
+        ModelMNIST.Neural_Network = [
             FCLayer(256, act=Tanh()),
             FCLayer(128, act=Tanh()),
             FCLayer(128, act=Tanh()),
@@ -40,10 +40,10 @@ class ServerUtil:
             FCLayer(10, act=Sigmoid())]
 
         input_sample = load_mnist()[0][0].reshape([-1, 1])
-        for layer in ServerUtil.Neural_Network:
+        for layer in ModelMNIST.Neural_Network:
             input_sample = layer.F(input_sample)
 
-        ServerUtil.Neural_Network = [(i.Output, i.W, i.B, i.Act) for i in ServerUtil.Neural_Network]
+        # ModelMNIST.Neural_Network = [(i.Output, i.W, i.B, i.Act) for i in ModelMNIST.Neural_Network]
         # ServerUtil.Neural_Network = np.linspace(0,1,100).reshape([10,10])
         return
 
@@ -71,7 +71,7 @@ class ServerUtil:
         from neuralnetworks.losses import MseLoss
         from neuralnetworks.losses import CrossEntropyLoss
 
-        return MseLoss
+        return CrossEntropyLossWithSigmoid
 
     @staticmethod
     def epoches():
@@ -81,7 +81,7 @@ class ServerUtil:
     @staticmethod
     def learn_rate():
 
-        return 1
+        return 0.05
 
     T_DATA = None
     #

@@ -10,7 +10,7 @@ from settings import GlobalSettings
 
 from network.communications import TLVPack
 
-from server_util.init_model import ServerUtil
+from server_util.init_model import ModelMNIST
 
 
 class DoAsync(Thread):
@@ -176,15 +176,15 @@ class ClientHandler(socketserver.BaseRequestHandler):
                         dic_back = {General.Type: Initialize.Init_Weight,
                                     General.From: (-1),
                                     General.To: (-1),
-                                    Initialize.Weight_Content: ServerUtil.getWeightsInit(),
+                                    Initialize.Weight_Content: ModelMNIST.getWeightsInit(),
                                     Initialize.Redundancy: GlobalSettings.getDefault().Redundancy,
                                     Initialize.Nodes: GlobalSettings.getDefault().NodeCount,
                                     Initialize.Batch_Size: GlobalSettings.getDefault().Batch.Batch_Size,
-                                    Initialize.CodeType: ServerUtil.codec_ctrl(),
-                                    Initialize.SyncClass: ServerUtil.psgd_type(),
-                                    Initialize.Epoches: ServerUtil.epoches(),
-                                    Initialize.LOSS:ServerUtil.loss_type(),
-                                    Initialize.Learn_Rate:ServerUtil.learn_rate()
+                                    Initialize.CodeType: ModelMNIST.codec_ctrl(),
+                                    Initialize.SyncClass: ModelMNIST.psgd_type(),
+                                    Initialize.Epoches: ModelMNIST.epoches(),
+                                    Initialize.LOSS:ModelMNIST.loss_type(),
+                                    Initialize.Learn_Rate:ModelMNIST.learn_rate()
                                     }
                         print('Weights assigned: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Data.Type:
@@ -192,8 +192,8 @@ class ClientHandler(socketserver.BaseRequestHandler):
                             General.Type: Initialize.Init_Weight,
                             General.From: (-1),
                             General.To: (-1),
-                            Data.Train_Data: ServerUtil.train_data(),
-                            Data.Eval_Data: ServerUtil.eval_data()
+                            Data.Train_Data: ModelMNIST.train_data(),
+                            Data.Eval_Data: ModelMNIST.eval_data()
                         }
                         print('Data loaded: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Initialize.Current_State:

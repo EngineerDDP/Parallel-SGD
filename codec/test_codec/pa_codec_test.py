@@ -2,7 +2,7 @@ import numpy as np
 
 from codec.pacodec import PAServerCodec, PAClientComPack
 
-from server_util.init_model import ServerUtil
+from server_util.init_model import ModelMNIST
 
 from neuralnetworks.optimizer import GradientDecentOptimizer
 from neuralnetworks.model import Model
@@ -19,7 +19,7 @@ class Test_PAServer(PAServerCodec):
         PAServerCodec.__init__(self, node_id, logger)
 
         self.Working_Batch = [0 for node in GlobalSettings.getDefault().Nodes]
-        self.W_copy = np.array(ServerUtil.Neural_Network[0].W)
+        self.W_copy = np.array(ModelMNIST.Neural_Network[0].W)
 
     def receive_blocks(self, json_dict):
 
@@ -29,15 +29,15 @@ class Test_PAServer(PAServerCodec):
         if compack.Layer_ID == 0 and json_dict['NW_Type'] == 'w' and self.Working_Batch[compack.Node_ID] % 10 == 0:
             self.run_test_method(compack.Content)
         if json_dict['NW_Type'] == 'b':
-            ServerUtil.Neural_Network[0].B = -1 * self.Learn_Rate * self.Current_Weights / GlobalSettings.getDefault().Batch.Batch_Size
+            ModelMNIST.Neural_Network[0].B = -1 * self.Learn_Rate * self.Current_Weights / GlobalSettings.getDefault().Batch.Batch_Size
 
         return super().receive_blocks(json_dict)
 
     def run_test_method(self, content):
 
-        x, y = ServerUtil.eval_data()
-        nn = ServerUtil.Neural_Network
-        loss = ServerUtil.loss_type()()
+        x, y = ModelMNIST.eval_data()
+        nn = ModelMNIST.Neural_Network
+        loss = ModelMNIST.loss_type()()
         op = GradientDecentOptimizer(loss, nn)
         w = self.W_copy - self.Learn_Rate * self.Current_Weights / GlobalSettings.getDefault().Batch.Batch_Size
 

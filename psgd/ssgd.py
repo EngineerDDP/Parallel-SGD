@@ -29,7 +29,7 @@ class SynchronizedSGD(IParallelSGD):
     """
 
     STR_BATCH_NO = 'SSGD_BATCH_NO'
-    INT_READ_TIMEOUT_MS = -1
+    INT_READ_TIMEOUT_MS = 2000
 
     def __init__(self, node_id, layer_id, codec):
         """
