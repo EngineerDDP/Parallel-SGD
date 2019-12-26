@@ -1,5 +1,6 @@
 import numpy as np
 from time import time
+from time import sleep
 
 
 class GradientDecentOptimizer:
@@ -28,6 +29,8 @@ class GradientDecentOptimizer:
 
     def grad(self, x, label):
 
+        print("This is a test method, the output of this method was undefined.")
+
         x = np.asmatrix(x).T
         label = np.asmatrix(label).T
 
@@ -38,6 +41,8 @@ class GradientDecentOptimizer:
             intermediate.append(nn.F(intermediate[-1]))
 
         grad = self.Loss.gradient(intermediate[-1], label)
+
+        grad = self.Layers[-1].delta_wb(intermediate[-2], grad)
 
         return grad
 
@@ -90,8 +95,107 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
         GradientDecentOptimizer.__init__(self, loss, layers, learnrate)
 
         self.Tags = tags
+        self.Slice_To_Take = None
         self.Com = com
         self.total_non_execution_time = 0
+
+    def train(self, x_total, label_total):
+        """
+            train the network with labeled samples
+        """
+
+        total = len(x_total)
+
+        # get multi-blocks
+        blocks = []
+        block_labels = []
+
+        for tag in self.Tags:
+            # save all blocks in one batch
+            blocks.append(x_total[tag.getSliceWithinBatch()])
+            block_labels.append(label_total[tag.getSliceWithinBatch()])
+
+        if self.Slice_To_Take is None:
+            self.Slice_To_Take = []
+            start = 0
+            end = 0
+            for block in blocks:
+                end = end + block.shape[0]
+                self.Slice_To_Take.append(slice(start, end))
+                start = end
+
+        x = np.concatenate(blocks, axis=0)
+        label = np.concatenate(block_labels, axis=0)
+
+        x = np.asmatrix(x).T
+        label = np.asmatrix(label).T
+
+        # forward propagation
+
+        intermediate = [x]
+        for nn in self.Layers:
+            intermediate.append(nn.F(intermediate[-1]))
+
+        loss = self.Loss.loss(intermediate[-1], label)
+
+        # apply learning rate
+
+        self.Grad = self.LR * self.Loss.gradient(intermediate[-1], label)
+        grad = self.Grad
+
+        # backward propagation
+
+        self.Layers.reverse()
+        i = 2
+        for nn in self.Layers:
+
+            grad_back = []
+
+            for j in range(len(self.Tags)):
+                # Note:列向量!
+                w, b, y = nn.delta_wb(intermediate[-1 * i][:, self.Slice_To_Take[j]], grad[:, self.Slice_To_Take[j]])
+                grad_back.append(y)
+                non_exec_start = time()
+                self.Com.put_weights(w, self.Tags[j], 'w')
+                self.Com.put_weights(b, self.Tags[j], 'b')
+                non_exec_end = time()
+                self.total_non_execution_time += non_exec_end - non_exec_start
+
+            non_exec_start = time()
+
+            w_new = self.Com.get_weights(self.Tags[0], 'w') / total
+            b_new = self.Com.get_weights(self.Tags[0], 'b') / total
+
+            non_exec_end = time()
+            self.total_non_execution_time += non_exec_end - non_exec_start
+
+            grad = nn.apply_wb(w_new, b_new, np.concatenate(grad_back, axis=1))
+
+            # increase layer
+            for tag in self.Tags:
+                tag.incLayer()
+            i += 1
+
+        self.Layers.reverse()
+
+        # return loss
+        for tag in self.Tags:
+            tag.incBatch()
+
+        # Release memory
+        del x
+        del label
+
+        return np.mean(loss)
+
+
+class DelayedParallelGradientDecentOptimizer(ParallelGradientDecentOptimizer):
+
+    def __init__(self, loss, layers, tags, com, learnrate=0.01, max_delay=0.2):
+        """Inherited"""
+        ParallelGradientDecentOptimizer.__init__(self, loss, layers, tags, com, learnrate)
+        self.Max_Delay = max_delay
+        self.Min_Delay = 0
 
     def train(self, x, label):
         """
@@ -154,6 +258,8 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
                 non_exec_end = time()
                 self.total_non_execution_time += non_exec_end - non_exec_start
 
+            sleep(np.random.uniform(self.Min_Delay, self.Max_Delay))
+
             non_exec_start = time()
 
             w_new = self.Com.get_weights(self.Tags[0], 'w') / total
@@ -182,6 +288,9 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
         del label
 
         return np.mean(loss)
+
+
+
 
 
 class AdagradOptimizer(GradientDecentOptimizer):
@@ -218,9 +327,6 @@ class GradientDecentOptimizerv2:
         self.Grad = 0
 
     def loss(self, x, label):
-
-        x = np.asmatrix(x).T
-        label = np.asmatrix(label).T
 
         # forward propagation
 

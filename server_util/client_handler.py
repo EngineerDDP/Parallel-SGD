@@ -141,6 +141,7 @@ class ClientHandler(socketserver.BaseRequestHandler):
 
     Client_List = NodeClients()
     PA_Server = None
+    CallBack_Server = None
 
     def handle(self):
 
@@ -184,7 +185,8 @@ class ClientHandler(socketserver.BaseRequestHandler):
                                     Initialize.SyncClass: ModelMNIST.psgd_type(),
                                     Initialize.Epoches: ModelMNIST.epoches(),
                                     Initialize.LOSS:ModelMNIST.loss_type(),
-                                    Initialize.Learn_Rate:ModelMNIST.learn_rate()
+                                    Initialize.Learn_Rate:ModelMNIST.learn_rate(),
+                                    Initialize.Target_Accuracy:ModelMNIST.target_acc()
                                     }
                         print('Weights assigned: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Data.Type:

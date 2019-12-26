@@ -105,23 +105,37 @@ def load_sin_sim():
 
     return x, y
 
+def show_fig_of_value_2d(func, sample_x, sample_y):
+
+    x, y = np.meshgrid(sample_x, sample_y)
+    val = np.zeros_like(x)
+
+    for i in len(sample_x):
+        for j in len(sample_y):
+            val[j][i] = func(sample_x[i], sample_y[j])
+
+    plt.contourf(x, y, val, levels=7)
+    c = plt.contour(x, y, val, colors='black')
+    plt.clabel(c, inline=True, fontsize=10)
+    plt.show()
+
 
 if __name__ == '__main__':
     w_1 = np.linspace(-1, 1, 100)
     w_2 = np.linspace(-1, 1, 100)
 
-    x_1 = np.linspace(-1, 1, 100)
-    x_2 = np.linspace(-1, 1.5, 100)
+    x_1 = np.linspace(-1, 0.7, 100)
+    x_2 = np.linspace(-0.6, 0.5, 100)
     y = 0.2*np.sin(x_1) + 0.7*np.cos(x_2)
     y = y + np.random.normal(scale=0.1, size=x_1.shape)
 
 
     def loss_sim(w_1, w_2):
         w = np.asarray([w_1, w_2])
-        w = w.reshape([1,2])
+        w = w.reshape([1, 2])
         x = np.asarray([x_1, x_2])
         # x = x.transpose()
-        y_l = y.reshape([1,100])
+        y_l = y.reshape([1, 100])
         ch = np.random.choice(100, 100)
         loss_r = 0
         for c in ch:
@@ -151,10 +165,10 @@ if __name__ == '__main__':
         FCLayer(units=1, act=Tanh())
     ]
     loss = MseLoss()
-    op = GradientDecentOptimizer(loss, nn, 0.1)
+    op = GradientDecentOptimizer(loss, nn, 1)
     model = ModelFitWithMap(nn, op, False)
     x = np.asarray([x_1, x_2])
-    model.fit(x.transpose(), y.reshape([-1, 1]), 100000, 100)
+    model.fit(x.transpose(), y.reshape([-1, 1]), 1000, 100)
 
     pred = model.predict(x.transpose())
     pred = pred.reshape(-1)

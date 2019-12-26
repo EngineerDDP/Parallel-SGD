@@ -5,7 +5,6 @@ from codec.pacodec import PAServerCodec, PAClientComPack
 from server_util.init_model import ModelMNIST
 
 from neuralnetworks.optimizer import GradientDecentOptimizer
-from neuralnetworks.model import Model
 
 from settings import GlobalSettings
 

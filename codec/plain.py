@@ -22,7 +22,7 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
         # system diagnosed info
         self.Log = logger
 
-        assert GlobalSettings.getDefault().Redundancy == 1, "Uncoded asgd cant run in redundancy mode"
+        # assert GlobalSettings.getDefault().Redundancy == 1, "Uncoded asgd cant run in redundancy mode"
 
     def dispose(self):
         """

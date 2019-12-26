@@ -57,6 +57,11 @@ class ModelMNIST:
         return CodedCommunicationCtrl
 
     @staticmethod
+    def target_acc():
+
+        return 0.96
+
+    @staticmethod
     def psgd_type():
 
         from psgd.asgd import AsynchronizedSGD
@@ -76,7 +81,7 @@ class ModelMNIST:
     @staticmethod
     def epoches():
 
-        return 100
+        return 10
 
     @staticmethod
     def learn_rate():

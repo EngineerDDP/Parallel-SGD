@@ -231,7 +231,7 @@ class CommunicationController:
         """
         self.com.close()
         sleep(1)
-        self.com.join()
+        self.com.terminate()
 
     def is_closed(self):
         """

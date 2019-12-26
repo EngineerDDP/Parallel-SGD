@@ -14,7 +14,7 @@ class Logger:
         time_str = time.strftime('%H:%M:%S')
 
         if not self.Mute:
-            print('INFO @ {} : {}'.format(time_str, msg))
+            print('INFO {}@{} : {}'.format(self.Title, time_str, msg))
 
     def log_error(self, error):
 

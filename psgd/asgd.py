@@ -40,12 +40,11 @@ class AsynchronizedSGD(SynchronizedSGD):
         """
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
-            pack_to_send = self.batch_updater.receive_blocks(obj)
-            if pack_to_send is not None:
+            pack_to_sends = self.batch_updater.receive_blocks(obj)
+            for pack_to_send in pack_to_sends:
                 target, pack = pack_to_send
                 pack[SynchronizedSGD.STR_BATCH_NO] = sender_batch
-                return target, pack
-        return None
+                yield target, pack
 
     def require_weights(self, tag):
 

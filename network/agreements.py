@@ -24,6 +24,7 @@ class Initialize:
     Epoches = 'EPO'
     LOSS = 'LOSS_FUNCTION'
     Learn_Rate = 'LRate'
+    Target_Accuracy = 'TACC'
 
 
 class Data:

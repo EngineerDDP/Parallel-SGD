@@ -8,8 +8,8 @@ from network.communications import CommunicationController
 from network.agreements import General, Initialize, DefaultNodes, Data
 
 from neuralnetworks.layers import FCLayer
-from neuralnetworks.optimizer import ParallelGradientDecentOptimizer
-from neuralnetworks.model import Model
+from neuralnetworks.optimizer import ParallelGradientDecentOptimizer, DelayedParallelGradientDecentOptimizer
+from neuralnetworks.model import Trace_Model, Normal_Model
 
 from psgd.transfer import NTransfer
 from psgd.interfaces import IParallelSGD
@@ -20,10 +20,12 @@ from dataset.mnist_input import load_mnist
 
 from log import Logger
 
+import sys
+
 
 class MNISTTrainingThread(Thread):
 
-    def __init__(self, model_init, losses, codec_type, sync_class, com, w_types, tags, train_x, train_y, batch_size, epoches, learnrate=0.01):
+    def __init__(self, model_init, losses, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epoches, learnrate=0.01, target_acc=0.96):
 
         Thread.__init__(self, name='Simulated training process. Node: {}'.format(tags[0].Node_No))
 
@@ -40,15 +42,20 @@ class MNISTTrainingThread(Thread):
 
         self.Transfer = NTransfer(updater, com)
         self.Optimizer = ParallelGradientDecentOptimizer(losses(), nn, tags, self.Transfer, learnrate)
-        self.Model = Model(nn, self.Optimizer)
+        if tags[0].Node_No == 0:
+            self.Model = Trace_Model(nn, self.Optimizer, target_acc=target_acc, trace_name='Trace_Node={}_Codec={}-'.format(GlobalSettings.getDefault().NodeCount, codec_type.__name__))
+        else:
+            self.Model = Normal_Model(nn, self.Optimizer)
 
         self.Train_X = train_x
         self.Train_Y = train_y
+        self.Eval_X = eval_x
+        self.Eval_Y = eval_y
 
     def run(self):
 
         self.Transfer.start_transfer()
-        self.Model.fit(self.Train_X, self.Train_Y, self.Epoches, self.Batch_Size)
+        self.Model.fit(self.Train_X, self.Train_Y, self.Epoches, self.Batch_Size, val_x=self.Eval_X, val_y=self.Eval_Y)
 
 
 def main():
@@ -58,8 +65,8 @@ def main():
     # ----------------------------!!!!!!!!!!!!----------------------------
 
     # Set remote
-    CommunicationController.static_server_address = '192.168.1.140'
-    CommunicationController.static_server_port = 15390
+    CommunicationController.static_server_address = '121.248.202.131'
+    CommunicationController.static_server_port = 15387
     # Communication controller
     con = CommunicationController()
     # Logger
@@ -128,7 +135,7 @@ def main():
 
     train = MNISTTrainingThread(model_init_dic[Initialize.Weight_Content],
                                 Losses, codec, psgd, con, w_types,
-                                tags, train_x, train_y,
+                                tags, train_x, train_y, eval_x, eval_y,
                                 GlobalSettings.getDefault().Batch.Batch_Size,
                                 EPOCHES, learnrate=LR)
 

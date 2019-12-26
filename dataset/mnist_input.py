@@ -2,7 +2,8 @@ import os
 import struct
 import numpy as np
 
-def load_mnist(path='D:\\CNN\\MNIST_data', kind='train'):
+
+def load_mnist(path='./dataset/CNN/MNIST_data', kind='train'):
     """Load MNIST data from `path`"""
     labels_path = os.path.join(path,
                                '%s-labels.idx1-ubyte'

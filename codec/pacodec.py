@@ -10,6 +10,12 @@ from settings import GlobalSettings
 from log import Logger
 
 
+def yield_none():
+    # for iteration
+    for i in []:
+        yield ([], None)
+
+
 class PAClientCodec(ICommunicationCtrl):
 
     def __init__(self, node_id, logger=Logger('None')):
@@ -29,12 +35,14 @@ class PAClientCodec(ICommunicationCtrl):
 
         send, pack = PAClientComPack.compose_compack(block_weight, self.Node_ID)
         pack = PAClientComPack.to_dictionary(pack)
-        return send, pack
+        yield (send, pack)
 
     def receive_blocks(self, json_dict):
 
         compack = PAServerCompack.decompose_compack(json_dict)
         self.set_result(compack.Content)
+
+        return yield_none()
 
 
 class PAClientComPack(IComPack):
@@ -106,7 +114,7 @@ class PAServerCodec(ICommunicationCtrl):
         :param block_weight:
         :return:
         """
-        pass
+        return yield_none()
 
     def receive_blocks(self, json_dict):
         """
@@ -127,7 +135,7 @@ class PAServerCodec(ICommunicationCtrl):
         # build communication package
         comback = PAServerCompack.compose_compack(grad_diff)
 
-        return [compack.Node_ID], comback.to_dictionary()
+        yield ([compack.Node_ID], comback.to_dictionary())
 
 
 class PAServerCompack(PAClientComPack):

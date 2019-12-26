@@ -14,6 +14,10 @@ from settings import GlobalSettings
 from log import Logger
 
 
+Qunatization = 'int32'
+Scale = 100000000
+
+
 class PartialBlockWeight:
     """
         Weights calculated using one block and prepared to be coded
@@ -37,22 +41,29 @@ class CodedBlockWeight(BlockWeight):
         return cls(blockweight.Layer_ID, blockweight.Batch_ID, blockweight.Block_ID, blockweight.Company_ID,
                    blockweight.Content)
 
+    def __vsplit(self, content, count, take):
+        # get position index
+        pos = np.floor(np.linspace(0, len(content), count+1)).astype('int')
+        return slice(pos[take], pos[take+1])
+
     def getbyNode(self, node_id):
         # get position
         pos = list(self.Company_ID).index(node_id)
 
-        # get parts
-        parts = np.vsplit(self.Content, len(self.Company_ID))
-
-        # return value
-        return PartialBlockWeight(self.Layer_ID, self.Batch_ID, self.Block_ID, pos, parts[pos])
+        return self.getbyPosition(pos)
 
     def getbyPosition(self, pos):
         # get parts
-        parts = np.vsplit(self.Content, len(self.Company_ID))
+        parts = self.Content[self.__vsplit(self.Content, len(self.Company_ID), pos)].copy()
 
         # return value
-        return PartialBlockWeight(self.Layer_ID, self.Batch_ID, self.Block_ID, pos, parts[pos])
+        return PartialBlockWeight(self.Layer_ID, self.Batch_ID, self.Block_ID, pos, parts)
+
+    def setByNode(self, node_id, content):
+        # get position
+        pos = list(self.Company_ID).index(node_id)
+        self.Content[self.__vsplit(self.Content, len(self.Company_ID), pos)] = content
+        return None
 
 
 class CodedCommunicationCtrl(ICommunicationCtrl):
@@ -99,12 +110,11 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             Update a block weights to the cluster
         """
         # stabilize float
-        blockweight.Content = np.floor(blockweight.Content * 1000) / 1000
-
+        blockweight.Content = (np.floor(blockweight.Content * Scale)).astype(Qunatization)
         self.block_weights_have[blockweight.Block_ID] = CodedBlockWeight.fromBlockWeight(blockweight)
         self.block_weights_recv[blockweight.Block_ID] = CodedBlockWeight.fromBlockWeight(blockweight)
 
-        # self.aggregate()
+        self.aggregate()
         # check if any of those blocks were ready to broadcast
         return self.coding()
 
@@ -170,7 +180,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         # get layer id an batch id within this scope is deprecated
         # now using zero as default
         self.block_weights_recv[new_block_id] = CodedBlockWeight(0, 0, block_id,
-                                set(GlobalSettings.getDefault().BlockAssignment.Block2Node[block_id]), result_weight)
+                            set(GlobalSettings.getDefault().BlockAssignment.Block2Node[block_id]), result_weight)
 
         return
 
@@ -187,7 +197,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
                 layer = i.Layer_ID
                 batch = i.Batch_ID
 
-            self.set_result(blockweights)
+            self.set_result((blockweights.astype('float64') / Scale))
             self.dispose()
 
         return None
@@ -204,7 +214,7 @@ class ComPack(IComPack):
         self.Node_ID = node_id
 
         self.Partial_Block_Weights_Content_ID = partial_block_weights_content_id
-        self.Partial_Block_Weights_Content = np.asarray(partial_block_weight_content, dtype='float16')
+        self.Partial_Block_Weights_Content = partial_block_weight_content
         self.Partial_Block_Weights_Content_Position = partial_block_weights_content_position
 
     def to_dictionary(compack):
@@ -236,7 +246,7 @@ class ComPack(IComPack):
 
         partial_block_weights_content_position = []
         partial_block_weights_content_id = []
-        partial_block_weight_content = 0
+        partial_block_weight_content = None
         send_target_set = set()
 
         for blockweight in blockweights:
@@ -244,8 +254,13 @@ class ComPack(IComPack):
             partial_block_weights_content_id.append(blockweight.Block_ID)
             # get part of block weight
             partial_block_weight = blockweight.getbyNode(node_id)
-            # save content and position
-            partial_block_weight_content += partial_block_weight.Content
+
+            # initialization
+            if partial_block_weight_content is None:
+                partial_block_weight_content = partial_block_weight.Content
+            else:
+                # save content and position
+                partial_block_weight_content ^= partial_block_weight.Content
             partial_block_weights_content_position.append(partial_block_weight.Position)
             # get send target
             send_target_set ^= blockweight.Adversary_ID
@@ -271,7 +286,7 @@ class ComPack(IComPack):
 
         for id, pos in iteration:
             if blockweights_dic.get(id):
-                content -= blockweights_dic[id].getbyPosition(pos).Content
+                content ^= blockweights_dic[id].getbyPosition(pos).Content
             else:
                 parts_absent += 1
                 decompose_part_id = id

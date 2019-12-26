@@ -223,7 +223,7 @@ class FCLayer_v2(ILayer):
         y = np.multiply(act_grad, gradient)
 
         # adjust weight
-        batch_weight = y.T.dot(x) / y.shape[0]
+        batch_weight = (y.T.dot(x)).T / y.shape[0]
         self.W = self.W - batch_weight
         # adjust bias
         self.B = self.B - y.mean(axis=0)
@@ -247,7 +247,10 @@ class Conv2dLayer(ILayer):
         :param strikes: Step per operation. [rows skip, columns skip] :list[int]
         """
         # Convolution OP parameters
-        self.Padding = padding
+        if padding == 'SAME':
+            self.Padding = [0, 0, 0, 0]
+        else:
+            self.Padding = padding
         self.Strikes = strikes
         # Convolution Kernel parameters
         self.Filter_Size = filter_size
@@ -262,7 +265,7 @@ class Conv2dLayer(ILayer):
     def __w_init_xvars(self, shape):
         high = np.sqrt(1 / shape[1])
         low = -high
-        self.W = np.random.uniform(low=low, high=high, size=shape)
+        return np.random.uniform(low=low, high=high, size=shape)
 
     def __init_kernel(self, w_init=None):
 
@@ -379,11 +382,14 @@ class Conv2dLayer(ILayer):
 
         # Calculate convolution result for each sample each channel
         conv = np.asarray([[self.__channel_conv(xx, kernel) for kernel in self.Kernels] for xx in x])
+        # Add bias
+        for i in range(conv.shape[0]):
+            for j in range(conv.shape[1]):
+                conv[i,j] += self.Bias[j]
         # Swap channel axis to last dimension
         conv = np.swapaxes(np.swapaxes(conv, 1, 3), 1, 2)
-        bias = np.asarray([[c + self.Bias[i] for i in range(self.Kernel_Count)] for c in conv])
 
-        return bias
+        return conv
 
     def F(self, x):
         """
@@ -426,14 +432,17 @@ class Conv2dLayer(ILayer):
 
 class MaxPool(ILayer):
 
-    def __init__(self, filter_size, strikes):
+    def __init__(self, filter_size, strikes=None):
         """
             max pool layer
         :param filter_size: Shape of filter. [lines, columns] :list[int]
         :param strikes: Step per operation. [rows skip, columns skip] :list[int]
         """
         # pooling OP parameters
-        self.Strikes = strikes
+        if strikes is None:
+            self.Strikes = filter_size
+        else:
+            self.Strikes = strikes
         # pooling Kernel parameters
         self.Filter_Size = filter_size
 
@@ -501,8 +510,11 @@ class MaxPool(ILayer):
         return False
 
     def logit(self, x):
-        # pooling input x
-        return self.__pool2d(x)
+        # pooling each sample
+        pool = np.asarray([[self.__pool2d(xx[:,:,channel]) for channel in range(xx.shape[-1])] for xx in x])
+        pool = np.swapaxes(np.swapaxes(pool, 1, 3), 1, 2)
+
+        return pool
 
     def F(self, x):
         # no activation function in pooling layer
@@ -516,8 +528,15 @@ class MaxPool(ILayer):
         pass
 
     def backpropagation(self, x, gradient):
-        # up-sampling gradient
-        return self.__pool2d_revt(x, gradient)
+        # total result
+        result = 0
+        # up-sampling gradient for each sample
+        for i in range(x.shape[0]):
+            channel_pooling = lambda channel:self.__pool2d_revt(x[i,:,:,channel], gradient[i,:,:,channel])
+            # Add gradient
+            result += np.swapaxes(np.swapaxes([channel_pooling(j) for j in range(x.shape[-1])], 0, 2), 0, 1)
+
+        return result
 
 
 class Reshape(ILayer):
@@ -537,6 +556,9 @@ class Reshape(ILayer):
     def logit(self, x):
         if self.Shape_In is None:
             self.Shape_In = x.shape
+            temp_out = [self.Shape_In[0]]
+            temp_out.extend(self.Shape_Out)
+            self.Shape_Out = temp_out
         return np.reshape(x, self.Shape_Out)
 
     def F(self, x):

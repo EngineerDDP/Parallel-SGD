@@ -89,14 +89,16 @@ class NTransfer(ITransfer):
                 try:
                     layer_no = dic[NTransfer.STR_LAYER_NO]
                     w_type = dic[NTransfer.STR_W_TYPE]
-                    update_pack = self.type_weights_controller[layer_no][w_type].accept_data(dic)
+                    update_packs = self.type_weights_controller[layer_no][w_type].accept_data(dic)
                     self.Log.log_message('Message accepted.')
-                    if update_pack is not None:
+                    if update_packs is None:
+                        continue
+                    for update_pack in update_packs:
                         sender, dic = update_pack
                         self.__send(sender, dic, layer_no, w_type)
                         self.Log.log_message('Message back to node {}'.format(sender))
                 except KeyError:
                     continue
-        except TypeError:
+        except OSError:
             pass
         print('Transfer thread exited safely.')
