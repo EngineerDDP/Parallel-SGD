@@ -12,7 +12,7 @@ class GradientDecentOptimizer:
         self.Layers = layers
         self.Grad = 0
 
-    def loss(self, x, label):
+    def metric(self, x, label):
 
         x = np.asmatrix(x).T
         label = np.asmatrix(label).T
@@ -23,7 +23,7 @@ class GradientDecentOptimizer:
         for nn in self.Layers:
             intermediate.append(nn.F(intermediate[-1]))
 
-        loss = self.Loss.loss(intermediate[-1], label)
+        loss = self.Loss.metric(intermediate[-1], label)
 
         return loss
 
@@ -62,7 +62,7 @@ class GradientDecentOptimizer:
         for nn in self.Layers:
             intermediate.append(nn.F(intermediate[-1]))
 
-        loss = self.Loss.loss(intermediate[-1], label)
+        loss = self.Loss.metric(intermediate[-1], label)
 
         # apply learning rate
 
@@ -136,7 +136,7 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
         for nn in self.Layers:
             intermediate.append(nn.F(intermediate[-1]))
 
-        loss = self.Loss.loss(intermediate[-1], label)
+        loss = self.Loss.metric(intermediate[-1], label)
 
         # apply learning rate
 
@@ -165,7 +165,7 @@ class ParallelGradientDecentOptimizer(GradientDecentOptimizer):
 
             w_new = self.Com.get_weights(self.Tags[0], 'w') / total
             b_new = self.Com.get_weights(self.Tags[0], 'b') / total
-
+            # b_new = 0
             non_exec_end = time()
             self.total_non_execution_time += non_exec_end - non_exec_start
 
@@ -233,7 +233,7 @@ class DelayedParallelGradientDecentOptimizer(ParallelGradientDecentOptimizer):
         for nn in self.Layers:
             intermediate.append(nn.F(intermediate[-1]))
 
-        loss = self.Loss.loss(intermediate[-1], label)
+        loss = self.Loss.metric(intermediate[-1], label)
 
         # apply learning rate
 
@@ -254,7 +254,7 @@ class DelayedParallelGradientDecentOptimizer(ParallelGradientDecentOptimizer):
                 grad_back.append(y)
                 non_exec_start = time()
                 self.Com.put_weights(w, self.Tags[j], 'w')
-                self.Com.put_weights(b, self.Tags[j], 'b')
+                # self.Com.put_weights(b, self.Tags[j], 'b')
                 non_exec_end = time()
                 self.total_non_execution_time += non_exec_end - non_exec_start
 
@@ -263,7 +263,8 @@ class DelayedParallelGradientDecentOptimizer(ParallelGradientDecentOptimizer):
             non_exec_start = time()
 
             w_new = self.Com.get_weights(self.Tags[0], 'w') / total
-            b_new = self.Com.get_weights(self.Tags[0], 'b') / total
+            # b_new = self.Com.get_weights(self.Tags[0], 'b') / total
+            b_new = 0
 
             non_exec_end = time()
             self.total_non_execution_time += non_exec_end - non_exec_start
@@ -290,9 +291,6 @@ class DelayedParallelGradientDecentOptimizer(ParallelGradientDecentOptimizer):
         return np.mean(loss)
 
 
-
-
-
 class AdagradOptimizer(GradientDecentOptimizer):
 
     def __init__(self, loss, layers, learnrate=0.01):
@@ -317,75 +315,31 @@ class AdagradOptimizer(GradientDecentOptimizer):
         return loss
 
 
-class GradientDecentOptimizerv2:
+class GradientDecentOptimizer_v2:
 
-    def __init__(self, loss, layers, learnrate=0.01):
+    def __init__(self, learn_rate=0.01):
 
-        self.LR = learnrate
-        self.Loss = loss
+        self.LR = learn_rate
+        self.Loss = None
+        self.Layers = []
+
+    def optimize(self, layers):
         self.Layers = layers
-        self.Grad = 0
 
-    def loss(self, x, label):
-
-        # forward propagation
-
-        intermediate = [x]
-        for nn in self.Layers:
-            intermediate.append(nn.F(intermediate[-1]))
-
-        loss = self.Loss.loss(intermediate[-1], label)
-
-        return loss
-
-    def grad(self, x, label):
-
-        x = np.asmatrix(x).T
-        label = np.asmatrix(label).T
-
-        # forward propagation
-
-        intermediate = [x]
-        for nn in self.Layers:
-            intermediate.append(nn.F(intermediate[-1]))
-
-        grad = self.Loss.gradient(intermediate[-1], label)
-
-        return grad
+    def set_loss(self, loss):
+        self.Loss = loss
 
     def train(self, x, label):
         """
             train the network with labeled samples
         """
-
-        # reshape x to [-1,1]
-        #
-        # x = np.asmatrix(x).T
-        # label = np.asmatrix(label).T
-
-        # forward propagation
-
         intermediate = [x]
         for nn in self.Layers:
             intermediate.append(nn.F(intermediate[-1]))
 
-        loss = self.Loss.loss(intermediate[-1], label)
-
         # apply learning rate
-
-        self.Grad = self.LR * self.Loss.gradient(intermediate[-1], label)
-        grad = self.Grad
+        grad = self.LR * self.Loss.gradient(intermediate[-1], label)
 
         # backward propagation
-
-        self.Layers.reverse()
-        i = 2
-        for nn in self.Layers:
-            grad = nn.backpropagation(intermediate[-1 * i], grad)
-            i += 1
-
-        self.Layers.reverse()
-
-        # return loss
-
-        return np.mean(loss)
+        for i in range(1, len(self.Layers)+1):
+            grad = self.Layers[-i].backpropagation(intermediate[-1 * (i+1)], grad)

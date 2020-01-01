@@ -1,6 +1,27 @@
 from abc import ABCMeta, abstractmethod
 
 
+class OutdatedUpdates(Exception):
+
+    def __init__(self):
+        pass
+
+
+class AsyncDetected(Exception):
+
+    def __init__(self):
+        pass
+
+
+class ReadTimeOut(Exception):
+
+    def __init__(self, retry_func):
+        self.__retry = retry_func
+
+    def retry(self):
+        return self.__retry()
+
+
 class IDispatcher(ABCMeta):
 
     def __init__(self, sgds, com):

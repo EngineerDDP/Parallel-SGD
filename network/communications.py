@@ -23,10 +23,12 @@ class TLVPack:
         tlv_package = TLVPack.TLV_Type_Normal.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
         io.sendall(tlv_package)
 
+    @staticmethod
     def flush_garbage(io):
         b = int(0).to_bytes(4, 'big')
         io.sendall(b)
 
+    @staticmethod
     def recv(io):
         type_ = io.recv(1)
         length = io.recv(4)
@@ -45,6 +47,7 @@ class TLVPack:
 
         return TLVPack(content)
 
+    @staticmethod
     def request_close(io):
         io.send(TLVPack.TLV_Type_Exit.to_bytes(1, 'big'))
         TLVPack.flush_garbage(io)
@@ -58,6 +61,12 @@ class Com(Process):
     Circle_interval = 0.001
 
     def __init__(self, socketcon, nodeid=-1):
+        """
+            Initialize a communication control process.
+        :param socketcon: socket connection object to remote device.
+        :param nodeid: node id that has been assigned to this node.
+        """
+
         Process.__init__(self, name='Communication thread address: {}'.format(socketcon.getsockname()))
 
         self.Connection = socketcon
@@ -72,7 +81,10 @@ class Com(Process):
         self.Exit = Value('i', 0)
 
     def run(self):
-
+        """
+            Bootstrap method
+            start both sending and receiving thread on target socket object
+        """
         self.send_thread = Thread(name='communication send.', target=self.run_send)
         self.recv_thread = Thread(name='communication recv.', target=self.run_recv)
 
@@ -98,6 +110,9 @@ class Com(Process):
         print('Communication process exited.')
 
     def run_send(self):
+        """
+            Sending thread function.
+        """
         try:
             while not self.Exit.value:
                 target, dic = self.send_que.get()
@@ -116,7 +131,9 @@ class Com(Process):
             pass
 
     def run_recv(self):
-
+        """
+            Receiving thread function.
+        """
         try:
             while not self.Exit.value:
                 try:
@@ -138,7 +155,6 @@ class Com(Process):
             self.recv_que.put(None)
 
     def close(self):
-
         self.Exit.value = True
 
 
@@ -238,7 +254,7 @@ class CommunicationController:
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return self.com.Exit.value == True
+        return self.com.Exit.value is True
 
 
 if __name__ == "__main__":

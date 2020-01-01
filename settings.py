@@ -67,11 +67,13 @@ class GlobalSettings:
         self.Blocks = set(range(self.BlockCount))
         self.BlockAssignment = BlockAssignment(self)
 
-    def getDefault():
+    @staticmethod
+    def get_default():
         if GlobalSettings.__setting is None:
             GlobalSettings.__setting = GlobalSettings()
         return GlobalSettings.__setting
 
-    def setDefault(n, r, b):
+    @staticmethod
+    def set_default(n, r, b):
         GlobalSettings.__setting = GlobalSettings(n, r, b)
         return 

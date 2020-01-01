@@ -4,11 +4,10 @@ from log import Logger
 from network.agreements import General
 from network.agreements import Transfer as TransferAgreements
 
-from psgd.interfaces import IDispatcher, IParallelSGD, ITransfer
+from psgd.interfaces import ITransfer, ReadTimeOut, AsyncDetected, OutdatedUpdates
 
 
 class NTransfer(ITransfer):
-
     """
         string identifier used in this class.
         identifier used for json key tag.
@@ -30,7 +29,7 @@ class NTransfer(ITransfer):
         self.type_weights_controller = weights_ctrl
         self.communication_process = com
 
-        self.working_thread = Thread(name='Transfer thread for node {}.'\
+        self.working_thread = Thread(name='Transfer thread for node {}.' \
                                      .format(self.communication_process.Node_ID), target=self.__run)
         self.Node_ID = com.Node_ID
         self.Log = logger
@@ -52,7 +51,12 @@ class NTransfer(ITransfer):
             Acquire weights instantly
             No waiting
         """
-        return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
+        try:
+            return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
+        except ReadTimeOut as e:
+            for sender, dic in e.retry():
+                self.__send(sender, dic, tag.Layer_No, w_type)
+                self.Log.log_error('Message retry to node {}'.format(sender))
 
     def start_transfer(self):
         """

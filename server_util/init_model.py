@@ -1,127 +1,137 @@
-class ModelMNIST:
-    Neural_Network = None
+from abc import ABCMeta, abstractmethod
 
-    @staticmethod
-    def getWeightsInit():
+from codec.ccdc import CodedCommunicationCtrl
+from codec.pacodec import PAClientCodec
+from codec.plain import PlainCommunicationCtrl
+from neuralnetworks.activations import Sigmoid
+from neuralnetworks.activations import Tanh, Linear, ReLU
+from neuralnetworks.layers import FCLayer
+from neuralnetworks.losses import CrossEntropyLossWithSigmoid
+from neuralnetworks.losses import MseLoss
+from psgd.asgd import AsynchronizedSGD
+from psgd.ssgd import SynchronizedSGD
 
-        if ModelMNIST.Neural_Network is None:
-            ModelMNIST.initWeights()
 
-        return ModelMNIST.Neural_Network
-    #
-    # def initWeights():
-    #
-    #     from neuralnetworks.layers import FCLayer
-    #     from neuralnetworks.activations import Tanh, Sigmoid, ReLU, Linear
-    #     from dataset.mnist_input import load_mnist
-    #
-    #     ServerUtil.Neural_Network = [
-    #         FCLayer(1, act=Tanh())
-    #     ]
-    #
-    #     x = ServerUtil.train_data()[0][0]
-    #     for layer in ServerUtil.Neural_Network:
-    #         x = layer.F(x)
+class IServerModel(metaclass=ABCMeta):
 
-    @staticmethod
-    def initWeights():
+    @abstractmethod
+    def getWeightsInit(self):
+        pass
 
-        from neuralnetworks.layers import FCLayer
-        from neuralnetworks.activations import Tanh
-        from neuralnetworks.activations import Sigmoid
-        from dataset.mnist_input import load_mnist
+    @abstractmethod
+    def initWeights(self):
+        pass
 
-        ModelMNIST.Neural_Network = [
-            FCLayer(784, act=Tanh()),
-            FCLayer(784, act=Tanh()),
-            FCLayer(392, act=Tanh()),
-            FCLayer(196, act=Tanh()),
-            FCLayer(128, act=Tanh()),
-            FCLayer(10, act=Sigmoid())]
+    @abstractmethod
+    def codec_ctrl(self):
+        pass
 
-        input_sample = load_mnist()[0][0].reshape([-1, 1])
-        for layer in ModelMNIST.Neural_Network:
-            input_sample = layer.F(input_sample)
+    @abstractmethod
+    def target_acc(self):
+        pass
 
-        # ModelMNIST.Neural_Network = [(i.Output, i.W, i.B, i.Act) for i in ModelMNIST.Neural_Network]
-        # ServerUtil.Neural_Network = np.linspace(0,1,100).reshape([10,10])
+    @abstractmethod
+    def psgd_type(self):
+        pass
+
+    @abstractmethod
+    def loss_type(self):
+        pass
+
+    @abstractmethod
+    def epoches(self):
+        pass
+
+    @abstractmethod
+    def learn_rate(self):
+        pass
+
+    @abstractmethod
+    def train_data(self):
+        pass
+
+    @abstractmethod
+    def eval_data(self):
+        pass
+
+
+class ModelDNN(IServerModel):
+
+    __activation_map = {'tanh': Tanh, 'sigmoid': Sigmoid, 'linear': Linear, 'relu': ReLU}
+    __loss_map = {'mse': MseLoss, 'crossentropy': CrossEntropyLossWithSigmoid}
+    __codec_map = {'ccdc': CodedCommunicationCtrl, 'plain': PlainCommunicationCtrl, 'psclient': PAClientCodec}
+    __psgd_map = {'ssgd': SynchronizedSGD, 'asgd': AsynchronizedSGD}
+
+    def __init__(self,
+                 train_x, train_y, test_x, test_y,
+                 layer_units=[784, 784, 396, 192, 128, 10],
+                 activation='tanh',
+                 output='sigmoid',
+                 loss='crossentropy',
+                 learn_rate=0.05,
+                 codec='CCDC',
+                 psgd_type='ssgd',
+                 epoches=10,
+                 target_acc=0.96
+                 ):
+        self.Layer_Units = layer_units
+        self.Activation = ModelDNN.__activation_map[activation]
+        self.Activation_out = ModelDNN.__activation_map[output]
+        self.Loss = ModelDNN.__loss_map[loss]
+        self.Codec = ModelDNN.__codec_map[codec]
+        self.SyncType = ModelDNN.__psgd_map[psgd_type]
+        self.Learning_Rate = learn_rate
+        self.Epoches = epoches
+        self.Target_Accuracy = target_acc
+        self.Training_Data = (train_x, train_y)
+        self.Test_Data = (test_x, test_y)
+        self.Neural_Network = None
+        self.initWeights()
+
+    # ---------- attributes ----------
+
+    def getWeightsInit(self):
+        return self.Neural_Network
+
+    def codec_ctrl(self):
+        return self.Codec
+
+    def target_acc(self):
+        return self.Target_Accuracy
+
+    def psgd_type(self):
+        return self.SyncType
+
+    def loss_type(self):
+        return self.Loss
+
+    def epoches(self):
+        return self.Epoches
+
+    def learn_rate(self):
+        return self.Learning_Rate
+
+    def train_data(self):
+        return self.Training_Data
+
+    def eval_data(self):
+        return self.Test_Data
+
+    # ---------- attributes ----------
+
+    def initWeights(self):
+
+        self.Neural_Network = []
+
+        for units in self.Layer_Units[:-1]:
+            self.Neural_Network.append(FCLayer(units, act=self.Activation()))
+
+        self.Neural_Network.append(FCLayer(self.Layer_Units[-1], act=self.Activation_out()))
+
+        # activated layer
+        input_sample = self.Training_Data[0][0].reshape([-1, 1])
+
+        for nn in self.Neural_Network:
+            input_sample = nn.F(input_sample)
+
         return
-
-    @staticmethod
-    def codec_ctrl():
-
-        from codec.ccdc import CodedCommunicationCtrl
-        from codec.plain import PlainCommunicationCtrl
-        from codec.pacodec import PAClientCodec
-
-        return CodedCommunicationCtrl
-
-    @staticmethod
-    def target_acc():
-
-        return 0.96
-
-    @staticmethod
-    def psgd_type():
-
-        from psgd.asgd import AsynchronizedSGD
-        from psgd.ssgd import SynchronizedSGD
-
-        return SynchronizedSGD
-
-    @staticmethod
-    def loss_type():
-
-        from neuralnetworks.losses import CrossEntropyLossWithSigmoid
-        from neuralnetworks.losses import MseLoss
-        from neuralnetworks.losses import CrossEntropyLoss
-
-        return CrossEntropyLossWithSigmoid
-
-    @staticmethod
-    def epoches():
-
-        return 10
-
-    @staticmethod
-    def learn_rate():
-
-        return 0.05
-
-    T_DATA = None
-    #
-    # @staticmethod
-    # def train_data():
-    #     from dataset.mnist_input import load_mnist
-    #     from dataset.simdata import load_lin_sim, load_sin_sim
-    #
-    #     if ServerUtil.T_DATA is None:
-    #         ServerUtil.T_DATA = load_sin_sim()
-    #         return ServerUtil.T_DATA
-    #     else:
-    #         return ServerUtil.T_DATA
-    #
-    # E_DATA = None
-    #
-    # @staticmethod
-    # def eval_data():
-    #     from dataset.mnist_input import load_mnist
-    #     from dataset.simdata import load_lin_sim, load_sin_sim
-    #
-    #     if ServerUtil.E_DATA is None:
-    #         ServerUtil.E_DATA = load_sin_sim()
-    #         return ServerUtil.E_DATA
-    #     else:
-    #         return ServerUtil.E_DATA
-
-    @staticmethod
-    def train_data():
-        from dataset.mnist_input import load_mnist
-
-        return load_mnist(kind='train')
-
-    @staticmethod
-    def eval_data():
-        from dataset.mnist_input import load_mnist
-
-        return load_mnist(kind='t10k')

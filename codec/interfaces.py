@@ -42,6 +42,14 @@ class ICommunicationCtrl:
         """
         pass
 
+    def do_something_to_save_yourself(self):
+        """
+            If SSGD throws a timeout exception, this method will be called.
+            This method were implemented intend to break the deadlock among nodes.
+        :return: Generator: for iterating packages to be sent.
+        """
+        return None
+
     def check_for_combine(self, new_block_id):
         """
             Check if we had all the intermediate values, check

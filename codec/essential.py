@@ -20,5 +20,5 @@ class BlockWeight:
         self.Block_ID = block_id
         self.Company_ID = company_id
         # calculate who doesnt have these block
-        self.Adversary_ID = set(range(GlobalSettings.getDefault().NodeCount)) - company_id
+        self.Adversary_ID = set(range(GlobalSettings.get_default().NodeCount)) - company_id
         self.Content = content

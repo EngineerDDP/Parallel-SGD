@@ -33,6 +33,8 @@ class PartialBlockWeight:
 
 class CodedBlockWeight(BlockWeight):
 
+    SPLIT_AXIS = 1
+
     def __init__(self, layer_id, batch_id, block_id, company_id, content):
         BlockWeight.__init__(self, layer_id, batch_id, block_id, company_id, content)
 
@@ -43,7 +45,7 @@ class CodedBlockWeight(BlockWeight):
 
     def __vsplit(self, content, count, take):
         # get position index
-        pos = np.floor(np.linspace(0, len(content), count+1)).astype('int')
+        pos = np.floor(np.linspace(0, content.shape[CodedBlockWeight.SPLIT_AXIS], count+1)).astype('int')
         return slice(pos[take], pos[take+1])
 
     def getbyNode(self, node_id):
@@ -53,8 +55,11 @@ class CodedBlockWeight(BlockWeight):
         return self.getbyPosition(pos)
 
     def getbyPosition(self, pos):
-        # get parts
-        parts = self.Content[self.__vsplit(self.Content, len(self.Company_ID), pos)].copy()
+        if CodedBlockWeight.SPLIT_AXIS == 1:
+            parts = self.Content[:, self.__vsplit(self.Content, len(self.Company_ID), pos)].copy()
+        else:
+            # get parts
+            parts = self.Content[self.__vsplit(self.Content, len(self.Company_ID), pos)].copy()
 
         # return value
         return PartialBlockWeight(self.Layer_ID, self.Batch_ID, self.Block_ID, pos, parts)
@@ -76,7 +81,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
 
         self.Node_ID = node_id
 
-        self.Total_Blocks = GlobalSettings.getDefault().BlockCount
+        self.Total_Blocks = GlobalSettings.get_default().BlockCount
 
         # the block weights can be calculated locally
         self.block_weights_have = dict()
@@ -131,12 +136,16 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         self.decoding(partial_block_weight.Block_ID)
         self.aggregate()
 
+    def do_something_to_save_yourself(self):
+        self.ComPack_Combs.clear()
+        return self.coding()
+
     def coding(self):
 
-        if len(self.block_weights_have) < GlobalSettings.getDefault().Redundancy:
+        if len(self.block_weights_have) < GlobalSettings.get_default().Redundancy:
             return None
 
-        combs = combinations(self.block_weights_have.keys(), GlobalSettings.getDefault().Redundancy)
+        combs = combinations(self.block_weights_have.keys(), GlobalSettings.get_default().Redundancy)
 
         for comb in combs:
 
@@ -153,10 +162,10 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
 
     def decoding(self, new_block_id):
 
-        if len(self.Parts_BlockWeight_Buffers) < GlobalSettings.getDefault().Redundancy:
+        if len(self.Parts_BlockWeight_Buffers) < GlobalSettings.get_default().Redundancy:
             return
 
-        search_index = [(new_block_id, pos) for pos in range(GlobalSettings.getDefault().Redundancy)]
+        search_index = [(new_block_id, pos) for pos in range(GlobalSettings.get_default().Redundancy)]
 
         search_result = []
 
@@ -167,7 +176,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             else:
                 return
 
-        assert len(search_result) == GlobalSettings.getDefault().Redundancy, 'decode invaild'
+        assert len(search_result) == GlobalSettings.get_default().Redundancy, 'decode invaild'
 
         # retrieve info
         block_id = search_result[0].Block_ID
@@ -175,12 +184,12 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         # sort and concatenate
         partial_weight_array = sorted(search_result, key=lambda item: item.Position)
         partial_weight_array = [arr.Content for arr in partial_weight_array]
-        result_weight = np.concatenate(partial_weight_array, axis=0)
+        result_weight = np.concatenate(partial_weight_array, axis=CodedBlockWeight.SPLIT_AXIS)
 
         # get layer id an batch id within this scope is deprecated
         # now using zero as default
         self.block_weights_recv[new_block_id] = CodedBlockWeight(0, 0, block_id,
-                            set(GlobalSettings.getDefault().BlockAssignment.Block2Node[block_id]), result_weight)
+                                                                 set(GlobalSettings.get_default().BlockAssignment.Block2Node[block_id]), result_weight)
 
         return
 
@@ -247,7 +256,18 @@ class ComPack(IComPack):
         partial_block_weights_content_position = []
         partial_block_weights_content_id = []
         partial_block_weight_content = None
-        send_target_set = set()
+        send_target_prepare = {}
+        send_target_set = []
+
+        # validating package
+        for blockweight in blockweights:
+            for adv in blockweight.Adversary_ID:
+                send_target_prepare[adv] = send_target_prepare.get(adv, 0) + 1
+
+        # prepare send targets
+        for key in send_target_prepare:
+            if send_target_prepare[key] == 1:
+                send_target_set.append(key)
 
         for blockweight in blockweights:
             # save block id
@@ -262,8 +282,6 @@ class ComPack(IComPack):
                 # save content and position
                 partial_block_weight_content ^= partial_block_weight.Content
             partial_block_weights_content_position.append(partial_block_weight.Position)
-            # get send target
-            send_target_set ^= blockweight.Adversary_ID
 
         pack = ComPack(node_id, partial_block_weights_content_id,
                        partial_block_weights_content_position, partial_block_weight_content)

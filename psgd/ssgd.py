@@ -3,24 +3,7 @@ from time import sleep
 
 from codec.essential import BlockWeight
 from psgd.interfaces import IParallelSGD
-
-
-class OutdatedUpdates(Exception):
-
-    def __init__(self):
-        pass
-
-
-class AsyncDetected(Exception):
-
-    def __init__(self):
-        pass
-
-
-class ReadTimeOut(Exception):
-
-    def __init__(self):
-        pass
+from psgd.interfaces import ReadTimeOut, AsyncDetected, OutdatedUpdates
 
 
 class SynchronizedSGD(IParallelSGD):
@@ -29,7 +12,7 @@ class SynchronizedSGD(IParallelSGD):
     """
 
     STR_BATCH_NO = 'SSGD_BATCH_NO'
-    INT_READ_TIMEOUT_MS = -1
+    INT_READ_TIMEOUT_MS = 10000
 
     def __init__(self, node_id, layer_id, codec):
         """
@@ -109,7 +92,7 @@ class SynchronizedSGD(IParallelSGD):
                 time_out += 1
                 if time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
-                    raise ReadTimeOut()
+                    raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
             if self.receive_buffer.get(self.current_batch) is not None:
                 self.batch_updater.receive_blocks(self.receive_buffer[self.current_batch].get())
 

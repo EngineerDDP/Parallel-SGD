@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import time
+from log import Logger
 
 
 class ModelFitWithMap:
@@ -84,20 +85,17 @@ class ModelFitWithMap:
 
 class Trace_Model:
 
-    def __init__(self, nn, optimizer, target_acc=0.1, onehot=True, debug=True, trace_name='default'):
+    def __init__(self, nn, optimizer, logger, onehot=True, trace_name='default'):
         self.NN = nn
         self.Optimizer = optimizer
         self.Onehot = onehot
-        self.Debug = debug
+        self.Log = logger
         self.Trace_File_Name = trace_name
-        self.Target_Accuracy = target_acc
 
-    def fit(self, x, y, epochs, batch_size, val_x=None, val_y=None):
+    def fit(self, x, y, epochs, batch_size):
 
         track_content_time = []
         loss = 0
-        val_acc = 0
-        beta = 0.2
 
         if batch_size > len(x):
             batch_size = len(x)
@@ -114,16 +112,13 @@ class Trace_Model:
                 part_y = y[start:end]
 
                 loss = self.Optimizer.train(part_x, part_y)
-                val_acc = val_acc * (1-beta) + self.evalute(part_x, part_y) * beta
+                val_acc = self.evalute(part_x, part_y)
 
-                print('epochs: {}/{}, batches: {}/{}, loss: {:.4f}'.format(j + 1, epochs, i + 1, batches, loss))
-                # skip when ready
-                if val_acc > self.Target_Accuracy:
+                self.Log.log_message('epochs: {}/{}, batches: {}/{}, loss: {:.4f}'.format(j + 1, epochs, i + 1, batches, loss))
 
-                    tracks = pd.DataFrame(data=track_content_time, index=None,
-                                          columns=['time(s)', 'epoches', 'batches', 'total', 'loss', 'acc'])
-                    tracks.to_csv('./training/training_track_{}.csv'.format(self.Trace_File_Name))
-                    return loss
+                tracks = pd.DataFrame(data=track_content_time, index=None,
+                                      columns=['time(s)', 'epoches', 'batches', 'total', 'loss', 'acc'])
+                tracks.to_csv('./training/training_track_{}.csv'.format(self.Trace_File_Name))
 
                 track_content_time.append([time.time() - time_start, j + 1, i + 1, j * batches + i, loss, val_acc])
 
@@ -150,7 +145,7 @@ class Trace_Model:
     def evalute(self, x, y):
 
         predict = self.predict(x)
-        loss = self.Optimizer.loss(x, y)
+        loss = self.Optimizer.metric(x, y)
         if self.Onehot:
             y = y.argmax(axis=1)
             predict = predict.argmax(axis=1)
@@ -159,8 +154,7 @@ class Trace_Model:
 
         acc = np.mean(np.equal(y, predict))
 
-        if self.Debug:
-            print('Accuracy: {:.4f}, Total Loss: {:.4f}.'.format(acc, loss))
+        self.Log.log_message('Accuracy: {:.4f}, Total Loss: {:.4f}.'.format(acc, loss))
 
         return acc
 
@@ -235,3 +229,81 @@ class Normal_Model:
             print('Accuracy: {:.4f}, Total Loss: {:.4f}.'.format(acc, loss))
 
         return acc
+
+
+class SequentialModel_v2:
+
+    def __init__(self, nn=None, logger=Logger('Default')):
+        if nn is not None:
+            self.NN = nn
+        else:
+            self.NN = []
+
+        self.Optimizer = None
+        self.Loss = None
+        self.Log = logger
+        self.Metrics = []
+        self.History = []
+
+    def add(self, unit):
+        self.NN.append(unit)
+
+    def pop(self):
+        self.NN.pop()
+
+    def compile(self, optimizer, loss, metrics):
+        """
+            Compile model.
+        """
+        # Get loss function
+        self.Loss = loss
+        # Add loss function to evaluate metrics
+        metrics.append(loss)
+        # Get evaluate metrics
+        self.Metrics.extend(metrics)
+        # Set optimizer
+        optimizer.optimize(self.NN)
+        optimizer.set_loss(loss)
+        self.Optimizer = optimizer
+
+    def fit(self, x, y, batch_size, epochs):
+
+        if batch_size > len(x):
+            batch_size = len(x)
+
+        batches = len(x) // batch_size
+
+        # train
+        for j in range(epochs):
+            for i in range(batches):
+
+                start = i * batch_size % (len(x) - batch_size + 1)
+                end = start + batch_size
+                part_x = x[start:end]
+                part_y = y[start:end]
+
+                self.Optimizer.train(part_x, part_y)
+                eval_result = self.evaluate(part_x, part_y)
+                self.Log.log_message('Epochs:{}/{}, Batches:{}/{}, Total batches:{}. {}'
+                                     .format(j, epochs, i, batches, j*batches+i, eval_result))
+
+        return self.History
+
+    def evaluate(self, x, y):
+
+        predictions = self.predict(x)
+        eval_results = [(metric.description(), metric.metric(predictions, y)) for metric in self.Metrics]
+        self.History.append(eval_results)
+
+        return eval_results
+
+    def predict(self, x):
+
+        intermediate = x
+
+        for layer in self.NN:
+            intermediate = layer.F(intermediate)
+
+        return intermediate
+
+

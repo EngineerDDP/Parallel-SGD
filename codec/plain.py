@@ -22,7 +22,7 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
         # system diagnosed info
         self.Log = logger
 
-        # assert GlobalSettings.getDefault().Redundancy == 1, "Uncoded asgd cant run in redundancy mode"
+        # assert GlobalSettings.get_default().Redundancy == 1, "Uncoded asgd cant run in redundancy mode"
 
     def dispose(self):
         """
@@ -59,7 +59,7 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
 
     def check_for_combine(self, new_block_id):
 
-        if len(self.BlockWeights) < GlobalSettings.getDefault().BlockCount:
+        if len(self.BlockWeights) < GlobalSettings.get_default().BlockCount:
             return
 
         batchweight = 0
@@ -104,14 +104,14 @@ class PlainComPack(IComPack):
         return pac
 
     def compose_compack(node_id, blockweight):
-        send_target = GlobalSettings.getDefault().Nodes - {node_id}
+        send_target = GlobalSettings.get_default().Nodes - {node_id}
 
         pack = PlainComPack(node_id, blockweight.Layer_ID, blockweight.Batch_ID, blockweight.Content)
 
         return send_target, pack
 
     def decompose_compack(com_pack):
-        block_id = GlobalSettings.getDefault().BlockAssignment.Node2Block[com_pack.Node_ID]
+        block_id = GlobalSettings.get_default().BlockAssignment.Node2Block[com_pack.Node_ID]
         content = com_pack.Content
 
         blockweight = BlockWeight(com_pack.Layer_ID, com_pack.Batch_ID, block_id[0], set(block_id), content)

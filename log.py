@@ -7,19 +7,29 @@ class Logger:
 
         self.Title = title_info
         self.Mute = mute
+        self.File_Name = 'log_file_{}_{}.log'.format(title_info, datetime.datetime.now().strftime('%H-%M-%S'))
 
     def log_message(self, msg):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
+        str = 'INFO {}@{} : {}'.format(self.Title, time_str, msg)
 
         if not self.Mute:
-            print('INFO {}@{} : {}'.format(self.Title, time_str, msg))
+            print(str)
+        self.__log_to_file(str)
 
     def log_error(self, error):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
+        str = 'ERROR @ {} : {}'.format(time_str, error)
 
         if not self.Mute:
-            print('ERROR @ {} : {}'.format(time_str, error))
+            print(str)
+        self.__log_to_file(str)
+
+    def __log_to_file(self, msg):
+
+        with open(self.File_Name, 'a+') as file:
+            file.write(msg + '\n')

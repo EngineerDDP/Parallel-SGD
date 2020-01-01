@@ -25,7 +25,7 @@ import sys
 
 class MNISTTrainingThread(Thread):
 
-    def __init__(self, model_init, losses, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epoches, learnrate=0.01, target_acc=0.96):
+    def __init__(self, model_init, losses, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epoches, logger, learnrate=0.01):
 
         Thread.__init__(self, name='Simulated training process. Node: {}'.format(tags[0].Node_No))
 
@@ -40,12 +40,9 @@ class MNISTTrainingThread(Thread):
         self.Batch_Size = batch_size
         self.Epoches = epoches
 
-        self.Transfer = NTransfer(updater, com)
+        self.Transfer = NTransfer(updater, com, logger)
         self.Optimizer = ParallelGradientDecentOptimizer(losses(), nn, tags, self.Transfer, learnrate)
-        if tags[0].Node_No == 0:
-            self.Model = Trace_Model(nn, self.Optimizer, target_acc=target_acc, trace_name='Trace_Node={}_Codec={}-'.format(GlobalSettings.getDefault().NodeCount, codec_type.__name__))
-        else:
-            self.Model = Normal_Model(nn, self.Optimizer)
+        self.Model = Trace_Model(nn, self.Optimizer, logger=logger, trace_name='Trace_Node={}_Codec={}_R={}'.format(GlobalSettings.get_default().NodeCount, codec_type.__name__, GlobalSettings.get_default().Redundancy))
 
         self.Train_X = train_x
         self.Train_Y = train_y
@@ -55,22 +52,27 @@ class MNISTTrainingThread(Thread):
     def run(self):
 
         self.Transfer.start_transfer()
-        self.Model.fit(self.Train_X, self.Train_Y, self.Epoches, self.Batch_Size, val_x=self.Eval_X, val_y=self.Eval_Y)
+        self.Model.fit(self.Train_X, self.Train_Y, self.Epoches, self.Batch_Size)
 
 
 def main():
 
-    # ----------------------------!!!!!!!!!!!!----------------------------
-    # GlobalSettings.setDefault(4, 1, 96)
-    # ----------------------------!!!!!!!!!!!!----------------------------
+    if len(sys.argv) < 5:
+        print('usage: client.py')
+        print('\t --ip <ip address of initialization server>')
+        print('\t --port <port of initialization server>')
+        exit(-1)
+
+    ip_addr = sys.argv[2]
+    port = int(sys.argv[4])
 
     # Set remote
-    CommunicationController.static_server_address = '121.248.202.131'
-    CommunicationController.static_server_port = 15387
+    CommunicationController.static_server_address = ip_addr
+    CommunicationController.static_server_port = port
     # Communication controller
     con = CommunicationController()
     # Logger
-    print('Establishing connection with {}...'.format(con.static_server_address))
+    print('Establishing connection with {}:{}...'.format(ip_addr, port))
     con.establish_communication()
     print('Connection established.')
     # Logger
@@ -89,15 +91,15 @@ def main():
     sender, model_init_dic = con.get_one()
 
     log.log_message('Setup global settings.')
-    GlobalSettings.setDefault(
+    GlobalSettings.set_default(
         model_init_dic[Initialize.Nodes],
         model_init_dic[Initialize.Redundancy],
         model_init_dic[Initialize.Batch_Size])
 
     log.log_message('Nodes: {}, Redundancy: {}, Batch size: {}.'.format(
-        GlobalSettings.getDefault().Nodes,
-        GlobalSettings.getDefault().Redundancy,
-        GlobalSettings.getDefault().Batch.Batch_Size))
+        GlobalSettings.get_default().Nodes,
+        GlobalSettings.get_default().Redundancy,
+        GlobalSettings.get_default().Batch.Batch_Size))
 
     codec = model_init_dic[Initialize.CodeType]
     psgd = model_init_dic[Initialize.SyncClass]
@@ -128,16 +130,16 @@ def main():
     # tags to be trained
     tags = []
 
-    for block in GlobalSettings.getDefault().BlockAssignment.Node2Block[con.Node_ID]:
+    for block in GlobalSettings.get_default().BlockAssignment.Node2Block[con.Node_ID]:
 
-        tags.append(Tag(GlobalSettings.getDefault().Batch, block, con.Node_ID,
-                  set(GlobalSettings.getDefault().BlockAssignment.Block2Node[block])))
+        tags.append(Tag(GlobalSettings.get_default().Batch, block, con.Node_ID,
+                        set(GlobalSettings.get_default().BlockAssignment.Block2Node[block])))
 
     train = MNISTTrainingThread(model_init_dic[Initialize.Weight_Content],
                                 Losses, codec, psgd, con, w_types,
                                 tags, train_x, train_y, eval_x, eval_y,
-                                GlobalSettings.getDefault().Batch.Batch_Size,
-                                EPOCHES, learnrate=LR)
+                                GlobalSettings.get_default().Batch.Batch_Size,
+                                EPOCHES, learnrate=LR, logger=log)
 
     log.log_message('Synchronizing timeline with cluster...')
     ready = False
@@ -171,5 +173,9 @@ def main():
 
 
 if __name__ == '__main__':
+    """
+        Usage:
+        python client.py --ip 121.248.202.131 --port 15387
+    """
 
     main()

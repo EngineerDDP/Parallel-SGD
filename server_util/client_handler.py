@@ -3,6 +3,7 @@ import gc
 from threading import Thread
 
 from threading import Lock
+from threading import Event
 
 from network.agreements import General, Initialize, Transfer, DefaultNodes, Data
 from network.serialization import Serialize
@@ -10,7 +11,15 @@ from settings import GlobalSettings
 
 from network.communications import TLVPack
 
-from server_util.init_model import ModelMNIST
+from log import Logger
+
+Global_Logger = Logger('Server', False)
+
+
+def start_server(port):
+    Global_Logger.log_message('Starting server at port {}.'.format(port))
+    server = socketserver.ThreadingTCPServer(("", port), ClientHandler)
+    server.serve_forever()
 
 
 class DoAsync(Thread):
@@ -23,41 +32,6 @@ class DoAsync(Thread):
 
     def run(self):
         self.Function(*self.Params)
-
-
-# class TLVPack:
-#     Block_Size = 1024 * 1024
-#     TLV_Type_Normal = 1
-#     TLV_Type_Exit = -1
-#
-#     def __init__(self, content, type):
-#         self.Content = content
-#         self.Type = type
-#         self.Length = len(content)
-#
-#     def send(self, io):
-#         tlv_package = self.Type.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
-#
-#         io.sendall(tlv_package)
-#
-#     def flush_garbage(io):
-#         b = int(0).to_bytes(100, 'big')
-#         io.sendall(b)
-#
-#     def recv(io):
-#         type_ = io.recv(1)
-#         length = io.recv(4)
-#         type_ = int.from_bytes(type_, 'big')
-#         length = int.from_bytes(length, 'big')
-#
-#         content = b''
-#         take = 0
-#         while take < length:
-#             read_len = min(length - take, TLVPack.Block_Size)
-#             content += io.recv(read_len)
-#             take = len(content)
-#
-#         return TLVPack(content, type_)
 
 
 class Node:
@@ -118,7 +92,7 @@ class NodeClients:
 
     def isGreen(self):
 
-        if len(self.Clients) != GlobalSettings.getDefault().NodeCount:
+        if len(self.Clients) != GlobalSettings.get_default().NodeCount:
             return Initialize.State_Hold
 
         for client in self.Clients:
@@ -136,19 +110,41 @@ class NodeClients:
                 client.PrepareState = Initialize.State_OK
 
 
+class ServerParameters:
+
+    __default = None
+    __signal = Event()
+
+    def __init__(self, model_settings, pa_server):
+        self.ModelSetting = model_settings
+        self.ParameterServer = pa_server
+
+    @staticmethod
+    def get_default():
+        if ServerParameters.__default is None:
+            ServerParameters.__signal.wait()
+        return ServerParameters.__default
+
+    @staticmethod
+    def set_default(model_settings, pa_server):
+        ServerParameters.__default = ServerParameters(model_settings, pa_server)
+
+
 class ClientHandler(socketserver.BaseRequestHandler):
     GC_PER_ITERS = 100
 
     Client_List = NodeClients()
-    PA_Server = None
-    CallBack_Server = None
 
     def handle(self):
 
-        print('Connection recevied.')
+        Global_Logger.log_message('Connection recevied.')
+
+        model = ServerParameters.get_default().ModelSetting
+        pa_server = ServerParameters.get_default().ParameterServer
+        node_id = None
+        data_posted = 0
 
         try:
-            Node_ID = None
             request = self.request
             iters = 0
 
@@ -156,6 +152,8 @@ class ClientHandler(socketserver.BaseRequestHandler):
                 data = TLVPack.recv(request)
                 if len(data.Content) == 0:
                     continue
+
+                data_posted += len(data.Content)
 
                 # record iterations
                 iters += 1
@@ -169,44 +167,44 @@ class ClientHandler(socketserver.BaseRequestHandler):
                                     General.From: (-1),
                                     General.To: (-1),
                                     Initialize.Node_ID: nodeid}
-                        Node_ID = nodeid
+                        node_id = nodeid
                         # request = ClientHandler.Client_List.getClient(nodeid)
-                        print('Node assigned: {}'.format(nodeid))
+                        Global_Logger.log_message('Node assigned: {}'.format(nodeid))
 
                     elif dic[General.Type] == Initialize.Init_Weight:
                         dic_back = {General.Type: Initialize.Init_Weight,
                                     General.From: (-1),
                                     General.To: (-1),
-                                    Initialize.Weight_Content: ModelMNIST.getWeightsInit(),
-                                    Initialize.Redundancy: GlobalSettings.getDefault().Redundancy,
-                                    Initialize.Nodes: GlobalSettings.getDefault().NodeCount,
-                                    Initialize.Batch_Size: GlobalSettings.getDefault().Batch.Batch_Size,
-                                    Initialize.CodeType: ModelMNIST.codec_ctrl(),
-                                    Initialize.SyncClass: ModelMNIST.psgd_type(),
-                                    Initialize.Epoches: ModelMNIST.epoches(),
-                                    Initialize.LOSS:ModelMNIST.loss_type(),
-                                    Initialize.Learn_Rate:ModelMNIST.learn_rate(),
-                                    Initialize.Target_Accuracy:ModelMNIST.target_acc()
+                                    Initialize.Weight_Content: model.getWeightsInit(),
+                                    Initialize.Redundancy: GlobalSettings.get_default().Redundancy,
+                                    Initialize.Nodes: GlobalSettings.get_default().NodeCount,
+                                    Initialize.Batch_Size: GlobalSettings.get_default().Batch.Batch_Size,
+                                    Initialize.CodeType: model.codec_ctrl(),
+                                    Initialize.SyncClass: model.psgd_type(),
+                                    Initialize.Epoches: model.epoches(),
+                                    Initialize.LOSS:model.loss_type(),
+                                    Initialize.Learn_Rate:model.learn_rate(),
+                                    Initialize.Target_Accuracy:model.target_acc()
                                     }
-                        print('Weights assigned: {}'.format(dic_back.keys()))
+                        Global_Logger.log_message('Weights assigned: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Data.Type:
                         dic_back = {
                             General.Type: Initialize.Init_Weight,
                             General.From: (-1),
                             General.To: (-1),
-                            Data.Train_Data: ModelMNIST.train_data(),
-                            Data.Eval_Data: ModelMNIST.eval_data()
+                            Data.Train_Data: model.train_data(),
+                            Data.Eval_Data: model.eval_data()
                         }
-                        print('Data loaded: {}'.format(dic_back.keys()))
+                        Global_Logger.log_message('Data loaded: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Initialize.Current_State:
                         state = ClientHandler.Client_List.isGreen()
-                        self.state_ = {General.Type: Initialize.Current_State,
-                                       General.From: (-1),
-                                       General.To: (-1),
-                                       Initialize.Current_State: state
+                        state_dic  =   {General.Type: Initialize.Current_State,
+                                        General.From: (-1),
+                                        General.To: (-1),
+                                        Initialize.Current_State: state
                                        }
-                        dic_back = self.state_
-                        ClientHandler.Client_List.setGreen(Node_ID)
+                        dic_back = state_dic
+                        ClientHandler.Client_List.setGreen(node_id)
                         # print('States check, node: {}'.format(Node_ID))
                     # Write back
                     content = Serialize.pack(dic_back)
@@ -219,22 +217,23 @@ class ClientHandler(socketserver.BaseRequestHandler):
                     for target in targets:
                         # Send to PA first
                         if target == DefaultNodes.Parameter_Server:
-                            ClientHandler.PA_Server.post(dic[General.From], dic)
+                            pa_server.post(dic[General.From], dic)
                         else:
                             con = ClientHandler.Client_List.getClient(target)
                             if con is not None:
                                 task = DoAsync(data.send, (con,))
                                 task.start()
                             else:
-                                print('Transfer failed, node {} not found.'.format(target))
+                                Global_Logger.log_message('Transfer failed, node {} not found.'.format(target))
 
                 if iters > ClientHandler.GC_PER_ITERS:
                     gc.collect()
+
         except Exception as e:
-            if Node_ID is not None:
-                ClientHandler.Client_List.removeNode(Node_ID)
-            print('Exception occurred while connecting with : {}, args : {}.'.format(self.client_address, e))
+            if node_id is not None:
+                ClientHandler.Client_List.removeNode(node_id)
+            Global_Logger.log_error('Exception occurred while connecting with : {}, args : {}.'.format(self.client_address, e))
             import traceback
             traceback.print_exc()
 
-        print('Connection aborted.')
+        Global_Logger.log_message('Connection aborted with Node: {}, Data received: {}'.format(node_id, data_posted))

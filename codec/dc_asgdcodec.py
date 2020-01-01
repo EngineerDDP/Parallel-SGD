@@ -40,7 +40,7 @@ class DC_ASGDServerCodec(PAServerCodec):
         self.Mean_Square_M = 0.95
 
         # init w_bak
-        for key in GlobalSettings.getDefault().Nodes:
+        for key in GlobalSettings.get_default().Nodes:
             self.Bak_Weights_Node[key] = self.Weights_init
 
     def receive_blocks(self, json_dict):

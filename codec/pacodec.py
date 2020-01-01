@@ -3,8 +3,6 @@ from codec.essential import BlockWeight
 from codec.interfaces import ICommunicationCtrl, IComPack
 
 from network.agreements import DefaultNodes
-
-from server_util.init_model import ModelMNIST
 from settings import GlobalSettings
 
 from log import Logger
@@ -92,7 +90,6 @@ class PAServerCodec(ICommunicationCtrl):
         ICommunicationCtrl.__init__(self)
 
         self.Node_ID = node_id
-        self.Learn_Rate = ModelMNIST.learn_rate()
 
         # save PA current state
         self.Current_Weights = 0
@@ -102,7 +99,7 @@ class PAServerCodec(ICommunicationCtrl):
         # save previous state for each node
         self.Bak_Weights_Node = {}
         # init w_bak
-        for key in GlobalSettings.getDefault().Nodes:
+        for key in GlobalSettings.get_default().Nodes:
             self.Bak_Weights_Node[key] = 0
 
     def dispose(self):
