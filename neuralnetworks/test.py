@@ -3,24 +3,24 @@ from neuralnetworks.model import *
 from neuralnetworks.losses import *
 from neuralnetworks.activations import *
 from neuralnetworks.optimizer import *
+from neuralnetworks.metrics import *
+from log import Logger
 
-from dataset import mnist_input
+from dataset.mnist_input import load_mnist
 
 if __name__ == '__main__':
 
-    x, y = mnist_input.load_mnist(kind='train')
-    nn = [Reshape(shape=[28, 28, 1]),
-          Conv2dLayer(filter_size=[5, 5], channel_count=6, padding='SAME', strikes=[1, 1], act=ReLU()),
-          MaxPool(filter_size=[2, 2]),
-          Conv2dLayer(filter_size=[5, 5], channel_count=16, padding='SAME', strikes=[1, 1], act=ReLU()),
-          MaxPool(filter_size=[2, 2]),
-          Reshape(shape=[7*7*16]),
-          FCLayer_v2(120, act=Tanh()),
-          FCLayer_v2(84, act=Tanh()),
-          FCLayer_v2(10, act=Sigmoid())
-          ]
-    op = GradientDecentOptimizerv2(CrossEntropyLossWithSigmoid(), nn)
-    model = Normal_Model(nn, op)
-    model.fit(x, y, batch_size=64, epochs=2)
+    model = SequentialModel_v2(logger=Logger('Test'))
+    model.add(FCLayer_v2(128, act=Tanh()))
+    model.add(FCLayer_v2(10, act=Sigmoid()))
 
-    model.evalute(x, y)
+    model.compile(optimizer=GradientDecentOptimizer_v2(),
+                  loss=CrossEntropyLossWithSigmoid(),
+                  metrics=[CategoricalAccuracy(), MeanSquareError(), RelativeError()])
+
+    x, y = load_mnist(kind='train')
+    model.fit(x, y, batch_size=64, epochs=10)
+
+    x_test, y_test = load_mnist(kind='t10k')
+    model.evaluate(x_test, y_test)
+

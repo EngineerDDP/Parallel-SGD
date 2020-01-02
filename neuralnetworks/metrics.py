@@ -1,5 +1,3 @@
-import numpy as np
-
 from utils.metrichelper import *
 from abc import ABCMeta, abstractmethod, ABC
 
@@ -104,6 +102,21 @@ class MeanSquareError(IMetrics):
 
     def description(self):
         return 'MSE'
+
+
+class RelativeMeanSquareError(IMetrics):
+    """
+        RMSE
+    """
+
+    def __init__(self):
+        pass
+
+    def metric(self, y, label):
+        return np.sqrt(np.sum(np.square(y - label)))
+
+    def description(self):
+        return 'RMSE'
 
 
 class EqualErrorRate(IMetrics):

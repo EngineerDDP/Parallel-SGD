@@ -13,7 +13,7 @@ from network.communications import TLVPack
 
 from log import Logger
 
-Global_Logger = Logger('Server', False)
+Global_Logger = Logger('Server', True)
 
 
 def start_server(port):

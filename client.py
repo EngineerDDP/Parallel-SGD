@@ -86,7 +86,7 @@ def main():
     con.establish_communication()
     print('Connection established.')
     # Logger
-    log = Logger('Node {}'.format(con.Node_ID), False)
+    log = Logger('Node {}'.format(con.Node_ID), log_to_file=True)
     log.log_message('Test Log...')
 
     # # take few

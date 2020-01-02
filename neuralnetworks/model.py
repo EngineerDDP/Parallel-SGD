@@ -288,9 +288,9 @@ class SequentialModel_v2:
 
                 self.Optimizer.train(part_x, part_y)
                 eval_result = self.evaluate(part_x, part_y)
+                str_output = ['{}:{:.4f}'.format(name, val) for name, val in zip(self.History_Title, eval_result)]
                 self.Log.log_message('Epochs:{}/{}, Batches:{}/{}, Total batches:{}. {}'
-                                     .format(j+1, epochs, i+1, batches, j*batches+i,
-                                             dict(zip(self.History_Title, eval_result))))
+                                     .format(j+1, epochs, i+1, batches, j*batches+i, ','.join(str_output)))
 
         return self.History
 

@@ -3,10 +3,10 @@ import datetime
 
 class Logger:
 
-    def __init__(self, title_info, mute=True):
+    def __init__(self, title_info, log_to_file=False):
 
         self.Title = title_info
-        self.Mute = mute
+        self.ToFile = log_to_file
         self.File_Name = 'log_file_{}_{}.log'.format(title_info, datetime.datetime.now().strftime('%H-%M-%S'))
 
     def log_message(self, msg):
@@ -15,8 +15,7 @@ class Logger:
         time_str = time.strftime('%H:%M:%S')
         str = 'INFO {}@{} : {}'.format(self.Title, time_str, msg)
 
-        if not self.Mute:
-            print(str)
+        print(str)
         self.__log_to_file(str)
 
     def log_error(self, error):
@@ -25,11 +24,11 @@ class Logger:
         time_str = time.strftime('%H:%M:%S')
         str = 'ERROR @ {} : {}'.format(time_str, error)
 
-        if not self.Mute:
-            print(str)
+        print(str)
         self.__log_to_file(str)
 
     def __log_to_file(self, msg):
 
-        with open(self.File_Name, 'a+') as file:
-            file.write(msg + '\n')
+        if self.ToFile:
+            with open(self.File_Name, 'a+') as file:
+                file.write(msg + '\n')
