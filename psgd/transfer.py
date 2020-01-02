@@ -44,7 +44,7 @@ class NTransfer(ITransfer):
         for update_pack in update_packs:
             sender, dic = update_pack
             self.__send(sender, dic, tag.Layer_No, w_type)
-            self.Log.log_message('Message to node {}'.format(sender))
+            # self.Log.log_message('Message to node {}'.format(sender))
 
     def get_weights(self, tag, w_type='w'):
         """
@@ -88,21 +88,21 @@ class NTransfer(ITransfer):
         try:
             while not self.communication_process.is_closed():
                 sender, dic = self.communication_process.get_one()
-                self.Log.log_message('Recv from node {}'.format(dic[General.From]))
+                # self.Log.log_message('Recv from node {}'.format(dic[General.From]))
                 # quit processing if the object is not sent by the class instance like NTransfer
                 try:
                     layer_no = dic[NTransfer.STR_LAYER_NO]
                     w_type = dic[NTransfer.STR_W_TYPE]
                     update_packs = self.type_weights_controller[layer_no][w_type].accept_data(dic)
-                    self.Log.log_message('Message accepted.')
+                    # self.Log.log_message('Message accepted.')
                     if update_packs is None:
                         continue
                     for update_pack in update_packs:
                         sender, dic = update_pack
                         self.__send(sender, dic, layer_no, w_type)
-                        self.Log.log_message('Message back to node {}'.format(sender))
+                        # self.Log.log_message('Message back to node {}'.format(sender))
                 except KeyError:
                     continue
         except OSError:
             pass
-        print('Transfer thread exited safely.')
+        self.Log.log_message('Transfer thread exited safely.')

@@ -1,4 +1,5 @@
 import time
+import pandas as pd
 
 from threading import Thread
 
@@ -7,12 +8,11 @@ from settings import GlobalSettings
 from network.communications import CommunicationController
 from network.agreements import General, Initialize, DefaultNodes, Data
 
-from neuralnetworks.layers import FCLayer
-from neuralnetworks.optimizer import ParallelGradientDecentOptimizer, DelayedParallelGradientDecentOptimizer
-from neuralnetworks.model import Trace_Model, Normal_Model
+from neuralnetworks.metrics import CategoricalAccuracy
+from neuralnetworks.optimizer import ParallelSGDOptimizer, DelayedPSGDOptimizer
+from neuralnetworks.model import SequentialModel_v2
 
 from psgd.transfer import NTransfer
-from psgd.interfaces import IParallelSGD
 
 from codec.tag import Tag
 
@@ -25,7 +25,7 @@ import sys
 
 class MNISTTrainingThread(Thread):
 
-    def __init__(self, model_init, losses, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epoches, logger, learnrate=0.01):
+    def __init__(self, model_init, loss, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epochs, logger, learn_rate=0.01):
 
         Thread.__init__(self, name='Simulated training process. Node: {}'.format(tags[0].Node_No))
 
@@ -38,11 +38,15 @@ class MNISTTrainingThread(Thread):
                 updater[layer_id][type] = sync_class(com.Node_ID, layer_id, codec_type)
 
         self.Batch_Size = batch_size
-        self.Epoches = epoches
+        self.Epochs = epochs
 
         self.Transfer = NTransfer(updater, com, logger)
-        self.Optimizer = ParallelGradientDecentOptimizer(losses(), nn, tags, self.Transfer, learnrate)
-        self.Model = Trace_Model(nn, self.Optimizer, logger=logger, trace_name='Trace_Node={}_Codec={}_R={}'.format(GlobalSettings.get_default().NodeCount, codec_type.__name__, GlobalSettings.get_default().Redundancy))
+        self.Optimizer = ParallelSGDOptimizer(tags=tags, batch_size=self.Batch_Size, com=self.Transfer, learn_rate=learn_rate)
+        self.Model = SequentialModel_v2(nn, logger=logger)
+        self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=[CategoricalAccuracy()])
+
+        self.Trace_Name = 'Trace_Node={}_Codec={}_R={}'.format(GlobalSettings.get_default().NodeCount, codec_type.__name__, GlobalSettings.get_default().Redundancy)
+        self.Log = logger
 
         self.Train_X = train_x
         self.Train_Y = train_y
@@ -52,8 +56,14 @@ class MNISTTrainingThread(Thread):
     def run(self):
 
         self.Transfer.start_transfer()
-        self.Model.fit(self.Train_X, self.Train_Y, self.Epoches, self.Batch_Size)
+        history = self.Model.fit(self.Train_X, self.Train_Y, epochs=self.Epochs, batch_size=self.Batch_Size)
+        trace = pd.DataFrame(history, columns=self.Model.History_Title)
+        trace.to_csv("./training/{}.csv".format(self.Trace_Name), index=None)
+        self.Log.log_message('Trace file has been saved to {}'.format(self.Trace_Name))
 
+    def evaluate(self):
+        result = self.Model.evaluate(self.Eval_X, self.Eval_Y)
+        self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title, result))))
 
 def main():
 
@@ -139,7 +149,7 @@ def main():
                                 Losses, codec, psgd, con, w_types,
                                 tags, train_x, train_y, eval_x, eval_y,
                                 GlobalSettings.get_default().Batch.Batch_Size,
-                                EPOCHES, learnrate=LR, logger=log)
+                                EPOCHES, learn_rate=LR, logger=log)
 
     log.log_message('Synchronizing timeline with cluster...')
     ready = False
@@ -164,10 +174,9 @@ def main():
 
     print('-----------------------------------------------------------')
     log.log_message('Execution complete, time:{}'.format(end - begin))
-    log.log_message('Time used in data transfer, time:{}'.format(train.Optimizer.total_non_execution_time))
     print('-----------------------------------------------------------')
 
-    train.Model.evalute(eval_x, eval_y)
+    train.evaluate()
 
     print('-------------------------Done------------------------------')
 

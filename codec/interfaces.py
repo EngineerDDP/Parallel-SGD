@@ -3,6 +3,12 @@ from abc import ABCMeta, abstractclassmethod, abstractmethod
 from utils.delegate import Delegation
 
 
+def yield_none():
+    # for iteration
+    for i in []:
+        yield ([], None)
+
+
 class ICommunicationCtrl:
 
     def __init__(self):
@@ -48,7 +54,7 @@ class ICommunicationCtrl:
             This method were implemented intend to break the deadlock among nodes.
         :return: Generator: for iterating packages to be sent.
         """
-        return None
+        return yield_none()
 
     def check_for_combine(self, new_block_id):
         """

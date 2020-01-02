@@ -243,6 +243,7 @@ class SequentialModel_v2:
         self.Loss = None
         self.Log = logger
         self.Metrics = []
+        self.History_Title = []
         self.History = []
 
     def add(self, unit):
@@ -258,16 +259,19 @@ class SequentialModel_v2:
         # Get loss function
         self.Loss = loss
         # Add loss function to evaluate metrics
-        metrics.append(loss)
+        self.Metrics.append(loss)
         # Get evaluate metrics
         self.Metrics.extend(metrics)
+        self.History_Title = [metric.description() for metric in self.Metrics]
         # Set optimizer
         optimizer.optimize(self.NN)
         optimizer.set_loss(loss)
         self.Optimizer = optimizer
 
     def fit(self, x, y, batch_size, epochs):
-
+        """
+            Fit model parameters with given input samples.
+        """
         if batch_size > len(x):
             batch_size = len(x)
 
@@ -285,14 +289,15 @@ class SequentialModel_v2:
                 self.Optimizer.train(part_x, part_y)
                 eval_result = self.evaluate(part_x, part_y)
                 self.Log.log_message('Epochs:{}/{}, Batches:{}/{}, Total batches:{}. {}'
-                                     .format(j, epochs, i, batches, j*batches+i, eval_result))
+                                     .format(j+1, epochs, i+1, batches, j*batches+i,
+                                             dict(zip(self.History_Title, eval_result))))
 
         return self.History
 
     def evaluate(self, x, y):
 
         predictions = self.predict(x)
-        eval_results = [(metric.description(), metric.metric(predictions, y)) for metric in self.Metrics]
+        eval_results = [metric.metric(predictions, y) for metric in self.Metrics]
         self.History.append(eval_results)
 
         return eval_results

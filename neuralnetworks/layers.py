@@ -196,7 +196,7 @@ class FCLayer_v2(ILayer):
         y = np.multiply(act_grad, gradient)
 
         # adjust weight
-        delta_weight = y.T.dot(x)
+        delta_weight = (y.T.dot(x)).T
         delta_bias = y.sum(axis=0)
 
         return delta_weight, delta_bias, y

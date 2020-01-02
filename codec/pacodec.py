@@ -1,17 +1,11 @@
 from codec.essential import BatchWeight
 from codec.essential import BlockWeight
-from codec.interfaces import ICommunicationCtrl, IComPack
+from codec.interfaces import ICommunicationCtrl, IComPack, yield_none
 
 from network.agreements import DefaultNodes
 from settings import GlobalSettings
 
 from log import Logger
-
-
-def yield_none():
-    # for iteration
-    for i in []:
-        yield ([], None)
 
 
 class PAClientCodec(ICommunicationCtrl):

@@ -5,7 +5,7 @@ from codec.pacodec import PAClientCodec
 from codec.plain import PlainCommunicationCtrl
 from neuralnetworks.activations import Sigmoid
 from neuralnetworks.activations import Tanh, Linear, ReLU
-from neuralnetworks.layers import FCLayer
+from neuralnetworks.layers import FCLayer_v2
 from neuralnetworks.losses import CrossEntropyLossWithSigmoid
 from neuralnetworks.losses import MseLoss
 from psgd.asgd import AsynchronizedSGD
@@ -124,12 +124,12 @@ class ModelDNN(IServerModel):
         self.Neural_Network = []
 
         for units in self.Layer_Units[:-1]:
-            self.Neural_Network.append(FCLayer(units, act=self.Activation()))
+            self.Neural_Network.append(FCLayer_v2(units, act=self.Activation()))
 
-        self.Neural_Network.append(FCLayer(self.Layer_Units[-1], act=self.Activation_out()))
+        self.Neural_Network.append(FCLayer_v2(self.Layer_Units[-1], act=self.Activation_out()))
 
         # activated layer
-        input_sample = self.Training_Data[0][0].reshape([-1, 1])
+        input_sample = self.Training_Data[0][0].reshape([1, -1])
 
         for nn in self.Neural_Network:
             input_sample = nn.F(input_sample)
