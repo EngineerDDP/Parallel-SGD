@@ -243,7 +243,7 @@ class SequentialModel_v2:
         self.Loss = None
         self.Log = logger
         self.Metrics = []
-        self.History_Title = []
+        self.History_Title = ["Time", "Epoch", "Batch", "Total Batch"]
         self.History = []
 
     def add(self, unit):
@@ -262,7 +262,7 @@ class SequentialModel_v2:
         self.Metrics.append(loss)
         # Get evaluate metrics
         self.Metrics.extend(metrics)
-        self.History_Title = [metric.description() for metric in self.Metrics]
+        self.History_Title.extend([metric.description() for metric in self.Metrics])
         # Set optimizer
         optimizer.optimize(self.NN)
         optimizer.set_loss(loss)
@@ -286,11 +286,22 @@ class SequentialModel_v2:
                 part_x = x[start:end]
                 part_y = y[start:end]
 
+                # do fitting
                 self.Optimizer.train(part_x, part_y)
                 eval_result = self.evaluate(part_x, part_y)
+
+                # records time
+                time_now = time.time()
+
+                # log fitting progress
                 str_output = ['{}:{:.4f}'.format(name, val) for name, val in zip(self.History_Title, eval_result)]
                 self.Log.log_message('Epochs:{}/{}, Batches:{}/{}, Total batches:{}. {}'
                                      .format(j+1, epochs, i+1, batches, j*batches+i, ','.join(str_output)))
+
+                # record history data
+                history = [time_now, j+1, i+1, j*batches+i+1]
+                history.extend(eval_result)
+                self.History.append(history)
 
         return self.History
 
