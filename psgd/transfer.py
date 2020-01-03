@@ -15,6 +15,7 @@ class NTransfer(ITransfer):
     """
     STR_LAYER_NO = 'NLayer_NO'
     STR_W_TYPE = 'NW_Type'
+    INT_RETRY_LIMIT = 5
 
     def __init__(self, weights_ctrl, com, logger=Logger('Default Transfer')):
         """
@@ -57,6 +58,8 @@ class NTransfer(ITransfer):
             for sender, dic in e.retry():
                 self.__send(sender, dic, tag.Layer_No, w_type)
                 self.Log.log_error('Message retry to node {}'.format(sender))
+        finally:
+            return self.get_weights(tag, w_type)
 
     def start_transfer(self):
         """
