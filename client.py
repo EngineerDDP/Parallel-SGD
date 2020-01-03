@@ -25,7 +25,7 @@ import sys
 
 class MNISTTrainingThread(Thread):
 
-    def __init__(self, model_init, loss, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epochs, logger, learn_rate=0.01):
+    def __init__(self, model_init, loss, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epochs, logger, learn_rate=0.01, target_acc=None):
 
         Thread.__init__(self, name='Simulated training process. Node: {}'.format(tags[0].Node_No))
 
@@ -53,10 +53,22 @@ class MNISTTrainingThread(Thread):
         self.Eval_X = eval_x
         self.Eval_Y = eval_y
 
+        self.Target_acc = target_acc
+
     def run(self):
 
         self.Transfer.start_transfer()
-        history = self.Model.fit(self.Train_X, self.Train_Y, epochs=self.Epochs, batch_size=self.Batch_Size)
+        # do until reach the target accuracy
+        if self.Target_acc is not None:
+            for i in range(len(self.Epochs)):
+                self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
+                if self.Model.evaluate(self.Eval_X, self.Eval_Y)[1] > self.Target_acc:
+                    break
+        # just do
+        else:
+            self.Model.fit(self.Train_X, self.Train_Y, epochs=self.Epochs, batch_size=self.Batch_Size)
+
+        history = self.Model.History
         trace = pd.DataFrame(history, columns=self.Model.History_Title)
         trace.to_csv("./training/{}.csv".format(self.Trace_Name), index=None)
         self.Log.log_message('Trace file has been saved to {}'.format(self.Trace_Name))
@@ -129,9 +141,10 @@ def main():
     log.log_message('Initialing local runtime environment...')
     w_types = ['w', 'b']
 
-    EPOCHES = model_init_dic[Initialize.Epoches]
-    Losses = model_init_dic[Initialize.LOSS]
-    LR = model_init_dic[Initialize.Learn_Rate]
+    training_iterations = model_init_dic[Initialize.Epoches]
+    loss_function_type = model_init_dic[Initialize.LOSS]
+    learning_rate = model_init_dic[Initialize.Learn_Rate]
+    target_accuracy = model_init_dic[Initialize.Target_Accuracy]
 
     log.log_message('Setup communication thread...')
     # helper = TransferHelper()
@@ -146,10 +159,10 @@ def main():
                         set(GlobalSettings.get_default().BlockAssignment.Block2Node[block])))
 
     train = MNISTTrainingThread(model_init_dic[Initialize.Weight_Content],
-                                Losses, codec, psgd, con, w_types,
+                                loss_function_type, codec, psgd, con, w_types,
                                 tags, train_x, train_y, eval_x, eval_y,
                                 GlobalSettings.get_default().Batch.Batch_Size,
-                                EPOCHES, learn_rate=LR, logger=log)
+                                training_iterations, learn_rate=learning_rate, logger=log, target_acc=target_accuracy)
 
     log.log_message('Synchronizing timeline with cluster...')
     ready = False

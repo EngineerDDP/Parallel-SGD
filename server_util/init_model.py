@@ -72,7 +72,7 @@ class ModelDNN(IServerModel):
                  codec='CCDC',
                  psgd_type='ssgd',
                  epoches=10,
-                 target_acc=0.96
+                 target_acc=0.82
                  ):
         self.Layer_Units = layer_units
         self.Activation = ModelDNN.__activation_map[activation]
