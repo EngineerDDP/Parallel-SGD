@@ -25,6 +25,7 @@ class Initialize:
     LOSS = 'LOSS_FUNCTION'
     Learn_Rate = 'LRate'
     Target_Accuracy = 'TACC'
+    Block_Assignment = 'BASM'
 
 
 class Data:
@@ -32,6 +33,7 @@ class Data:
     Type = 'Init_Data'
     Train_Data = 'TDATA'
     Eval_Data = 'EDATA'
+
 
 class Transfer:
 

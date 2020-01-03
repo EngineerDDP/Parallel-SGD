@@ -5,12 +5,11 @@ from threading import Lock
 from itertools import combinations
 
 from codec.essential import BlockWeight
-from codec.essential import BatchWeight
 
 from codec.interfaces import ICommunicationCtrl
 from codec.interfaces import IComPack
 
-from settings import GlobalSettings
+from profiles.settings import GlobalSettings
 from log import Logger
 
 
@@ -81,7 +80,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
 
         self.Node_ID = node_id
 
-        self.Total_Blocks = GlobalSettings.get_default().BlockCount
+        self.Total_Blocks = GlobalSettings.get_default().block_assignment.block_count
 
         # the block weights can be calculated locally
         self.block_weights_have = dict()
@@ -128,7 +127,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             Received a communication package from other node
         """
         # self.Log.print_log('Self have: blocks {}'.format(self.BlockWeights_Send.keys()))
-        partial_block_weight = ComPack.decompose_compack(ComPack.from_dictionary(json_dict), self.block_weights_have)
+        partial_block_weight = ComPack.from_dictionary(json_dict).decompose_compack(self.block_weights_have)
 
         self.Parts_BlockWeight_Buffers[
             (partial_block_weight.Block_ID, partial_block_weight.Position)] = partial_block_weight
@@ -142,10 +141,10 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
 
     def coding(self):
 
-        if len(self.block_weights_have) < GlobalSettings.get_default().Redundancy:
+        if len(self.block_weights_have) < GlobalSettings.get_default().redundancy:
             return None
 
-        combs = combinations(self.block_weights_have.keys(), GlobalSettings.get_default().Redundancy)
+        combs = combinations(self.block_weights_have.keys(), GlobalSettings.get_default().redundancy)
 
         for comb in combs:
 
@@ -156,16 +155,16 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             values = [self.block_weights_have[key] for key in comb]
             targets, compack = ComPack.compose_compack(self.Node_ID, values)
             self.ComPack_Combs.add(comb)
-            compack = ComPack.to_dictionary(compack)
+            dic = compack.to_dictionary()
 
             yield (targets, compack)
 
     def decoding(self, new_block_id):
 
-        if len(self.Parts_BlockWeight_Buffers) < GlobalSettings.get_default().Redundancy:
+        if len(self.Parts_BlockWeight_Buffers) < GlobalSettings.get_default().redundancy:
             return
 
-        search_index = [(new_block_id, pos) for pos in range(GlobalSettings.get_default().Redundancy)]
+        search_index = [(new_block_id, pos) for pos in range(GlobalSettings.get_default().redundancy)]
 
         search_result = []
 
@@ -176,7 +175,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             else:
                 return
 
-        assert len(search_result) == GlobalSettings.get_default().Redundancy, 'decode invaild'
+        assert len(search_result) == GlobalSettings.get_default().redundancy, 'decode invaild'
 
         # retrieve info
         block_id = search_result[0].Block_ID
@@ -189,7 +188,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         # get layer id an batch id within this scope is deprecated
         # now using zero as default
         self.block_weights_recv[new_block_id] = CodedBlockWeight(0, 0, block_id,
-                                                                 set(GlobalSettings.get_default().BlockAssignment.Block2Node[block_id]), result_weight)
+             set(GlobalSettings.get_default().block_assignment.block_2_node[block_id]), result_weight)
 
         return
 
@@ -226,17 +225,18 @@ class ComPack(IComPack):
         self.Partial_Block_Weights_Content = partial_block_weight_content
         self.Partial_Block_Weights_Content_Position = partial_block_weights_content_position
 
-    def to_dictionary(compack):
+    def to_dictionary(self):
 
         dic = {
-            'Node_ID': compack.Node_ID,
-            'Partial_Block_Weights_Content_ID': compack.Partial_Block_Weights_Content_ID,
-            'Partial_Block_Weights_Content_Position': compack.Partial_Block_Weights_Content_Position,
-            'Partial_Block_Weights_Content': compack.Partial_Block_Weights_Content
+            'Node_ID': self.Node_ID,
+            'Partial_Block_Weights_Content_ID': self.Partial_Block_Weights_Content_ID,
+            'Partial_Block_Weights_Content_Position': self.Partial_Block_Weights_Content_Position,
+            'Partial_Block_Weights_Content': self.Partial_Block_Weights_Content
         }
 
         return dic
 
+    @staticmethod
     def from_dictionary(dic):
 
         node_id = dic['Node_ID']
@@ -251,7 +251,8 @@ class ComPack(IComPack):
 
         return pac
 
-    def compose_compack(node_id, blockweights=None):
+    @staticmethod
+    def compose_compack(node_id, block_weights=None):
 
         partial_block_weights_content_position = []
         partial_block_weights_content_id = []
@@ -260,8 +261,8 @@ class ComPack(IComPack):
         send_target_set = []
 
         # validating package
-        for blockweight in blockweights:
-            for adv in blockweight.Adversary_ID:
+        for block_weight in block_weights:
+            for adv in block_weight.Adversary_ID:
                 send_target_prepare[adv] = send_target_prepare.get(adv, 0) + 1
 
         # prepare send targets
@@ -269,11 +270,11 @@ class ComPack(IComPack):
             if send_target_prepare[key] == 1:
                 send_target_set.append(key)
 
-        for blockweight in blockweights:
+        for block_weight in block_weights:
             # save block id
-            partial_block_weights_content_id.append(blockweight.Block_ID)
+            partial_block_weights_content_id.append(block_weight.Block_ID)
             # get part of block weight
-            partial_block_weight = blockweight.getbyNode(node_id)
+            partial_block_weight = block_weight.getbyNode(node_id)
 
             # initialization
             if partial_block_weight_content is None:
@@ -288,23 +289,23 @@ class ComPack(IComPack):
 
         return send_target_set, pack
 
-    def decompose_compack(com_pack, blockweights_dic=None):
+    def decompose_compack(self, block_weights_dic=None):
 
-        iteration = zip(com_pack.Partial_Block_Weights_Content_ID,
-                        com_pack.Partial_Block_Weights_Content_Position)
-        content = com_pack.Partial_Block_Weights_Content
+        iteration = zip(self.Partial_Block_Weights_Content_ID,
+                        self.Partial_Block_Weights_Content_Position)
+        content = self.Partial_Block_Weights_Content
 
         # deprecated usage
-        layer_id = list(blockweights_dic.values())[0].Layer_ID
-        batch_id = list(blockweights_dic.values())[0].Batch_ID
+        layer_id = list(block_weights_dic.values())[0].Layer_ID
+        batch_id = list(block_weights_dic.values())[0].Batch_ID
 
         parts_absent = 0
         decompose_part_id = 0
         decompose_part_pos = 0
 
         for id, pos in iteration:
-            if blockweights_dic.get(id):
-                content ^= blockweights_dic[id].getbyPosition(pos).Content
+            if block_weights_dic.get(id):
+                content ^= block_weights_dic[id].getbyPosition(pos).Content
             else:
                 parts_absent += 1
                 decompose_part_id = id

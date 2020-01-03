@@ -1,6 +1,20 @@
 import numpy as np
 
-class Linear:
+from abc import ABCMeta, abstractmethod
+
+
+class IActivation(metaclass=ABCMeta):
+
+    @abstractmethod
+    def activation(self, x):
+        pass
+
+    @abstractmethod
+    def gradient(self, x):
+        pass
+
+
+class Linear(IActivation):
     """
     Linear activation
     """
@@ -15,7 +29,7 @@ class Linear:
         return 1
 
 
-class ReLU:
+class ReLU(IActivation):
     """
     ReLU activation
     """
@@ -34,7 +48,7 @@ class ReLU:
         return r
 
 
-class Sigmoid:
+class Sigmoid(IActivation):
     """
     Sigmoid type activation
     """
@@ -49,12 +63,20 @@ class Sigmoid:
         return np.multiply(self.activation(x), (1 - self.activation(x)))
 
 
-class Tanh:
+class SigmoidNoGrad(Sigmoid):
+    """
+        Sigmoid type activation, without gradient
+    """
+    def gradient(self, x):
+        return 1
+
+
+class Tanh(IActivation):
     """
     Hyperbolic tangent function
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self):
         pass
 
     def activation(self, x):
@@ -63,3 +85,18 @@ class Tanh:
     def gradient(self, x):
         return 1 - np.multiply(self.activation(x), self.activation(x))
 
+
+class SoftmaxNoGrad(IActivation):
+    """
+        Softmax activation, without gradient.
+    """
+
+    def __init__(self):
+        pass
+
+    def activation(self, x):
+        denominator = np.sum(np.exp(x), axis=1).reshape([-1, 1])
+        return np.exp(x) / denominator
+
+    def gradient(self, x):
+        return 1

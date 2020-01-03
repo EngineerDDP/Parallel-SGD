@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod, ABC
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
@@ -407,25 +407,8 @@ class Conv2dLayer(ILayer):
             b is 1-dimensional like: [feature_maps]
             self.B is 1-dimensional like: [kernel]
         """
-        # g = \partial \sigma (z) / \partial z
-        act_grad = self.Act.gradient(self.logit(x))
-        # apply
-        gradient = np.multiply(act_grad, gradient)
-        # for each weights
-        # w[:,:,i] = g * rot180(x)[:,:,i]
-        delta_w_single = lambda grad_map, input: [self.__channel_conv_revt(grad_map[:,:,j], input) for j in range(self.Kernel_Count)]
-        # for all weights
-        # w[j,:,:,:] = np.sum([np.swapaxes([g[q,:,:,j] * rot180(x[q,:,:,i]) for i in input_channels], 1, 3).swapaxes(1,2) for q in samples], axis=0)
-        delta_w = np.sum([delta_w_single(gradient[i], x[i]) for i in range(gradient.shape[0])], axis=0)
-        delta_b = gradient.sum(axis=1).sum(axis=1).sum(axis=0)
-
-        self.Kernels = self.Kernels - delta_w
-        self.Bias = self.Bias - delta_b
-
-        # sum all gradient calculated from single input channel
-        grad_back_per_channel = lambda grad_map: np.sum([self.__channel_conv_upsample(grad_map, self.Kernels[:,:,:,i]) for i in range(self.Previous_Channels)], axis=0)
-        # calculate for all samples
-        grad_back = np.asarray([grad_back_per_channel(grad) for grad in gradient])
+        w, b, y = self.delta_wb(x, gradient)
+        grad_back = self.apply_wb(w, b, y)
 
         return grad_back
 

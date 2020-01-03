@@ -1,11 +1,10 @@
 import numpy as np
-from time import time
-from time import sleep
 
+from time import sleep
 from abc import ABCMeta, abstractmethod
 
 
-class IOptimizer:
+class IOptimizer(metaclass=ABCMeta):
 
     @abstractmethod
     def optimize(self, layers):

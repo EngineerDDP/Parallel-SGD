@@ -42,13 +42,19 @@ class CrossEntropyLoss(ILoss):
         return np.mean(np.multiply(label, np.log(y)) + np.multiply((1 - label), np.log(1 - y))) * -1
 
     def gradient(self, y, label):
-        return ((1 - label) / (1 - y) - label / y) / label.shape[1]
+        return (1 - label) / (1 - y) - label / y
 
 
 class CrossEntropyLossWithSigmoid(CrossEntropyLoss):
 
     def gradient(self, y, label):
         return np.multiply(y - label, 1 / np.multiply(y, 1 - y))
+
+
+class CrossEntropyLossWithSoftmax(CrossEntropyLoss):
+
+    def gradient(self, y, label):
+        return label - y
 
 
 class TanhLoss(ILoss):

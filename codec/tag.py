@@ -23,26 +23,16 @@ class Tag:
         # which batch
         offset = self.Batch_No * self.Batch.Batch_Size
         # get slice
-        sli = self.Batch.getSlice(offset, self.Block_No)
+        sli = self.Batch.get_slice(offset, self.Block_No)
         # return slice
         return sli
 
     def getSliceWithinBatch(self):
         # get slice
-        sli = self.Batch.getSlice(0, self.Block_No)
+        sli = self.Batch.get_slice(0, self.Block_No)
         # return slice
         return sli
 
     def copy(self):
         return Tag(self.Batch, self.Block_No, self.Node_No, self.Company, int(self.Layer_No), int(self.Batch_No))
-
-
-class Data:
-
-    def __init__(self, data):
-        self.Content = data
-
-    def retriveContent(self, tag):
-        # return result
-        return self.Content[tag.getSliceWithinBatch()]
 

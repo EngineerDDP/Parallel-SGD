@@ -1,6 +1,4 @@
-from abc import ABCMeta, abstractclassmethod, abstractmethod
-
-from utils.delegate import Delegation
+from abc import ABCMeta, abstractmethod
 
 
 def yield_none():
@@ -98,13 +96,14 @@ class ICommunicationCtrl:
 class IComPack(metaclass=ABCMeta):
 
     @abstractmethod
-    def to_dictionary(cls):
+    def to_dictionary(self):
         """
             Write the package content to a json like object.
         :return: json like object
         """
         pass
 
+    @staticmethod
     @abstractmethod
     def from_dictionary(cls):
         """
@@ -113,6 +112,7 @@ class IComPack(metaclass=ABCMeta):
         """
         pass
 
+    @staticmethod
     @abstractmethod
     def compose_compack(cls, params=None):
         """
@@ -122,7 +122,7 @@ class IComPack(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def decompose_compack(cls, params=None):
+    def decompose_compack(self, params=None):
         """
             decompose a coded compack object.
         :return: intermediate value

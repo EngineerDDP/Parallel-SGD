@@ -10,6 +10,7 @@ from neuralnetworks.losses import CrossEntropyLossWithSigmoid
 from neuralnetworks.losses import MseLoss
 from psgd.asgd import AsynchronizedSGD
 from psgd.ssgd import SynchronizedSGD
+from profiles.blockassignment.idependent import IIDBlockAssignment
 
 
 class IServerModel(metaclass=ABCMeta):
@@ -61,6 +62,7 @@ class ModelDNN(IServerModel):
     __loss_map = {'mse': MseLoss, 'crossentropy': CrossEntropyLossWithSigmoid}
     __codec_map = {'ccdc': CodedCommunicationCtrl, 'plain': PlainCommunicationCtrl, 'psclient': PAClientCodec}
     __psgd_map = {'ssgd': SynchronizedSGD, 'asgd': AsynchronizedSGD}
+    __assignment_map = {'iid': IIDBlockAssignment}
 
     def __init__(self,
                  train_x, train_y, test_x, test_y,
@@ -72,7 +74,8 @@ class ModelDNN(IServerModel):
                  codec='CCDC',
                  psgd_type='ssgd',
                  epoches=10,
-                 target_acc=0.82
+                 target_acc=0.82,
+                 block_assignment='iid'
                  ):
         self.Layer_Units = layer_units
         self.Activation = ModelDNN.__activation_map[activation]
@@ -86,6 +89,7 @@ class ModelDNN(IServerModel):
         self.Training_Data = (train_x, train_y)
         self.Test_Data = (test_x, test_y)
         self.Neural_Network = None
+        self.Block_Assignment = ModelDNN.__assignment_map[block_assignment]
         self.initWeights()
 
     # ---------- attributes ----------

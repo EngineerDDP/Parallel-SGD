@@ -1,10 +1,7 @@
-from codec.essential import BatchWeight
-from codec.essential import BlockWeight
 from codec.interfaces import ICommunicationCtrl, IComPack, yield_none
 
 from network.agreements import DefaultNodes
-from settings import GlobalSettings
-
+from profiles.settings import GlobalSettings
 from log import Logger
 
 
@@ -31,7 +28,7 @@ class PAClientCodec(ICommunicationCtrl):
 
     def receive_blocks(self, json_dict):
 
-        compack = PAServerCompack.decompose_compack(json_dict)
+        compack = PAServerCompack.from_dictionary(json_dict)
         self.set_result(compack.Content)
 
         return yield_none()
@@ -40,41 +37,38 @@ class PAClientCodec(ICommunicationCtrl):
 class PAClientComPack(IComPack):
 
     def __init__(self, node, layer, block, content):
-
         self.Node_ID = node
         self.Layer_ID = layer
         self.Block_ID = block
         self.Content = content
 
-    def to_dictionary(cls):
-
+    def to_dictionary(self):
         dic = {
-            'Node_ID': cls.Node_ID,
-            'Layer_ID': cls.Layer_ID,
-            'Block_ID':cls.Block_ID,
-            'Content':cls.Content
+            'Node_ID':  self.Node_ID,
+            'Layer_ID': self.Layer_ID,
+            'Block_ID': self.Block_ID,
+            'Content':  self.Content
         }
         return dic
 
+    @staticmethod
     def from_dictionary(cls):
-
         node_id = cls['Node_ID']
         layer_id = cls['Layer_ID']
         block_id = cls['Block_ID']
         content = cls['Content']
-
         return PAClientComPack(node_id, layer_id, block_id, content)
 
-    def compose_compack(blockweights, node_id=None):
+    @staticmethod
+    def compose_compack(block_weights, node_id=None):
 
         send_target = [DefaultNodes.Parameter_Server]
-        pack = PAClientComPack(node_id, blockweights.Layer_ID, blockweights.Block_ID, blockweights.Content)
+        pack = PAClientComPack(node_id, block_weights.Layer_ID, block_weights.Block_ID, block_weights.Content)
 
         return send_target, pack
 
-    def decompose_compack(cls, params=None):
-
-        return PAClientComPack.from_dictionary(cls)
+    def decompose_compack(self, params=None):
+        raise NotImplementedError()
 
 
 class PAServerCodec(ICommunicationCtrl):
@@ -82,18 +76,14 @@ class PAServerCodec(ICommunicationCtrl):
     def __init__(self, node_id, logger=Logger('PAS')):
 
         ICommunicationCtrl.__init__(self)
-
         self.Node_ID = node_id
-
         # save PA current state
         self.Current_Weights = 0
-
         self.Log = logger
-
         # save previous state for each node
         self.Bak_Weights_Node = {}
         # init w_bak
-        for key in GlobalSettings.get_default().Nodes:
+        for key in GlobalSettings.get_default().nodes:
             self.Bak_Weights_Node[key] = 0
 
     def dispose(self):
@@ -114,7 +104,7 @@ class PAServerCodec(ICommunicationCtrl):
         :return: 
         """
         # analyze received data
-        compack = PAClientComPack.decompose_compack(json_dict)
+        compack = PAClientComPack.from_dictionary(json_dict)
         # get last state of working node
         last_state = self.Bak_Weights_Node[compack.Node_ID]
         # update global current state
@@ -135,12 +125,8 @@ class PAServerCompack(PAClientComPack):
 
         PAClientComPack.__init__(self, node, layer, block, content)
 
+    @staticmethod
     def compose_compack(content, params=None):
-
         return PAServerCompack(-1, -1, -1, content)
-
-    def decompose_compack(cls, params=None):
-
-        return PAServerCompack.from_dictionary(cls)
 
 

@@ -7,7 +7,7 @@ from threading import Event
 
 from network.agreements import General, Initialize, Transfer, DefaultNodes, Data
 from network.serialization import Serialize
-from settings import GlobalSettings
+from profiles.settings import GlobalSettings
 
 from network.communications import TLVPack
 
@@ -94,7 +94,7 @@ class NodeClients:
 
     def isGreen(self):
 
-        if len(self.Clients) != GlobalSettings.get_default().NodeCount:
+        if len(self.Clients) != GlobalSettings.get_default().node_count:
             return Initialize.State_Hold
 
         for client in self.Clients:
@@ -178,15 +178,16 @@ class ClientHandler(socketserver.BaseRequestHandler):
                                     General.From: (-1),
                                     General.To: (-1),
                                     Initialize.Weight_Content: model.getWeightsInit(),
-                                    Initialize.Redundancy: GlobalSettings.get_default().Redundancy,
-                                    Initialize.Nodes: GlobalSettings.get_default().NodeCount,
-                                    Initialize.Batch_Size: GlobalSettings.get_default().Batch.Batch_Size,
+                                    Initialize.Redundancy: GlobalSettings.get_default().redundancy,
+                                    Initialize.Nodes: GlobalSettings.get_default().node_count,
+                                    Initialize.Batch_Size: GlobalSettings.get_default().batch.batch_size,
                                     Initialize.CodeType: model.codec_ctrl(),
                                     Initialize.SyncClass: model.psgd_type(),
                                     Initialize.Epoches: model.epoches(),
                                     Initialize.LOSS:model.loss_type(),
                                     Initialize.Learn_Rate:model.learn_rate(),
-                                    Initialize.Target_Accuracy:model.target_acc()
+                                    Initialize.Target_Accuracy:model.target_acc(),
+                                    Initialize.Block_Assignment:model.Block_Assignment
                                     }
                         Global_Logger.log_message('Weights assigned: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Data.Type:

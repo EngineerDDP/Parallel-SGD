@@ -1,11 +1,7 @@
-from codec.essential import BatchWeight
 from codec.essential import BlockWeight
 from codec.interfaces import ICommunicationCtrl, IComPack
 
-from utils.delegate import Delegation
-
-from settings import GlobalSettings
-
+from profiles.settings import GlobalSettings
 from log import Logger
 
 
@@ -30,7 +26,7 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
         :return: None
         """
         self.BlockWeights.clear()
-        self.Log.log_message('Dispose garbage complete, Batch: {}, Layer: {}'.format(self.Batch_ID, self.Layer_ID))
+        self.Log.log_message('Dispose garbage complete, Node:{}'.format(self.Node_ID))
 
     def update_blocks(self, blockweight):
         """
@@ -42,7 +38,7 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
         self.BlockWeights[blockweight.Block_ID] = blockweight
 
         send, pack = PlainComPack.compose_compack(self.Node_ID, blockweight)
-        pack = PlainComPack.to_dictionary(pack)
+        pack = pack.to_dictionary()
 
         self.check_for_combine(blockweight.Block_ID)
 
@@ -50,16 +46,14 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
 
     def receive_blocks(self, json_dict):
 
-        blockweight = PlainComPack.decompose_compack(PlainComPack.from_dictionary(json_dict))
-        self.BlockWeights[blockweight.Block_ID] = blockweight
-        # self.Log.log_message('Received new block, Batch: {}, Layer: {}, Block: {}.'
-        #                    .format(blockweight.Batch_ID, blockweight.Layer_ID, blockweight.Block_ID))
+        block_weight = PlainComPack.from_dictionary(json_dict).decompose_compack()
+        self.BlockWeights[block_weight.Block_ID] = block_weight
 
-        self.check_for_combine(blockweight.Block_ID)
+        self.check_for_combine(block_weight.Block_ID)
 
     def check_for_combine(self, new_block_id):
 
-        if len(self.BlockWeights) < GlobalSettings.get_default().BlockCount:
+        if len(self.BlockWeights) < GlobalSettings.get_default().block_assignment.block_count:
             return
 
         batchweight = 0
@@ -83,16 +77,17 @@ class PlainComPack(IComPack):
 
         self.Content = content
 
-    def to_dictionary(compack):
+    def to_dictionary(self):
         dic = {
-            'Node_ID': compack.Node_ID,
-            'Layer_ID': compack.Layer_ID,
-            'Batch_ID': compack.Batch_ID,
-            'Content': compack.Content
+            'Node_ID':  self.Node_ID,
+            'Layer_ID': self.Layer_ID,
+            'Batch_ID': self.Batch_ID,
+            'Content':  self.Content
         }
 
         return dic
 
+    @staticmethod
     def from_dictionary(dic):
         node_id = dic['Node_ID']
         layer_id = dic['Layer_ID']
@@ -103,17 +98,18 @@ class PlainComPack(IComPack):
 
         return pac
 
-    def compose_compack(node_id, blockweight):
-        send_target = GlobalSettings.get_default().Nodes - {node_id}
+    @staticmethod
+    def compose_compack(node_id, block_weight=None):
+        send_target = GlobalSettings.get_default().nodes - {node_id}
 
-        pack = PlainComPack(node_id, blockweight.Layer_ID, blockweight.Batch_ID, blockweight.Content)
+        pack = PlainComPack(node_id, block_weight.Layer_ID, block_weight.Batch_ID, block_weight.Content)
 
         return send_target, pack
 
-    def decompose_compack(com_pack):
-        block_id = GlobalSettings.get_default().BlockAssignment.Node2Block[com_pack.Node_ID]
-        content = com_pack.Content
+    def decompose_compack(self, params=None):
+        block_id = GlobalSettings.get_default().block_assignment.node_2_block[self.Node_ID]
+        content = self.Content
 
-        blockweight = BlockWeight(com_pack.Layer_ID, com_pack.Batch_ID, block_id[0], set(block_id), content)
+        blockweight = BlockWeight(self.Layer_ID, self.Batch_ID, block_id[0], set(block_id), content)
 
         return blockweight

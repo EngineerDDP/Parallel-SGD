@@ -3,13 +3,13 @@ import pandas as pd
 
 from threading import Thread
 
-from settings import GlobalSettings
+from profiles.settings import GlobalSettings
 
 from network.communications import CommunicationController
-from network.agreements import General, Initialize, DefaultNodes, Data
+from network.agreements import General, Initialize, DefaultNodes
 
 from neuralnetworks.metrics import CategoricalAccuracy
-from neuralnetworks.optimizer import ParallelSGDOptimizer, DelayedPSGDOptimizer
+from neuralnetworks.optimizer import ParallelSGDOptimizer
 from neuralnetworks.model import SequentialModel_v2
 
 from psgd.transfer import NTransfer
@@ -45,7 +45,7 @@ class MNISTTrainingThread(Thread):
         self.Model = SequentialModel_v2(nn, logger=logger)
         self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=[CategoricalAccuracy()])
 
-        self.Trace_Name = 'Trace_Node={}_Codec={}_R={}'.format(GlobalSettings.get_default().NodeCount, codec_type.__name__, GlobalSettings.get_default().Redundancy)
+        self.Trace_Name = 'Trace_Node={}_Codec={}_R={}'.format(GlobalSettings.get_default().node_count, codec_type.__name__, GlobalSettings.get_default().redundancy)
         self.Log = logger
 
         self.Train_X = train_x
@@ -60,7 +60,7 @@ class MNISTTrainingThread(Thread):
         self.Transfer.start_transfer()
         # do until reach the target accuracy
         if self.Target_acc is not None:
-            for i in range(len(self.Epochs)):
+            for i in range(self.Epochs):
                 self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
                 if self.Model.evaluate(self.Eval_X, self.Eval_Y)[1] > self.Target_acc:
                     break
@@ -77,7 +77,12 @@ class MNISTTrainingThread(Thread):
         result = self.Model.evaluate(self.Eval_X, self.Eval_Y)
         self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title, result))))
 
-def main():
+
+if __name__ == '__main__':
+    """
+        Usage:
+        python client.py --ip 121.248.202.131 --port 15387
+    """
 
     if len(sys.argv) < 5:
         print('usage: client.py')
@@ -116,12 +121,14 @@ def main():
     GlobalSettings.set_default(
         model_init_dic[Initialize.Nodes],
         model_init_dic[Initialize.Redundancy],
-        model_init_dic[Initialize.Batch_Size])
+        model_init_dic[Initialize.Batch_Size],
+        model_init_dic[Initialize.Block_Assignment])
 
-    log.log_message('Nodes: {}, Redundancy: {}, Batch size: {}.'.format(
-        GlobalSettings.get_default().Nodes,
-        GlobalSettings.get_default().Redundancy,
-        GlobalSettings.get_default().Batch.Batch_Size))
+    log.log_message('Nodes: {}, Redundancy: {}, Batch size: {}, Assignments: {}.'.format(
+        GlobalSettings.get_default().nodes,
+        GlobalSettings.get_default().redundancy,
+        GlobalSettings.get_default().batch.batch_size,
+        model_init_dic[Initialize.Block_Assignment].__name__))
 
     codec = model_init_dic[Initialize.CodeType]
     psgd = model_init_dic[Initialize.SyncClass]
@@ -153,15 +160,15 @@ def main():
     # tags to be trained
     tags = []
 
-    for block in GlobalSettings.get_default().BlockAssignment.Node2Block[con.Node_ID]:
+    for block in GlobalSettings.get_default().block_assignment.node_2_block[con.Node_ID]:
 
-        tags.append(Tag(GlobalSettings.get_default().Batch, block, con.Node_ID,
-                        set(GlobalSettings.get_default().BlockAssignment.Block2Node[block])))
+        tags.append(Tag(GlobalSettings.get_default().batch, block, con.Node_ID,
+                        set(GlobalSettings.get_default().block_assignment.block_2_node[block])))
 
     train = MNISTTrainingThread(model_init_dic[Initialize.Weight_Content],
                                 loss_function_type, codec, psgd, con, w_types,
                                 tags, train_x, train_y, eval_x, eval_y,
-                                GlobalSettings.get_default().Batch.Batch_Size,
+                                GlobalSettings.get_default().batch.batch_size,
                                 training_iterations, learn_rate=learning_rate, logger=log, target_acc=target_accuracy)
 
     log.log_message('Synchronizing timeline with cluster...')
@@ -192,12 +199,3 @@ def main():
     train.evaluate()
 
     print('-------------------------Done------------------------------')
-
-
-if __name__ == '__main__':
-    """
-        Usage:
-        python client.py --ip 121.248.202.131 --port 15387
-    """
-
-    main()

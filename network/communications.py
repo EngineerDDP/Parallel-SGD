@@ -3,7 +3,7 @@ import socket as sc
 from threading import Thread
 
 from multiprocessing import Process
-from multiprocessing import Pipe, Queue, Value
+from multiprocessing import Queue, Value
 
 from time import sleep
 from network.serialization import Serialize

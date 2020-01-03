@@ -1,19 +1,20 @@
 import numpy as np
-import zlib
 
 from tempfile import TemporaryFile
 
 
 class Serialize:
 
-    def pack(dic={}):
+    @staticmethod
+    def pack(dic):
         with TemporaryFile() as file:
             np.save(file, dic)
-            file.seek(0,0)
+            file.seek(0, 0)
             data = file.read()
             # compressed = zlib.compress(data, level=3)
         return data
 
+    @staticmethod
     def unpack(data=b''):
         with TemporaryFile() as file:
             # data = zlib.decompress(data)

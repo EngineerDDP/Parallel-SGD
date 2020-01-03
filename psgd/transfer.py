@@ -4,7 +4,7 @@ from log import Logger
 from network.agreements import General
 from network.agreements import Transfer as TransferAgreements
 
-from psgd.interfaces import ITransfer, ReadTimeOut, AsyncDetected, OutdatedUpdates
+from psgd.interfaces import ITransfer, ReadTimeOut
 
 
 class NTransfer(ITransfer):
@@ -45,7 +45,6 @@ class NTransfer(ITransfer):
         for update_pack in update_packs:
             sender, dic = update_pack
             self.__send(sender, dic, tag.Layer_No, w_type)
-            # self.Log.log_message('Message to node {}'.format(sender))
 
     def get_weights(self, tag, w_type='w'):
         """
@@ -58,8 +57,8 @@ class NTransfer(ITransfer):
             for sender, dic in e.retry():
                 self.__send(sender, dic, tag.Layer_No, w_type)
                 self.Log.log_error('Message retry to node {}'.format(sender))
-        finally:
-            return self.get_weights(tag, w_type)
+            return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
+
 
     def start_transfer(self):
         """
@@ -104,8 +103,8 @@ class NTransfer(ITransfer):
                         sender, dic = update_pack
                         self.__send(sender, dic, layer_no, w_type)
                         # self.Log.log_message('Message back to node {}'.format(sender))
-                except KeyError:
-                    continue
-        except OSError:
-            pass
+                except KeyError as e:
+                    print(e)
+        except OSError as e:
+            print(e)
         self.Log.log_message('Transfer thread exited safely.')

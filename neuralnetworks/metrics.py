@@ -1,5 +1,5 @@
 from utils.metrichelper import *
-from abc import ABCMeta, abstractmethod, ABC
+from abc import ABCMeta, abstractmethod
 
 
 class IMetrics(metaclass=ABCMeta):
