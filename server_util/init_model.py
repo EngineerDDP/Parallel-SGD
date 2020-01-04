@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from codec.ccdc import CodedCommunicationCtrl
 from codec.pacodec import PAClientCodec
 from codec.plain import PlainCommunicationCtrl
+from codec.ndc import NaiveDuplicationCodec
 from neuralnetworks.activations import Sigmoid
 from neuralnetworks.activations import Tanh, Linear, ReLU
 from neuralnetworks.layers import FCLayer_v2
@@ -11,6 +12,7 @@ from neuralnetworks.losses import MseLoss
 from psgd.asgd import AsynchronizedSGD
 from psgd.ssgd import SynchronizedSGD
 from profiles.blockassignment.idependent import IIDBlockAssignment
+from profiles.blockassignment.duplicate import DuplicateAssignment
 
 
 class IServerModel(metaclass=ABCMeta):
@@ -60,9 +62,9 @@ class ModelDNN(IServerModel):
 
     __activation_map = {'tanh': Tanh, 'sigmoid': Sigmoid, 'linear': Linear, 'relu': ReLU}
     __loss_map = {'mse': MseLoss, 'crossentropy': CrossEntropyLossWithSigmoid}
-    __codec_map = {'ccdc': CodedCommunicationCtrl, 'plain': PlainCommunicationCtrl, 'psclient': PAClientCodec}
+    __codec_map = {'ccdc': CodedCommunicationCtrl, 'plain': PlainCommunicationCtrl, 'psclient': PAClientCodec, 'ndc':NaiveDuplicationCodec}
     __psgd_map = {'ssgd': SynchronizedSGD, 'asgd': AsynchronizedSGD}
-    __assignment_map = {'iid': IIDBlockAssignment}
+    __assignment_map = {'iid': IIDBlockAssignment, 'dpa': DuplicateAssignment}
 
     def __init__(self,
                  train_x, train_y, test_x, test_y,
@@ -74,7 +76,7 @@ class ModelDNN(IServerModel):
                  codec='CCDC',
                  psgd_type='ssgd',
                  epoches=10,
-                 target_acc=0.82,
+                 target_acc=None,
                  block_assignment='iid'
                  ):
         self.Layer_Units = layer_units

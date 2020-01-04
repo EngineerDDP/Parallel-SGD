@@ -21,10 +21,8 @@ if __name__ == '__main__':
     parse.add_argument("--node_count", type=int, default=2, help="initial node count")
     parse.add_argument("--batch_size", type=int, default=128, help="initial batch size")
     parse.add_argument("--redundancy", type=int, default=1, help="initial redundancy")
-    parse.add_argument("--codec", type=str, default='ccdc',
-                       help="initial communication codec and protocol {ccdc, plain, psclient}")
-    parse.add_argument("--psgd", type=str, default='asgd',
-                       help="parallel stochastic gradient descent synchronization type {asgd, ssgd}")
+    parse.add_argument("--codec", type=str, default='ccdc', help="initial communication codec and protocol {ccdc, plain, psclient}")
+    parse.add_argument("--psgd", type=str, default='asgd', help="parallel stochastic gradient descent synchronization type {asgd, ssgd}")
     parse.add_argument("--learn_rate", type=float, default=0.01, help="initial learining rate")
     parse.add_argument("--epochs", type=int, default=20, help="initial train epochs")
     parse.add_argument("--working_ports", type=int, default=15388, help="initial working ports")

@@ -11,12 +11,12 @@ class DuplicateAssignment(IBlockAssignment):
 
     def __init__(self, node_count, redundancy):
 
-        self.__block_count = node_count / redundancy
+        self.__block_count = node_count // redundancy
         self.__block_ids = list(range(self.__block_count))
 
         node_ids = np.arange(0, node_count, 1)
         self.__block_2_node = np.split(node_ids, self.__block_count)
-        self.__node_2_block = [[block_id for _ in range(redundancy)] for block_id in self.__block_ids]
+        self.__node_2_block = [[block_id] for block_id in self.__block_ids for _ in range(redundancy)]
 
     @property
     def block_2_node(self):

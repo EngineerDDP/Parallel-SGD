@@ -68,7 +68,7 @@ class SequentialModel_v2:
                 time_now = time.time()
 
                 # log fitting progress
-                str_output = ['{}:{:.4f}'.format(name, val) for name, val in zip(self.History_Title, eval_result)]
+                str_output = ['{}:{:.4f}'.format(name, val) for name, val in zip(self.History_Title[-len(eval_result):], eval_result)]
                 self.Log.log_message('Epochs:{}/{}, Batches:{}/{}, Total batches:{}. {}'
                                      .format(j+1, epochs, i+1, batches, j*batches+i, ','.join(str_output)))
 

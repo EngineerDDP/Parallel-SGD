@@ -38,7 +38,7 @@ class CodedBlockWeight(BlockWeight):
         BlockWeight.__init__(self, layer_id, batch_id, block_id, company_id, content)
 
     @classmethod
-    def fromBlockWeight(cls, blockweight):
+    def from_block_weight(cls, blockweight):
         return cls(blockweight.Layer_ID, blockweight.Batch_ID, blockweight.Block_ID, blockweight.Company_ID,
                    blockweight.Content)
 
@@ -47,13 +47,13 @@ class CodedBlockWeight(BlockWeight):
         pos = np.floor(np.linspace(0, content.shape[CodedBlockWeight.SPLIT_AXIS], count+1)).astype('int')
         return slice(pos[take], pos[take+1])
 
-    def getbyNode(self, node_id):
+    def get_by_node(self, node_id):
         # get position
         pos = list(self.Company_ID).index(node_id)
 
-        return self.getbyPosition(pos)
+        return self.get_by_position(pos)
 
-    def getbyPosition(self, pos):
+    def get_by_position(self, pos):
         if CodedBlockWeight.SPLIT_AXIS == 1:
             parts = self.Content[:, self.__vsplit(self.Content, len(self.Company_ID), pos)].copy()
         else:
@@ -63,16 +63,11 @@ class CodedBlockWeight(BlockWeight):
         # return value
         return PartialBlockWeight(self.Layer_ID, self.Batch_ID, self.Block_ID, pos, parts)
 
-    def setByNode(self, node_id, content):
-        # get position
-        pos = list(self.Company_ID).index(node_id)
-        self.Content[self.__vsplit(self.Content, len(self.Company_ID), pos)] = content
-        return None
-
 
 class CodedCommunicationCtrl(ICommunicationCtrl):
     """
-        Control communication between nodes within a specified batch and layer
+        Control communication between nodes within a specified batch and layer.
+
     """
 
     def __init__(self, node_id, logger=Logger('None')):
@@ -115,8 +110,8 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         """
         # stabilize float
         blockweight.Content = (np.floor(blockweight.Content * Scale)).astype(Qunatization)
-        self.block_weights_have[blockweight.Block_ID] = CodedBlockWeight.fromBlockWeight(blockweight)
-        self.block_weights_recv[blockweight.Block_ID] = CodedBlockWeight.fromBlockWeight(blockweight)
+        self.block_weights_have[blockweight.Block_ID] = CodedBlockWeight.from_block_weight(blockweight)
+        self.block_weights_recv[blockweight.Block_ID] = CodedBlockWeight.from_block_weight(blockweight)
 
         self.aggregate()
         # check if any of those blocks were ready to broadcast
@@ -196,16 +191,12 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
 
         if len(self.block_weights_recv) == self.Total_Blocks:
 
-            layer = 0
-            batch = 0
-            blockweights = 0
+            block_weights = 0
 
             for i in self.block_weights_recv.values():
-                blockweights += i.Content
-                layer = i.Layer_ID
-                batch = i.Batch_ID
+                block_weights += i.Content
 
-            self.set_result((blockweights.astype('float64') / Scale))
+            self.set_result((block_weights.astype('float64') / Scale))
             self.dispose()
 
         return None
@@ -274,7 +265,7 @@ class ComPack(IComPack):
             # save block id
             partial_block_weights_content_id.append(block_weight.Block_ID)
             # get part of block weight
-            partial_block_weight = block_weight.getbyNode(node_id)
+            partial_block_weight = block_weight.get_by_node(node_id)
 
             # initialization
             if partial_block_weight_content is None:
@@ -305,7 +296,7 @@ class ComPack(IComPack):
 
         for id, pos in iteration:
             if block_weights_dic.get(id):
-                content ^= block_weights_dic[id].getbyPosition(pos).Content
+                content ^= block_weights_dic[id].get_by_position(pos).Content
             else:
                 parts_absent += 1
                 decompose_part_id = id
@@ -318,5 +309,5 @@ class ComPack(IComPack):
 
 if __name__ == '__main__':
     bw = BlockWeight(0, 0, 0, {0, 1}, [1, 2, 3])
-    cbw = CodedBlockWeight.fromBlockWeight(bw)
+    cbw = CodedBlockWeight.from_block_weight(bw)
     print(cbw)
