@@ -1,24 +1,28 @@
 from log import Logger
 
 from codec.pacodec import PAServerCodec
+from codec.dc_asgdcodec import DCASGDServerCodec
 from psgd.asgd import AsynchronizedSGD
 from psgd.transfer import NTransfer
 
 
 class ParameterServer:
 
-    def __init__(self, com, model, pa_codec_type=PAServerCodec):
+    __para_server_map = {'simple': PAServerCodec, 'dc': DCASGDServerCodec}
+
+    def __init__(self, com, model, pa_codec_type='simple'):
 
         self.Com = com
+        self.PA_Codec = ParameterServer.__para_server_map[pa_codec_type]
         self.Node_ID = self.Com.Node_ID
         self.Log = Logger('ParaServer', log_to_file=True)
-        self.Log.log_message('Init parameter server with codec {}'.format(pa_codec_type.__name__))
+        self.Log.log_message('Init parameter server with codec {}'.format(self.PA_Codec.__name__))
 
         updater = [{} for i in model.getWeightsInit()]
 
         for layer_id in range(len(updater)):
             for t in ['w', 'b']:
-                updater[layer_id][t] = AsynchronizedSGD(self.Node_ID, layer_id, pa_codec_type)
+                updater[layer_id][t] = AsynchronizedSGD(self.Node_ID, layer_id, self.PA_Codec)
 
         self.Transfer = NTransfer(updater, self.Com)
         self.Transfer.start_transfer()

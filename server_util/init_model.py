@@ -7,7 +7,7 @@ from codec.ndc import NaiveDuplicationCodec
 from neuralnetworks.activations import Sigmoid
 from neuralnetworks.activations import Tanh, Linear, ReLU
 from neuralnetworks.layers import FCLayer_v2
-from neuralnetworks.losses import CrossEntropyLossWithSigmoid
+from neuralnetworks.losses import CrossEntropyLoss
 from neuralnetworks.losses import MseLoss
 from psgd.asgd import AsynchronizedSGD
 from psgd.ssgd import SynchronizedSGD
@@ -61,7 +61,7 @@ class IServerModel(metaclass=ABCMeta):
 class ModelDNN(IServerModel):
 
     __activation_map = {'tanh': Tanh, 'sigmoid': Sigmoid, 'linear': Linear, 'relu': ReLU}
-    __loss_map = {'mse': MseLoss, 'crossentropy': CrossEntropyLossWithSigmoid}
+    __loss_map = {'mse': MseLoss, 'crossentropy': CrossEntropyLoss}
     __codec_map = {'ccdc': CodedCommunicationCtrl, 'plain': PlainCommunicationCtrl, 'psclient': PAClientCodec, 'ndc':NaiveDuplicationCodec}
     __psgd_map = {'ssgd': SynchronizedSGD, 'asgd': AsynchronizedSGD}
     __assignment_map = {'iid': IIDBlockAssignment, 'dpa': DuplicateAssignment}

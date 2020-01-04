@@ -75,7 +75,7 @@ class MNISTTrainingThread(Thread):
 
     def evaluate(self):
         result = self.Model.evaluate(self.Eval_X, self.Eval_Y)
-        self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title, result))))
+        self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title[-len(result):], result))))
 
 
 if __name__ == '__main__':

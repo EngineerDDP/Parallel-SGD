@@ -1,15 +1,8 @@
 import numpy as np
 
 from profiles.settings import GlobalSettings
-from codec.pacodec import PAClientCodec, PAServerCodec, PAServerCompack
+from codec.pacodec import PAServerCodec, PAServerCompack
 from log import Logger
-
-
-class DCASGDClientCodec(PAClientCodec):
-
-    def __init__(self, node_id, logger=Logger('None')):
-
-        PAClientCodec.__init__(self, node_id, logger)
 
 
 class DCASGDServerCodec(PAServerCodec):

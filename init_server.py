@@ -29,19 +29,6 @@ if __name__ == '__main__':
     parse.add_argument("--block_assignment", type=str, default='iid', help="initial block assignment strategy")
     arg = parse.parse_args()
 
-    if len(sys.argv) < 19:
-        print('usage: init_server.py')
-        print('\t --node_count <node count>')
-        print('\t --batch_size <batch size>')
-        print('\t --redundancy <r>')
-        print('\t --codec <communication codec and protocol> {ccdc, plain, psclient}')
-        print('\t --psgd <parallel stochastic gradient descent synchronization type> {asgd, ssgd}')
-        print('\t --learn_rate <learn rate for GD algorithm>')
-        print('\t --epochs <training epochs>')
-        print('\t --working_ports <ports activated>')
-        print('\t --block_assignment <block assignment strategy>')
-        exit(-1)
-
     # read parameters
     node_count = arg.node_count
     batch_size = arg.batch_size
@@ -52,6 +39,16 @@ if __name__ == '__main__':
     epo = arg.epochs
     port = arg.working_ports
     assignment = arg.block_assignment
+
+    print('\t --node_count <node count {}>'.format(node_count))
+    print('\t --batch_size <batch size {}>'.format(batch_size))
+    print('\t --redundancy <r {}>'.format(redundancy))
+    print('\t --codec <communication codec and protocol {}>'.format(codec))
+    print('\t --psgd <parallel stochastic gradient descent synchronization type {}>'.format(psgd))
+    print('\t --learn_rate <learn rate for GD algorithm {}>'.format(lr))
+    print('\t --epochs <training epochs {}>'.format(epo))
+    print('\t --working_ports <ports activated {}>'.format(port))
+    print('\t --block_assignment <block assignment strategy {}>'.format(assignment))
 
     train_x, train_y = load_mnist(kind='train')
     test_x, test_y = load_mnist(kind='t10k')
@@ -67,7 +64,7 @@ if __name__ == '__main__':
                                epoches=epo,
                                block_assignment=assignment)
     # Set parameter server
-    para_server = ParameterServer(FakeCom(), model_parameter)
+    para_server = ParameterServer(FakeCom(), model_parameter, )
 
     # Register settings
     ServerParameters.set_default(model_parameter, para_server)
