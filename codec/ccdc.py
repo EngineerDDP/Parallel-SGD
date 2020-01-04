@@ -32,7 +32,7 @@ class PartialBlockWeight:
 
 class CodedBlockWeight(BlockWeight):
 
-    SPLIT_AXIS = 1
+    SPLIT_AXIS = 0
 
     def __init__(self, layer_id, batch_id, block_id, company_id, content):
         BlockWeight.__init__(self, layer_id, batch_id, block_id, company_id, content)
@@ -157,7 +157,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             self.ComPack_Combs.add(comb)
             dic = compack.to_dictionary()
 
-            yield (targets, compack)
+            yield (targets, dic)
 
     def decoding(self, new_block_id):
 
