@@ -15,11 +15,13 @@ from log import Logger
 
 Global_Logger = None
 
-
-def start_server(port):
+def create_logger(port):
     global Global_Logger
     Global_Logger = Logger('Server_{}'.format(port), log_to_file=True)
     Global_Logger.log_message('Starting server at port {}.'.format(port))
+    return Global_Logger
+
+def start_server(port):
     server = socketserver.ThreadingTCPServer(("", port), ClientHandler)
     server.serve_forever()
 

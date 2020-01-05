@@ -7,7 +7,7 @@ class UnicastCommunicationCtrl(PlainCommunicationCtrl):
         # simulate unicast
         for target_set, pack in super().update_blocks(blockweight):
             for target in target_set:
-                yield (target, pack)
+                yield ([target], pack)
 
 
 if __name__ == '__main__':

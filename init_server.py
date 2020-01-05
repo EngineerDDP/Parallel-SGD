@@ -2,9 +2,10 @@ from profiles.settings import GlobalSettings
 from server_util.init_model import ModelDNN
 from server_util.para_server import ParameterServer
 from server_util.fake_com import FakeCom
-from server_util.client_handler import ServerParameters, start_server
+from server_util.client_handler import ServerParameters, start_server, create_logger
 from dataset.mnist_input import load_mnist
 from profiles.blockassignment.idependent import IIDBlockAssignment
+from log import Logger
 
 import sys
 import argparse
@@ -40,15 +41,17 @@ if __name__ == '__main__':
     port = arg.working_ports
     assignment = arg.block_assignment
 
-    print('\t --node_count <node count {}>'.format(node_count))
-    print('\t --batch_size <batch size {}>'.format(batch_size))
-    print('\t --redundancy <r {}>'.format(redundancy))
-    print('\t --codec <communication codec and protocol {}>'.format(codec))
-    print('\t --psgd <parallel stochastic gradient descent synchronization type {}>'.format(psgd))
-    print('\t --learn_rate <learn rate for GD algorithm {}>'.format(lr))
-    print('\t --epochs <training epochs {}>'.format(epo))
-    print('\t --working_ports <ports activated {}>'.format(port))
-    print('\t --block_assignment <block assignment strategy {}>'.format(assignment))
+    Global_Logger = create_logger(port)
+
+    Global_Logger.log_message('\t --node_count <node count {}>'.format(node_count))
+    Global_Logger.log_message('\t --batch_size <batch size {}>'.format(batch_size))
+    Global_Logger.log_message('\t --redundancy <r {}>'.format(redundancy))
+    Global_Logger.log_message('\t --codec <communication codec and protocol {}>'.format(codec))
+    Global_Logger.log_message('\t --psgd <parallel stochastic gradient descent synchronization type {}>'.format(psgd))
+    Global_Logger.log_message('\t --learn_rate <learn rate for GD algorithm {}>'.format(lr))
+    Global_Logger.log_message('\t --epochs <training epochs {}>'.format(epo))
+    Global_Logger.log_message('\t --working_ports <ports activated {}>'.format(port))
+    Global_Logger.log_message('\t --block_assignment <block assignment strategy {}>'.format(assignment))
 
     train_x, train_y = load_mnist(kind='train')
     test_x, test_y = load_mnist(kind='t10k')
