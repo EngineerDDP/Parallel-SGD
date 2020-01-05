@@ -50,6 +50,7 @@ class SequentialModel_v2:
             batch_size = len(x)
 
         batches = len(x) // batch_size
+        time_started = time.time()
 
         # train
         for j in range(epochs):
@@ -73,7 +74,7 @@ class SequentialModel_v2:
                                      .format(j+1, epochs, i+1, batches, j*batches+i, ','.join(str_output)))
 
                 # record history data
-                history = [time_now, j+1, i+1, j*batches+i+1]
+                history = [time_now - time_started, j+1, i+1, j*batches+i+1]
                 history.extend(eval_result)
                 self.History.append(history)
 
@@ -83,8 +84,6 @@ class SequentialModel_v2:
 
         predictions = self.predict(x)
         eval_results = [metric.metric(predictions, y) for metric in self.Metrics]
-        self.History.append(eval_results)
-
         return eval_results
 
     def predict(self, x):

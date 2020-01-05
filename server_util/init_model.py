@@ -4,6 +4,7 @@ from codec.ccdc import CodedCommunicationCtrl
 from codec.pacodec import PAClientCodec
 from codec.plain import PlainCommunicationCtrl
 from codec.ndc import NaiveDuplicationCodec
+from codec.unicast import UnicastCommunicationCtrl
 from neuralnetworks.activations import Sigmoid
 from neuralnetworks.activations import Tanh, Linear, ReLU
 from neuralnetworks.layers import FCLayer_v2
@@ -60,11 +61,21 @@ class IServerModel(metaclass=ABCMeta):
 
 class ModelDNN(IServerModel):
 
-    __activation_map = {'tanh': Tanh, 'sigmoid': Sigmoid, 'linear': Linear, 'relu': ReLU}
-    __loss_map = {'mse': MseLoss, 'crossentropy': CrossEntropyLoss}
-    __codec_map = {'ccdc': CodedCommunicationCtrl, 'plain': PlainCommunicationCtrl, 'psclient': PAClientCodec, 'ndc':NaiveDuplicationCodec}
-    __psgd_map = {'ssgd': SynchronizedSGD, 'asgd': AsynchronizedSGD}
-    __assignment_map = {'iid': IIDBlockAssignment, 'dpa': DuplicateAssignment}
+    __activation_map = {'tanh': Tanh,
+                        'sigmoid': Sigmoid,
+                        'linear': Linear,
+                        'relu': ReLU}
+    __loss_map = {'mse': MseLoss,
+                  'crossentropy': CrossEntropyLoss}
+    __codec_map = {'ccdc': CodedCommunicationCtrl,
+                   'plain': PlainCommunicationCtrl,
+                   'ps': PAClientCodec,
+                   'ndc': NaiveDuplicationCodec,
+                   'unicast': UnicastCommunicationCtrl}
+    __psgd_map = {'ssgd': SynchronizedSGD,
+                  'asgd': AsynchronizedSGD}
+    __assignment_map = {'iid': IIDBlockAssignment,
+                        'dpa': DuplicateAssignment}
 
     def __init__(self,
                  train_x, train_y, test_x, test_y,
