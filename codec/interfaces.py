@@ -78,6 +78,7 @@ class ICommunicationCtrl(metaclass=ABCMeta):
             Clear current weights buffer and return.
         :return: weights buffer: ndarray
         """
+        assert self.__updated_weight_buffer is not None, 'No weights buffer available.'
         tmp = self.__updated_weight_buffer
         self.__updated_weight_buffer = None
         self.__update_complete = False

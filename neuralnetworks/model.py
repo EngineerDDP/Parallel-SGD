@@ -95,4 +95,30 @@ class SequentialModel_v2:
 
         return intermediate
 
+    def summary(self):
+
+        self.Log.log_message('------------\t\tModel Summary\t\t------------\n')
+        for nn in self.NN:
+            self.Log.log_message('------------\t\t{}\t\t------------'.format(nn.__class__.__name__))
+            self.Log.log_message('Input:\t{};'.format(nn.W.shape[0] if nn.W is not None else 'Unknown'))
+            self.Log.log_message('Output:\t{};'.format(nn.Output))
+            self.Log.log_message('Activation:\t{}'.format(nn.Act.__class__.__name__))
+
+        if self.Loss is not None:
+            self.Log.log_message('------------\t\tAppendix\t\t------------')
+            self.Log.log_message('Loss:\t{}'.format(self.Loss.__class__.__name__))
+            self.Log.log_message('Optimizer:\t{}'.format(self.Optimizer.__class__.__name__))
+            self.Log.log_message('Metrics:\t')
+            for metric in self.Metrics:
+                self.Log.log_message('\t\t{}'.format(metric.__class__.__name__))
+            self.Log.log_message('------------\t\tAppendix\t\t------------\n')
+
+        self.Log.log_message('------------\t\tModel Summary\t\t------------')
+
+    def clear(self):
+        for nn in self.NN:
+            nn.W = None
+            nn.B = None
+
+
 

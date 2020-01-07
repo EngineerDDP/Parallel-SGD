@@ -15,7 +15,7 @@ class ParameterServer:
         self.Com = com
         self.PA_Codec = ParameterServer.__para_server_map[pa_codec_type]
         self.Node_ID = self.Com.Node_ID
-        self.Log = Logger('ParaServer', log_to_file=True)
+        self.Log = Logger('ParaServer', log_to_file=False)
         self.Log.log_message('Init parameter server with codec {}'.format(self.PA_Codec.__name__))
 
         updater = [{} for i in model.getWeightsInit()]

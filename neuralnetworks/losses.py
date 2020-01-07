@@ -54,7 +54,7 @@ class CrossEntropyLossWithSigmoid(CrossEntropyLoss):
 class CrossEntropyLossWithSoftmax(CrossEntropyLoss):
 
     def gradient(self, y, label):
-        return label - y
+        return y - label
 
 
 class TanhLoss(ILoss):

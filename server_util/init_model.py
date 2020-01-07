@@ -5,10 +5,11 @@ from codec.pacodec import PAClientCodec
 from codec.plain import PlainCommunicationCtrl
 from codec.ndc import NaiveDuplicationCodec
 from codec.unicast import UnicastCommunicationCtrl
+from codec.quantization import QuantizationPSCodec
 from neuralnetworks.activations import Sigmoid
-from neuralnetworks.activations import Tanh, Linear, ReLU
+from neuralnetworks.activations import Tanh, Linear, ReLU, SoftmaxNoGrad
 from neuralnetworks.layers import FCLayer_v2
-from neuralnetworks.losses import CrossEntropyLoss
+from neuralnetworks.losses import CrossEntropyLoss, CrossEntropyLossWithSoftmax
 from neuralnetworks.losses import MseLoss
 from psgd.asgd import AsynchronizedSGD
 from psgd.ssgd import SynchronizedSGD
@@ -64,14 +65,17 @@ class ModelDNN(IServerModel):
     __activation_map = {'tanh': Tanh,
                         'sigmoid': Sigmoid,
                         'linear': Linear,
-                        'relu': ReLU}
+                        'relu': ReLU,
+                        'softmax': SoftmaxNoGrad}
     __loss_map = {'mse': MseLoss,
-                  'crossentropy': CrossEntropyLoss}
+                  'crossentropy_normal': CrossEntropyLoss,
+                  'crossentropy_softmax': CrossEntropyLossWithSoftmax}
     __codec_map = {'ccdc': CodedCommunicationCtrl,
                    'plain': PlainCommunicationCtrl,
                    'ps': PAClientCodec,
                    'ndc': NaiveDuplicationCodec,
-                   'unicast': UnicastCommunicationCtrl}
+                   'unicast': UnicastCommunicationCtrl,
+                   'qasgd': QuantizationPSCodec}
     __psgd_map = {'ssgd': SynchronizedSGD,
                   'asgd': AsynchronizedSGD}
     __assignment_map = {'iid': IIDBlockAssignment,
@@ -79,10 +83,10 @@ class ModelDNN(IServerModel):
 
     def __init__(self,
                  train_x, train_y, test_x, test_y,
-                 layer_units=[784, 784, 396, 192, 128, 10],
+                 layer_units=[784, 784, 392, 196, 128, 10],
                  activation='tanh',
-                 output='sigmoid',
-                 loss='crossentropy',
+                 output='softmax',
+                 loss='crossentropy_softmax',
                  learn_rate=0.05,
                  codec='CCDC',
                  psgd_type='ssgd',

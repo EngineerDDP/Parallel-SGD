@@ -9,7 +9,7 @@ from network.communications import CommunicationController
 from network.agreements import General, Initialize, DefaultNodes
 
 from neuralnetworks.metrics import CategoricalAccuracy
-from neuralnetworks.optimizer import ParallelSGDOptimizer
+from neuralnetworks.optimizer import ParallelSGDOptimizer, GradientDecentOptimizer_v2
 from neuralnetworks.model import SequentialModel_v2
 
 from psgd.transfer import NTransfer
@@ -44,6 +44,7 @@ class MNISTTrainingThread(Thread):
         self.Optimizer = ParallelSGDOptimizer(tags=tags, batch_size=self.Batch_Size, com=self.Transfer, learn_rate=learn_rate)
         self.Model = SequentialModel_v2(nn, logger=logger)
         self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=[CategoricalAccuracy()])
+        self.Model.summary()
 
         self.Trace_Name = 'Trace_Node={}_Codec={}_R={}'.format(GlobalSettings.get_default().node_count, codec_type.__name__, GlobalSettings.get_default().redundancy)
         self.Log = logger

@@ -1,7 +1,7 @@
 from queue import Queue
 
 from server_util.client_handler import ClientHandler
-from server_util.client_handler import Serialize
+from server_util.client_handler import Serialize, DoAsync
 
 from network.agreements import DefaultNodes
 from network.agreements import General
@@ -39,7 +39,8 @@ class FakeCom(CommunicationController):
         for target in targets:
             try:
                 sock = ClientHandler.Client_List.getClient(target)
-                pack.send(sock)
+                do = DoAsync(pack.send, (sock,))
+                do.start()
             except ConnectionAbortedError:
                 pass
 

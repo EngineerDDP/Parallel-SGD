@@ -174,7 +174,7 @@ class FCLayer_v2(ILayer):
         # w shape is [output, input]
         # b shape is [output]
         if self.W is None:
-            high = np.sqrt(1 / x.shape[0])
+            high = np.sqrt(6 / (x.shape[1] + self.Output))
             low = -high
             self.W = np.random.uniform(low=low, high=high, size=[x.shape[1], self.Output])
         if self.B is None:
@@ -217,19 +217,24 @@ class FCLayer_v2(ILayer):
             x shape=[input, samples count]
             grad shape=[output, samples count]
         """
-        # calculate gradient
-        act_grad = self.Act.gradient(self.logit(x))
-        # y shape=[output, samples count]
-        y = np.multiply(act_grad, gradient)
+        # # calculate gradient
+        # act_grad = self.Act.gradient(self.logit(x))
+        # # y shape=[output, samples count]
+        # y = np.multiply(act_grad, gradient)
+        #
+        # # adjust weight
+        # batch_weight = (y.T.dot(x)).T / y.shape[0]
+        # self.W = self.W - batch_weight
+        # # adjust bias
+        # self.B = self.B - y.mean(axis=0)
+        # # recalculate gradient to propagate
+        # grad = y.dot(self.W.transpose())
+        # return grad
 
-        # adjust weight
-        batch_weight = (y.T.dot(x)).T / y.shape[0]
-        self.W = self.W - batch_weight
-        # adjust bias
-        self.B = self.B - y.mean(axis=0)
-        # recalculate gradient to propagate
-        grad = y.dot(self.W.transpose())
-        return grad
+        w, b, y = self.delta_wb(x, gradient)
+        w = w / x.shape[0]
+        b = b / x.shape[0]
+        return self.apply_wb(w, b, y)
 
 
 class Conv2dLayer(ILayer):

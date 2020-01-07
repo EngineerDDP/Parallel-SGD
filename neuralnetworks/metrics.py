@@ -50,14 +50,11 @@ class CategoricalAccuracy(IMetrics):
         Metric can be used in MLR, CNN.
     """
 
-    def __init__(self, threshold=0.5, threshold_vector=None):
-        if threshold_vector is not None:
-            self.Threshold = threshold_vector
-        else:
-            self.Threshold = threshold
+    def __init__(self):
+        pass
 
     def metric(self, y, label):
-        y = np.floor(y + self.Threshold).astype('int')
+        y = (y == y.max(axis=1).reshape([-1, 1])).astype('int')
         label = label.astype('int')
         result = np.sum(y & label) / len(y)
         return result
