@@ -5,7 +5,7 @@ from codec.pacodec import PAClientCodec
 from codec.plain import PlainCommunicationCtrl
 from codec.ndc import NaiveDuplicationCodec
 from codec.unicast import UnicastCommunicationCtrl
-from codec.quantization import QuantizationPSCodec
+from codec.quantization import Quantization1BitPSCodec, Quantization2BitPSCodec
 from neuralnetworks.activations import Sigmoid
 from neuralnetworks.activations import Tanh, Linear, ReLU, SoftmaxNoGrad
 from neuralnetworks.layers import FCLayer_v2
@@ -75,7 +75,8 @@ class ModelDNN(IServerModel):
                    'ps': PAClientCodec,
                    'ndc': NaiveDuplicationCodec,
                    'unicast': UnicastCommunicationCtrl,
-                   'qasgd': QuantizationPSCodec}
+                   'qasgd1bit': Quantization1BitPSCodec,
+                   'qasgd2bit': Quantization2BitPSCodec}
     __psgd_map = {'ssgd': SynchronizedSGD,
                   'asgd': AsynchronizedSGD}
     __assignment_map = {'iid': IIDBlockAssignment,
@@ -156,3 +157,36 @@ class ModelDNN(IServerModel):
             input_sample = nn.F(input_sample)
 
         return
+
+
+class ModelCNN(IServerModel):
+
+    def getWeightsInit(self):
+        pass
+
+    def initWeights(self):
+        pass
+
+    def codec_ctrl(self):
+        pass
+
+    def target_acc(self):
+        pass
+
+    def psgd_type(self):
+        pass
+
+    def loss_type(self):
+        pass
+
+    def epoches(self):
+        pass
+
+    def learn_rate(self):
+        pass
+
+    def train_data(self):
+        pass
+
+    def eval_data(self):
+        pass

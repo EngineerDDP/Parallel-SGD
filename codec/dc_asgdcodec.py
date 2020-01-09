@@ -1,11 +1,11 @@
 import numpy as np
 
 from profiles.settings import GlobalSettings
-from codec.pacodec import PAServerCodec, PAServerCompack
+from codec.paraserver import GradDiffParaServerCodec, PAServerCompack
 from log import Logger
 
 
-class DCASGDServerCodec(PAServerCodec):
+class DCASGDServerCodec(GradDiffParaServerCodec):
     """
         Implemented according to paper:
         Shuxin Zheng, Qi Meng, Taifeng Wang, et al. Asynchronous Stochastic Gradient Descent with Delay Compensation.
@@ -14,7 +14,7 @@ class DCASGDServerCodec(PAServerCodec):
 
     def __init__(self, node_id, logger=Logger('None')):
 
-        PAServerCodec.__init__(self, node_id, logger)
+        GradDiffParaServerCodec.__init__(self, node_id, logger)
 
         # init weights
         self.Weights_init = 0

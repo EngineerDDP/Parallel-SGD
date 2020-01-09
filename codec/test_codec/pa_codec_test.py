@@ -1,6 +1,6 @@
 import numpy as np
 
-from codec.pacodec import PAServerCodec, PAClientComPack
+from codec.pacodec import GradDiffParaServerCodec, PAClientComPack
 
 from server_util.init_model import ModelMNIST
 
@@ -11,11 +11,11 @@ from settings import GlobalSettings
 from log import Logger
 
 
-class Test_PAServer(PAServerCodec):
+class Test_GradDiffParaServer(GradDiffParaServerCodec):
 
     def __init__(self, node_id, logger=Logger('Test')):
 
-        PAServerCodec.__init__(self, node_id, logger)
+        GradDiffParaServerCodec.__init__(self, node_id, logger)
 
         self.Working_Batch = [0 for node in GlobalSettings.get_default().Nodes]
         self.W_copy = np.array(ModelMNIST.Neural_Network[0].W)

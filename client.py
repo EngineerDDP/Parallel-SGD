@@ -9,7 +9,7 @@ from network.communications import CommunicationController
 from network.agreements import General, Initialize, DefaultNodes
 
 from neuralnetworks.metrics import CategoricalAccuracy
-from neuralnetworks.optimizer import ParallelSGDOptimizer, GradientDecentOptimizer_v2
+from neuralnetworks.optimizer import ParallelSGDOptimizer, GradientDecentOptimizer_v2, ParallelSGDWithPSOptimizer, DelayedPSGDOptimizer
 from neuralnetworks.model import SequentialModel_v2
 
 from psgd.transfer import NTransfer

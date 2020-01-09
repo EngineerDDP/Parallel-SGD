@@ -205,10 +205,17 @@ class FCLayer_v2(ILayer):
 
         self.W = self.W - w
         self.B = self.B - b
-
         # calculate gradient for BP
         grad = y.dot(self.W.transpose())
+        return grad
 
+    def forward_gradient(self, x, gradient):
+        # calculate gradient
+        act_grad = self.Act.gradient(self.logit(x))
+        # y shape=[output, samples count]
+        y = np.multiply(act_grad, gradient)
+        # calculate gradient for BP
+        grad = y.dot(self.W.transpose())
         return grad
 
     def backpropagation(self, x, gradient):

@@ -5,9 +5,7 @@ from server_util.fake_com import FakeCom
 from server_util.client_handler import ServerParameters, start_server, create_logger
 from dataset.mnist_input import load_mnist
 from profiles.blockassignment.idependent import IIDBlockAssignment
-from log import Logger
 
-import sys
 import argparse
 
 
@@ -22,11 +20,11 @@ if __name__ == '__main__':
     parse.add_argument("--node_count", type=int, default=1, help="initial node count")
     parse.add_argument("--batch_size", type=int, default=128, help="initial batch size")
     parse.add_argument("--redundancy", type=int, default=1, help="initial redundancy")
-    parse.add_argument("--codec", type=str, default='plain', help="initial communication codec and protocol {ccdc, plain, psclient}")
+    parse.add_argument("--codec", type=str, default='qasgd2bit', help="initial communication codec and protocol {ccdc, plain, psclient}")
     parse.add_argument("--psgd", type=str, default='ssgd', help="parallel stochastic gradient descent synchronization type {asgd, ssgd}")
     parse.add_argument("--learn_rate", type=float, default=0.05, help="initial learining rate")
     parse.add_argument("--epochs", type=int, default=2, help="initial train epochs")
-    parse.add_argument("--working_ports", type=int, default=15388, help="initial working ports")
+    parse.add_argument("--working_ports", type=int, default=55555, help="initial working ports")
     parse.add_argument("--block_assignment", type=str, default='iid', help="initial block assignment strategy")
     arg = parse.parse_args()
 
@@ -42,6 +40,10 @@ if __name__ == '__main__':
     assignment = arg.block_assignment
 
     Global_Logger = create_logger(port)
+
+    # For debug propose
+    if port == 55555:
+        Global_Logger.ToFile = False
 
     Global_Logger.log_message('\t --node_count <node count {}>'.format(node_count))
     Global_Logger.log_message('\t --batch_size <batch size {}>'.format(batch_size))
@@ -67,7 +69,7 @@ if __name__ == '__main__':
                                epoches=epo,
                                block_assignment=assignment)
     # Set parameter server
-    para_server = ParameterServer(FakeCom(), model_parameter, )
+    para_server = ParameterServer(FakeCom(), model_parameter, pa_codec_type='graddelta')
 
     # Register settings
     ServerParameters.set_default(model_parameter, para_server)

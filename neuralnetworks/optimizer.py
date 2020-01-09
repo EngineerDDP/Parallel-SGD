@@ -208,4 +208,44 @@ class DelayedPSGDOptimizer(ParallelSGDOptimizer):
             Make some lags
         """
         sleep(np.random.uniform(self.Delay_Min, self.Delay_Max))
-        self.backward_propagate(intermediate, gradient)
+        return super().backward_propagate(intermediate, gradient)
+
+
+class ParallelSGDWithPSOptimizer(ParallelSGDOptimizer):
+
+    def __init__(self, tags, com, batch_size, learn_rate=0.01):
+        super().__init__(tags, com, batch_size, learn_rate)
+
+        self.initial_value = None
+
+    def forward_propagate(self, x):
+        if self.initial_value is None:
+            self.initial_value = {}
+            for nn in self.Layers:
+                self.initial_value[nn] = (nn.W.copy(), nn.B.copy())
+        return super().forward_propagate(x)
+
+    def do_layer_wise_bp(self, x, layer, gradient):
+        """
+            do backward propagation layer-wise
+            using parameter server with initial value as zero.
+            be aware, the initial value of parameter server is zero!!!
+        :param x: input of this layer
+        :param layer: instance of ILayer
+        :param gradient: gradient to the output of this layer
+        """
+        for j in range(len(self.Tags)):
+            block_x = x[self.Slice_To_Take[j]]
+            block_grad = gradient[self.Slice_To_Take[j]]
+            w, b, y = layer.delta_wb(block_x, block_grad)
+
+            self.TransferHelper.put_weights(w / len(block_x), self.Tags[j], 'w')
+            self.TransferHelper.put_weights(b / len(block_x), self.Tags[j], 'b')
+
+        w_new = self.TransferHelper.get_weights(self.Tags[0], 'w')
+        b_new = self.TransferHelper.get_weights(self.Tags[0], 'b')
+
+        layer.W, layer.B = self.initial_value[layer][0] + w_new, self.initial_value[layer][1] + b_new
+
+        gradient = layer.forward_gradient(x, gradient)
+        return gradient
