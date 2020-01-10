@@ -275,7 +275,7 @@ class Conv2dLayer(ILayer):
         self.Previous_Channels = None
 
     def __w_init_xvars(self, shape):
-        high = np.sqrt(1 / shape[1])
+        high = np.sqrt(6 / (shape[0] + shape[1]))
         low = -high
         return np.random.uniform(low=low, high=high, size=shape)
 
@@ -524,14 +524,14 @@ class MaxPool(ILayer):
 
     def backpropagation(self, x, gradient):
         # total result
-        result = 0
+        result = []
         # up-sampling gradient for each sample
         for i in range(x.shape[0]):
             channel_pooling = lambda channel:self.__pool2d_revt(x[i,:,:,channel], gradient[i,:,:,channel])
             # Add gradient
-            result += np.swapaxes(np.swapaxes([channel_pooling(j) for j in range(x.shape[-1])], 0, 2), 0, 1)
+            result.append(np.swapaxes(np.swapaxes([channel_pooling(j) for j in range(x.shape[-1])], 0, 2), 0, 1))
 
-        return result
+        return np.asarray(result)
 
 
 class Reshape(ILayer):

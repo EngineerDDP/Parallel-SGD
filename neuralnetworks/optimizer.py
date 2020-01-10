@@ -215,7 +215,7 @@ class ParallelSGDWithPSOptimizer(ParallelSGDOptimizer):
 
     def __init__(self, tags, com, batch_size, learn_rate=0.01):
         super().__init__(tags, com, batch_size, learn_rate)
-
+        # Save the initial value of each weights
         self.initial_value = None
 
     def forward_propagate(self, x):
