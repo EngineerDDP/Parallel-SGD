@@ -1,4 +1,5 @@
 import pickle
+import numpy as np
 
 
 train_batch = ['data_batch_1', 'data_batch_2', 'data_batch_3', 'data_batch_4', 'data_batch_5']
@@ -12,7 +13,30 @@ def unpickle(file):
 
 def load_data(path='./dataset/cirfar_data/', kind='train'):
 
+    label = []
+    data = []
+
     if kind == 'train':
         for train_file in train_batch:
             dict = unpickle(path+train_file)
+            label.append(dict[b'labels'])
+            data.append(dict[b'data'])
+
+    elif kind == 't10k':
+        for test_file in test_batch:
+            dict = unpickle(path+test_file)
+            label.append(dict[b'labels'])
+            data.append(dict[b'data'])
+
+    else:
+        raise AssertionError('kind parameter can only be either train or t10k.')
+
+    label = np.concatenate(label, axis=0)
+    data = np.concatenate(data, axis=0)
+
+    label = np.eye(10)[label]
+    data = data / 255
+
+    return data, label
+
 

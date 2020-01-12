@@ -1,40 +1,7 @@
 import numpy as np
 
 from time import sleep
-from abc import ABCMeta, abstractmethod
-
-
-class IOptimizer(metaclass=ABCMeta):
-
-    @abstractmethod
-    def optimize(self, layers):
-        """
-            Set layers to be optimized.
-            layers has its own properties to describe that it can be optimized or not.
-        :param layers: Full network layers
-        :return: None
-        """
-        pass
-
-    @abstractmethod
-    def set_loss(self, loss_function):
-        """
-            Set loss function.
-            This loss function will be used to calculate gradients.
-        :param loss_function: ILoss type
-        :return: None
-        """
-        pass
-
-    @abstractmethod
-    def train(self, x, y):
-        """
-            Train the provided layer.
-        :param x: input samples
-        :param y: label of samples
-        :return: None
-        """
-        pass
+from neuralnetworks.interfaces import IOptimizer
 
 
 class GradientDecentOptimizer_v2(IOptimizer):

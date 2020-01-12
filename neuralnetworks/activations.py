@@ -1,17 +1,6 @@
 import numpy as np
 
-from abc import ABCMeta, abstractmethod
-
-
-class IActivation(metaclass=ABCMeta):
-
-    @abstractmethod
-    def activation(self, x):
-        pass
-
-    @abstractmethod
-    def gradient(self, x):
-        pass
+from neuralnetworks.interfaces import IActivation
 
 
 class Linear(IActivation):

@@ -1,141 +1,9 @@
-from abc import ABCMeta, abstractmethod
-
 import numpy as np
+
+from neuralnetworks.interfaces import ILayer
 
 from neuralnetworks.activations import Linear
 from neuralnetworks.activations import ReLU
-
-
-class ILayer(metaclass=ABCMeta):
-    @abstractmethod
-    def trainable(self):
-        """
-        return if this layer can be trained.
-        :return: [True/false]
-        """
-        pass
-
-    @abstractmethod
-    def logit(self, x):
-        """
-            Calculate logit
-        """
-        pass
-
-    @abstractmethod
-    def F(self, x):
-        """
-            output function
-        """
-        pass
-
-    @abstractmethod
-    def delta_wb(self, x, gradient):
-        pass
-
-    @abstractmethod
-    def apply_wb(self, w, b, y):
-        pass
-
-    @abstractmethod
-    def backpropagation(self, x, gradient):
-        """
-            Calculate gradient, adjust weight and bias and return gradients of this layer
-            x shape=[input, samples count]
-            grad shape=[output, samples count]
-        """
-        pass
-
-
-class FCLayer(ILayer):
-
-    def __init__(self, units, w_init=None, b_init=None, act=Linear()):
-
-        # use lazy initialization
-        if w_init is not None:
-            self.W = w_init
-        else:
-            self.W = None
-
-        if b_init is not None:
-            self.B = b_init
-        else:
-            self.B = None
-
-        self.Act = act
-        self.Output = units
-
-    def trainable(self):
-        return True
-
-    def reset(self):
-        self.W = None
-        self.B = None
-
-    def logit(self, x):
-        """
-            Calculate logit
-        """
-        # lazy initialization
-        # w shape is [output, input]
-        # b shape is [output]
-        if self.W is None:
-            high = np.sqrt(1 / x.shape[0])
-            low = -high
-            self.W = np.random.uniform(low=low, high=high, size=[self.Output, x.shape[0]])
-        if self.B is None:
-            self.B = np.zeros(shape=[self.Output, 1])
-
-        return np.dot(self.W, x) + self.B
-
-    def F(self, x):
-        """
-            output function
-        """
-        # activation
-        return self.Act.activation(self.logit(x))
-
-    def delta_wb(self, x, gradient):
-        # calculate gradient
-        act_grad = self.Act.gradient(self.logit(x))
-        # y shape=[output, samples count]
-        y = np.multiply(act_grad, gradient)
-
-        # adjust weight
-        delta_weight = y.dot(x.T)
-        delta_bias = y.sum(axis=1)
-
-        return delta_weight, delta_bias, y
-
-    def apply_wb(self, w, b, y):
-
-        self.W = self.W - w
-        self.B = self.B - b
-
-        # calculate gradient for BP
-        grad = self.W.transpose().dot(y)
-
-        return grad
-
-    def backpropagation(self, x, gradient):
-        """
-            Calculate gradient, adjust weight and bias and return gradients of this layer
-            x shape=[input, samples count]
-            grad shape=[output, samples count]
-        """
-        # calculate gradient
-        act_grad = self.Act.gradient(self.logit(x))
-        # y shape=[output, samples count]
-        y = np.multiply(act_grad, gradient)
-
-        # adjust weight
-        batch_weight = y.dot(x.T) / y.shape[1]
-        self.W = self.W - batch_weight
-        # adjust bias
-        self.B = self.B - y.mean(axis=1)
-        # recalculate gradient to propagate
-        grad = self.W.transpose().dot(y)
-        return grad
 
 
 class FCLayer_v2(ILayer):
@@ -146,6 +14,7 @@ class FCLayer_v2(ILayer):
     def __init__(self, units, w_init=None, b_init=None, act=Linear()):
 
         # use lazy initialization
+        super().__init__()
         if w_init is not None:
             self.W = w_init
         else:
@@ -157,22 +26,28 @@ class FCLayer_v2(ILayer):
             self.B = None
 
         self.Act = act
-        self.Output = units
+        self.__output = units
 
-    def trainable(self):
+    @property
+    def Trainable(self):
         return True
 
-    def reset(self):
+    def clear_parameters(self):
         self.W = None
         self.B = None
 
-    def logit(self, x):
-        """
-            Calculate logit
-        """
-        # lazy initialization
-        # w shape is [output, input]
-        # b shape is [output]
+    @property
+    def Output(self):
+        return self.__output
+
+    @property
+    def Input(self):
+        return 'unknown' if self.W is None else self.W.shape[0]
+
+    def calculate_logit(self, x):
+        return np.dot(x, self.W) + self.B
+
+    def initialize_parameters(self, x):
         if self.W is None:
             high = np.sqrt(6 / (x.shape[1] + self.Output))
             low = -high
@@ -180,7 +55,7 @@ class FCLayer_v2(ILayer):
         if self.B is None:
             self.B = np.zeros(shape=[1, self.Output])
 
-        return np.dot(x, self.W) + self.B
+        return None
 
     def F(self, x):
         """
@@ -224,20 +99,6 @@ class FCLayer_v2(ILayer):
             x shape=[input, samples count]
             grad shape=[output, samples count]
         """
-        # # calculate gradient
-        # act_grad = self.Act.gradient(self.logit(x))
-        # # y shape=[output, samples count]
-        # y = np.multiply(act_grad, gradient)
-        #
-        # # adjust weight
-        # batch_weight = (y.T.dot(x)).T / y.shape[0]
-        # self.W = self.W - batch_weight
-        # # adjust bias
-        # self.B = self.B - y.mean(axis=0)
-        # # recalculate gradient to propagate
-        # grad = y.dot(self.W.transpose())
-        # return grad
-
         w, b, y = self.delta_wb(x, gradient)
         w = w / x.shape[0]
         b = b / x.shape[0]
@@ -259,6 +120,7 @@ class Conv2dLayer(ILayer):
         :param strikes: Step per operation. [rows skip, columns skip] :list[int]
         """
         # Convolution OP parameters
+        super().__init__()
         if padding == 'SAME':
             self.Padding = [0, 0, 0, 0]
         else:
@@ -353,8 +215,44 @@ class Conv2dLayer(ILayer):
         conv = np.sum([self.__conv2d(feature_map[:,:,i], np.rot90(kernel[i,:,:], 2)) for i in range(self.Kernel_Count)], axis=0)
         return conv
 
-    def trainable(self):
+    @property
+    def Trainable(self):
         return True
+
+    @property
+    def Output(self):
+        return self.Kernel_Count
+
+    @property
+    def Input(self):
+        return self.Previous_Channels
+
+    def clear_parameters(self):
+        self.Kernels = None
+        self.Bias = None
+
+    def calculate_logit(self, x):
+        # Calculate convolution result for each sample each channel
+        conv = np.asarray([[self.__channel_conv(xx, kernel) for kernel in self.Kernels] for xx in x])
+        # Add bias
+        for i in range(conv.shape[0]):
+            for j in range(conv.shape[1]):
+                conv[i,j] += self.Bias[j]
+        # Swap channel axis to last dimension
+        conv = np.swapaxes(np.swapaxes(conv, 1, 3), 1, 2)
+
+        return conv
+
+    def initialize_parameters(self, x):
+        # init parameters if it hasn't been initialized
+        if self.Kernels is None:
+            # Record channel count of previous layer
+            self.Previous_Channels = x.shape[-1]
+            self.__init_kernel()
+        if self.Bias is None:
+            self.__init_bias()
+
+        return None
 
     def delta_wb(self, x, gradient):
         # g = \partial \sigma (z) / \partial z
@@ -381,27 +279,6 @@ class Conv2dLayer(ILayer):
         grad_back = np.asarray([grad_back_per_channel(grad) for grad in y])
 
         return grad_back
-
-    def logit(self, x):
-
-        # init parameters if it hasn't been initialized
-        if self.Kernels is None:
-            # Record channel count of previous layer
-            self.Previous_Channels = x.shape[-1]
-            self.__init_kernel()
-        if self.Bias is None:
-            self.__init_bias()
-
-        # Calculate convolution result for each sample each channel
-        conv = np.asarray([[self.__channel_conv(xx, kernel) for kernel in self.Kernels] for xx in x])
-        # Add bias
-        for i in range(conv.shape[0]):
-            for j in range(conv.shape[1]):
-                conv[i,j] += self.Bias[j]
-        # Swap channel axis to last dimension
-        conv = np.swapaxes(np.swapaxes(conv, 1, 3), 1, 2)
-
-        return conv
 
     def F(self, x):
         """
@@ -434,6 +311,7 @@ class MaxPool(ILayer):
         :param strikes: Step per operation. [rows skip, columns skip] :list[int]
         """
         # pooling OP parameters
+        super().__init__()
         if strikes is None:
             self.Strikes = filter_size
         else:
@@ -501,10 +379,19 @@ class MaxPool(ILayer):
 
         return result
 
-    def trainable(self):
+    @property
+    def Trainable(self):
         return False
 
-    def logit(self, x):
+    @property
+    def Input(self):
+        return 'Doesn\'t matter'
+
+    @property
+    def Output(self):
+        return 'Doesn\'t matter'
+
+    def calculate_logit(self, x):
         # pooling each sample
         pool = np.asarray([[self.__pool2d(xx[:,:,channel]) for channel in range(xx.shape[-1])] for xx in x])
         pool = np.swapaxes(np.swapaxes(pool, 1, 3), 1, 2)
@@ -542,13 +429,23 @@ class Reshape(ILayer):
             Reshape back while backward propagating
         :param shape: shape of output
         """
+        super().__init__()
         self.Shape_Out = shape
         self.Shape_In = None
 
-    def trainable(self):
+    @property
+    def Trainable(self):
         return False
 
-    def logit(self, x):
+    @property
+    def Input(self):
+        return self.Shape_In
+
+    @property
+    def Output(self):
+        return self.Shape_Out
+
+    def calculate_logit(self, x):
         if self.Shape_In is None:
             self.Shape_In = x.shape
             temp_out = [self.Shape_In[0]]

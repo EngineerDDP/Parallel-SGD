@@ -1,24 +1,5 @@
 from utils.metrichelper import *
-from abc import ABCMeta, abstractmethod
-
-
-class IMetrics(metaclass=ABCMeta):
-
-    @abstractmethod
-    def metric(self, y, label):
-        """
-            Calculate metrics value
-        :return: Scala: single metrics value
-        """
-        pass
-
-    @abstractmethod
-    def description(self):
-        """
-            Official name for this metric.
-        :return:
-        """
-        pass
+from neuralnetworks.interfaces import IMetrics
 
 
 class BinaryAccuracy(IMetrics):

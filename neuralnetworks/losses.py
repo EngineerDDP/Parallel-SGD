@@ -1,26 +1,6 @@
 import numpy as np
 
-from neuralnetworks.metrics import abstractmethod, IMetrics
-
-
-class ILoss(IMetrics):
-    """
-        General loss function interface.
-        All loss function implements IMetrics
-    """
-
-    @abstractmethod
-    def gradient(self, y, label):
-        """
-            Calculate gradient for backward propagation.
-        :param y: prediction
-        :param label: label
-        :return: vector result
-        """
-        pass
-
-    def description(self):
-        return 'loss'
+from neuralnetworks.interfaces import ILoss
 
 
 class MseLoss(ILoss):

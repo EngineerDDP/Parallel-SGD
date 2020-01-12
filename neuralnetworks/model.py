@@ -1,7 +1,6 @@
-import numpy as np
-import pandas as pd
-
 import time
+
+from neuralnetworks.interfaces import ILayer, IOptimizer, IMetrics, ILoss, IActivation
 from log import Logger
 
 
@@ -20,13 +19,13 @@ class SequentialModel_v2:
         self.History_Title = ["Time", "Epoch", "Batch", "Total Batch"]
         self.History = []
 
-    def add(self, unit):
+    def add(self, unit:ILayer):
         self.NN.append(unit)
 
     def pop(self):
         self.NN.pop()
 
-    def compile(self, optimizer, loss, metrics):
+    def compile(self, optimizer:IOptimizer, loss:ILoss, metrics:[IMetrics]):
         """
             Compile model.
         """
@@ -42,7 +41,7 @@ class SequentialModel_v2:
         optimizer.set_loss(loss)
         self.Optimizer = optimizer
 
-    def fit(self, x, y, batch_size, epochs):
+    def fit(self, x, y, batch_size:int, epochs:int):
         """
             Fit model parameters with given input samples.
         """
@@ -100,9 +99,8 @@ class SequentialModel_v2:
         self.Log.log_message('------------\t\tModel Summary\t\t------------\n')
         for nn in self.NN:
             self.Log.log_message('------------\t\t{}\t\t------------'.format(nn.__class__.__name__))
-            self.Log.log_message('Input:\t{};'.format(nn.W.shape[0] if nn.W is not None else 'Unknown'))
+            self.Log.log_message('Input:\t{};'.format(nn.Input))
             self.Log.log_message('Output:\t{};'.format(nn.Output))
-            self.Log.log_message('Activation:\t{}'.format(nn.Act.__class__.__name__))
 
         if self.Loss is not None:
             self.Log.log_message('------------\t\tAppendix\t\t------------')
