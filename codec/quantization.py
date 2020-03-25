@@ -75,3 +75,5 @@ class Quantization2BitPSCodec(PAClientCodec):
         weights = self.get_result().astype('double')
         weights = weights * self.Block_Weights_Std + self.Block_Weights_Mean
         self.set_result(weights)
+
+

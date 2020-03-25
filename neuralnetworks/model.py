@@ -35,7 +35,9 @@ class SequentialModel_v2:
         self.Metrics.append(loss)
         # Get evaluate metrics
         self.Metrics.extend(metrics)
-        self.History_Title.extend([metric.description() for metric in self.Metrics])
+        # Set title
+        self.Evaluation_Title = [metric.description() for metric in self.Metrics]
+        self.History_Title.extend(self.Evaluation_Title)
         # Set optimizer
         optimizer.optimize(self.NN)
         optimizer.set_loss(loss)

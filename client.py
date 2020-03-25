@@ -58,20 +58,28 @@ class MNISTTrainingThread(Thread):
 
     def run(self):
 
+        evaluation_history = []
         self.Transfer.start_transfer()
         # do until reach the target accuracy
-        if self.Target_acc is not None:
-            for i in range(self.Epochs):
-                self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
-                if self.Model.evaluate(self.Eval_X, self.Eval_Y)[1] > self.Target_acc:
+        for i in range(self.Epochs):
+            self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
+            # do tests
+            evaluation = self.Model.evaluate(self.Eval_X, self.Eval_Y)
+            if self.Target_acc is not None:
+                # only one metric in model metrics list.
+                # evaluation[0] refers to loss
+                # evaluation[1] refers to accuracy.
+                if evaluation[1] > self.Target_acc:
                     break
-        # just do
-        else:
-            self.Model.fit(self.Train_X, self.Train_Y, epochs=self.Epochs, batch_size=self.Batch_Size)
+            evaluation_history.append(evaluation)
 
-        history = self.Model.History
-        trace = pd.DataFrame(history, columns=self.Model.History_Title)
-        trace.to_csv("./training/{}.csv".format(self.Trace_Name), index=None)
+        training_history = self.Model.History
+        # save training history data
+        training_trace = pd.DataFrame(training_history, columns=self.Model.History_Title)
+        training_trace.to_csv("./training/{}.csv".format(self.Trace_Name), index=None)
+        # save evaluation history data
+        evaluation_trace = pd.DataFrame(evaluation_history, columns=self.Model.Evaluation_Title)
+        evaluation_trace.to_csv("./eval/{}.csv".format(self.Trace_Name), index=None)
         self.Log.log_message('Trace file has been saved to {}'.format(self.Trace_Name))
 
     def evaluate(self):
