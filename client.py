@@ -6,7 +6,7 @@ from threading import Thread
 from profiles.settings import GlobalSettings
 
 from network.communications import CommunicationController
-from network.agreements import General, Initialize, DefaultNodes
+from network.agreements import General, Initialize, DefaultNodes, Transfer
 
 from neuralnetworks.metrics import CategoricalAccuracy
 from neuralnetworks.optimizer import ParallelSGDOptimizer, GradientDecentOptimizer_v2, ParallelSGDWithPSOptimizer, DelayedPSGDOptimizer

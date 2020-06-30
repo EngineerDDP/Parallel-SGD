@@ -194,7 +194,7 @@ class ClientHandler(socketserver.BaseRequestHandler):
                         Global_Logger.log_message('Weights assigned: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Data.Type:
                         dic_back = {
-                            General.Type: Initialize.Init_Weight,
+                            General.Type: Data.Type,
                             General.From: (-1),
                             General.To: (-1),
                             Data.Train_Data: model.train_data(),
