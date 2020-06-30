@@ -52,5 +52,15 @@ for((i=$ip_client_start;i<=$ip_client_end;i++)) do
 
 The application was divided into three components: Neural networks, Distributed computing manager and Network&serialization manager.
 
+![Components in Neural network module](.readme/nncomp.png)
+
+![Components in Distributed computing module](.readme/dccomp.png)
+
+![Compunents in network communication and serialization module](.readme/nscomp.png)
+
 ## Interconnections
 
+Function call from *Mediator* to *Network Controller* is always Synchronized.  
+The blocking state of function call from *GD Optimizer* to *Mediator* was defined in *Distributed Network Communication Controller*.  
+
+![](.readme/intercomp.png)
