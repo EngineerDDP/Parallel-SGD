@@ -233,7 +233,7 @@ class CommunicationController:
         """
             send one json like object to target nodes
         :param target: target node list, must be a list : list[int]
-        :param dic: json like object : dict
+        :param dic: json like object : encode
         :return: None
         """
         self.com.send_que.put((target, dic))

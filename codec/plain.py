@@ -1,5 +1,5 @@
 from codec.essential import BlockWeight
-from codec.interfaces import ICommunicationCtrl, IComPack
+from codec.interfaces import ICommunicationCtrl, IComPack, NetEncapsulation
 
 from profiles.settings import GlobalSettings
 from log import Logger
@@ -42,7 +42,7 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
 
         self.check_for_combine(blockweight.Block_ID)
 
-        yield (send, pack)
+        yield NetEncapsulation(send, pack)
 
     def receive_blocks(self, json_dict):
 
@@ -64,8 +64,6 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
 
         self.set_result(batchweight)
         self.BlockWeights.clear()
-
-        return
 
 
 class PlainComPack(IComPack):

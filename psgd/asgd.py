@@ -35,14 +35,19 @@ class AsynchronizedSGD(SynchronizedSGD):
     def accept_data(self, obj):
         """
             Accept the data and get weights updated immediately.
-        :param obj: json like object: dict
+        :param obj: json like object: encode
         :return: None
         """
+        # check if the data was outdated
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
+            # get package iterable
             pack_to_sends = self.batch_updater.receive_blocks(obj)
+            # iterate package
             for pack_to_send in pack_to_sends:
-                target, pack = pack_to_send
+                target = pack_to_send.target()
+                pack = pack_to_send.content()
+                # tag this layer
                 pack[SynchronizedSGD.STR_BATCH_NO] = sender_batch
                 yield target, pack
 

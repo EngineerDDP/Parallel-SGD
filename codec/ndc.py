@@ -1,6 +1,6 @@
 import numpy as np
 
-from codec.interfaces import ICommunicationCtrl, IComPack
+from codec.interfaces import ICommunicationCtrl, IComPack, NetEncapsulation
 from log import Logger
 from profiles.settings import GlobalSettings
 
@@ -36,7 +36,7 @@ class NaiveDuplicationCodec(ICommunicationCtrl):
 
         # check for aggregate just in case there is only one working nodes.
         self.aggregate()
-        yield (send_to, dic)
+        yield NetEncapsulation(send_to, dic)
 
     def receive_blocks(self, json_dict:dict):
         pbw = NaiveDuplicationComPack.from_dictionary(json_dict).decompose_compack()

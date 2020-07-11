@@ -65,7 +65,7 @@ if __name__ == '__main__':
     x_test = x_test.reshape([-1, 32, 32, 3])
     result = model.evaluate(x_test, y_test)
     #
-    # print('Evaluate result: {}'.format(dict(zip(model.History_Title[-len(result):], result))))
+    # print('Evaluate result: {}'.format(encode(zip(model.History_Title[-len(result):], result))))
 
 
 # if __name__ == '__main__':

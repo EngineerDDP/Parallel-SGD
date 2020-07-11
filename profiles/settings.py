@@ -51,6 +51,15 @@ class GlobalSettings:
 
     @staticmethod
     def set_default(n, r, b, assignment):
+        """
+            Set global setting, if not settled
+        :param n: number of workers
+        :param r: redundancy
+        :param b: batch size globally,
+                  when set to 12 with 3 nodes, the the local batch size on each node is 4.
+        :param assignment: blockassignment class
+        :return:
+        """
         if GlobalSettings.__setting is None:
             GlobalSettings.__setting = GlobalSettings(n, r, b, assignment)
         else:
