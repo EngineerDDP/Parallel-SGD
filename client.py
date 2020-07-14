@@ -48,6 +48,7 @@ class MNISTTrainingThread(Thread):
 
         self.Trace_Name = 'Trace_Node={}_Codec={}_R={}'.format(GlobalSettings.get_default().node_count, codec_type.__name__, GlobalSettings.get_default().redundancy)
         self.Log = logger
+        self.Log_Header = logger.Title
 
         self.Train_X = train_x
         self.Train_Y = train_y
@@ -63,6 +64,8 @@ class MNISTTrainingThread(Thread):
         # do until reach the target accuracy
         for i in range(self.Epochs):
             self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
+            # change title
+            self.Log.Title = self.Log_Header + "-Cyc{}".format(i)
             # do tests
             evaluation = self.Model.evaluate(self.Eval_X, self.Eval_Y)
             if self.Target_acc is not None:
@@ -97,7 +100,7 @@ if __name__ == '__main__':
         print('usage: client.py')
         print('\t --ip <ip address of initialization server>')
         print('\t --port <port of initialization server>')
-        exit(-1)
+        sys.exit(-1)
 
     ip_addr = sys.argv[2]
     port = int(sys.argv[4])
@@ -178,7 +181,8 @@ if __name__ == '__main__':
                                 loss_function_type, codec, psgd, con, w_types,
                                 tags, train_x, train_y, eval_x, eval_y,
                                 GlobalSettings.get_default().batch.batch_size,
-                                training_iterations, learn_rate=learning_rate, logger=log, target_acc=target_accuracy)
+                                training_iterations, learn_rate=learning_rate, logger=log,
+                                target_acc=target_accuracy)
 
     log.log_message('Synchronizing timeline with cluster...')
     ready = False

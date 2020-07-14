@@ -2,13 +2,17 @@ from log import Logger
 
 from codec.paraserver import GradDiffParaServerCodec, ParaServerCodec
 from codec.dc_asgdcodec import DCASGDServerCodec
+from codec.sgq import SGQServer
 from psgd.asgd import AsynchronizedSGD
 from psgd.transfer import NTransfer
 
 
 class ParameterServer:
 
-    __para_server_map = {'simple': ParaServerCodec, 'graddelta': GradDiffParaServerCodec, 'dc': DCASGDServerCodec}
+    __para_server_map = {'simple': ParaServerCodec,
+                         'graddiff': GradDiffParaServerCodec,
+                         'dc': DCASGDServerCodec,
+                         'sgq': SGQServer}
 
     def __init__(self, com, model, pa_codec_type='simple'):
 

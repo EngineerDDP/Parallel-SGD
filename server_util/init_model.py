@@ -6,6 +6,7 @@ from codec.plain import PlainCommunicationCtrl
 from codec.ndc import NaiveDuplicationCodec
 from codec.unicast import UnicastCommunicationCtrl
 from codec.quantization import Quantization1BitPSCodec, Quantization2BitPSCodec
+from codec.sgq import SGQClient
 from neuralnetworks.activations import Sigmoid
 from neuralnetworks.activations import Tanh, Linear, ReLU, SoftmaxNoGrad
 from neuralnetworks.layers import FCLayer_v2
@@ -76,7 +77,8 @@ class ModelDNN(IServerModel):
                    'ndc': NaiveDuplicationCodec,
                    'unicast': UnicastCommunicationCtrl,
                    'qasgd1bit': Quantization1BitPSCodec,
-                   'qasgd2bit': Quantization2BitPSCodec}
+                   'qasgd2bit': Quantization2BitPSCodec,
+                   'sgq': SGQClient}
     __psgd_map = {'ssgd': SynchronizedSGD,
                   'asgd': AsynchronizedSGD}
     __assignment_map = {'iid': IIDBlockAssignment,

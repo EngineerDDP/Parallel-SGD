@@ -58,7 +58,8 @@ class SynchronizedSGD(IParallelSGD):
 
         update_packs = self.batch_updater.update_blocks(block)
         for update_pack in update_packs:
-            sender, dic = update_pack
+            sender = update_pack.target()
+            dic = update_pack.content()
             dic[SynchronizedSGD.STR_BATCH_NO] = tag.Batch_No
             yield (sender, dic)
 

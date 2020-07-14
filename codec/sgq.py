@@ -22,10 +22,10 @@ def stochastic_ternarization(arr):
         Alistarh et al. “QSGD: Communication-Efficient SGD via Gradient
         Quantization and Encoding”. NIPS2017
     """
-    return np.asarray((np.random.random(arr.shape) < np.abs(arr)) * np.sign(arr), int)
+    return np.asarray((np.random.random(arr.shape) < np.abs(arr)) * np.sign(arr), np.int8)
 
 
-def ternarization(arr):
+def ternarization(arr, epsilon=1e-9):
     """
         TERNARIZATION TQN implementation based on chapter 3.1.1 in
         L. Hou and J. T. Kwok. Loss-aware weight quantization of deep networks.
@@ -34,9 +34,8 @@ def ternarization(arr):
     a = 0.7
     b = stochastic_ternarization(arr / a)
     for i in range(3):
-        a = np.sum(np.multiply(b, arr)) / np.sum(np.square(b))
-        b = stochastic_ternarization(arr / a)
-
+        a = np.sum(np.multiply(b, arr)) / (np.sum(np.square(b)) + 1)
+        b = stochastic_ternarization(arr / (a + epsilon))
     return a, b
 
 
@@ -84,6 +83,8 @@ class SGQClient(ICommunicationCtrl):
 
 class SGQServer(ICommunicationCtrl):
 
+    __max_error = 0
+
     def __init__(self, node_id, logger=Logger('None')):
 
         super().__init__()
@@ -113,7 +114,11 @@ class SGQServer(ICommunicationCtrl):
         data_rtn = SGQPackage(grad_diff)
         # update state buffer
         self.Weights_Last_Received[data.node_id] = last_state + data_rtn.content()
-
+        # for DEBUG
+        error = np.sum(self.Weights_Last_Received[data.node_id] - self.Global_State)
+        if error > SGQServer.__max_error:
+            SGQServer.__max_error = error
+            print(error)
         # return
         yield NetEncapsulation(data.node_id, data_rtn.encode())
 

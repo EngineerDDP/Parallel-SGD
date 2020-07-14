@@ -43,6 +43,11 @@ class SequentialModel_v2:
         optimizer.set_loss(loss)
         self.Optimizer = optimizer
 
+    def __str_format(self, eval_result):
+        str_output = ['{}:{:.4f}'.format(name, val) for name, val in
+                      zip(self.History_Title[-len(eval_result):], eval_result)]
+        return ','.join(str_output)
+
     def fit(self, x, y, batch_size:int, epochs:int):
         """
             Fit model parameters with given input samples.
@@ -70,9 +75,8 @@ class SequentialModel_v2:
                 time_now = time.time()
 
                 # log fitting progress
-                str_output = ['{}:{:.4f}'.format(name, val) for name, val in zip(self.History_Title[-len(eval_result):], eval_result)]
                 self.Log.log_message('Epochs:{}/{}, Batches:{}/{}, Total batches:{}. {}'
-                                     .format(j+1, epochs, i+1, batches, len(self.History)+1, ','.join(str_output)))
+                                     .format(j+1, epochs, i+1, batches, len(self.History)+1, self.__str_format(eval_result)))
 
                 # record history data
                 history = [time_now - time_started, j+1, i+1, j*batches+i+1]
@@ -85,6 +89,7 @@ class SequentialModel_v2:
 
         predictions = self.predict(x)
         eval_results = [metric.metric(predictions, y) for metric in self.Metrics]
+        self.Log.log_message('Evaluation Samples:{}, {}'.format(len(x), self.__str_format(eval_results)))
         return eval_results
 
     def predict(self, x):
