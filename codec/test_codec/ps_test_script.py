@@ -14,9 +14,10 @@ from network.agreements import DefaultNodes
     ---------------DEFINE HERE---------------
 """
 from codec.sgq import SGQClient, SGQServer
+from codec.naive_ps import PAClientCodec, GradDiffParaServerCodec
 # Type
-SLAVE_CODEC = SGQClient
-MASTER_CODEC = SGQServer
+SLAVE_CODEC = PAClientCodec
+MASTER_CODEC = GradDiffParaServerCodec
 """
     ---------------DEFINE HERE---------------
 """

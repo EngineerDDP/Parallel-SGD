@@ -6,6 +6,7 @@ from huffman import codec
 from codec.interfaces import yield_none, NetEncapsulation
 from codec.interfaces import ICommunicationCtrl
 from codec.essential import BlockWeight
+from codec.tqn import TQNPackage
 from log import Logger
 from network.agreements import DefaultNodes
 

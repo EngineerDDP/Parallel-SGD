@@ -25,7 +25,7 @@ def ternarization(arr, epsilon=1e-9):
     """
     a = 0.7
     b = stochastic_ternarization(arr / a)
-    for i in range(3):
+    for i in range(1):
         a = np.sum(np.multiply(b, arr)) / (np.sum(np.square(b)) + 1)
         b = stochastic_ternarization(arr / (a + epsilon))
     return a, b
