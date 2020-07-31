@@ -1,5 +1,8 @@
 import numpy as np
 
+#custmized module
+from huffman import codec
+
 from codec.interfaces import yield_none, NetEncapsulation
 from codec.interfaces import ICommunicationCtrl
 from codec.essential import BlockWeight
@@ -9,11 +12,25 @@ from network.agreements import DefaultNodes
 from profiles.settings import GlobalSettings
 
 # based on paper SGQ chapter 3.1
-def build_quantization_space(bits):
-    vals = (2 ^ bits - 1) // 2
+def build_quantization_space(bits:int) -> list:
+    k_max = (2 ** bits - 1) // 2
     theta = lambda k : 1 / (np.tan(k * np.pi / 4))
-    space = [theta(k) for k in range(-vals, vals, 1)]
+    space = [theta(k / k_max) for k in range(k_max, 0, -1)]
     return space
+
+q_space_buffer = {2:build_quantization_space(2), 3:build_quantization_space(3)}
+q_space_codec_keys = {2: [-1, 0, 1], 3: [-3, -2, -1, 0, 1, 2, 3]}
+q_space_codec = {2: codec(), 3: codec()}
+
+q_space_codec[2].set_codec(q_space_codec_keys[2])
+q_space_codec[3].set_codec(q_space_codec_keys[3])
+
+def get_quantization_space(bits:int) -> list:
+    if q_space_buffer.get(bits, None) is not None:
+        return q_space_buffer[bits]
+    else:
+        q_space_buffer[bits] = build_quantization_space(bits)
+        return q_space_buffer[bits]
 
 
 def stochastic_ternarization(arr):
@@ -22,7 +39,7 @@ def stochastic_ternarization(arr):
         Alistarh et al. “QSGD: Communication-Efficient SGD via Gradient
         Quantization and Encoding”. NIPS2017
     """
-    return np.asarray((np.random.random(arr.shape) < np.abs(arr)) * np.sign(arr), np.int8)
+    return np.asarray((np.random.random(arr.shape) < np.abs(arr)) * np.sign(arr))
 
 
 def ternarization(arr, epsilon=1e-9):
@@ -39,9 +56,26 @@ def ternarization(arr, epsilon=1e-9):
     return a, b
 
 
-def stochastic_quantization(arr, space):
-    raise NotImplementedError()
+def stochastic_quantization(arr:np.ndarray, space:list):
+    sign = np.sign(arr)
+    arr = np.abs(arr)
+    for x in np.nditer(arr, op_flags=["readwrite"]):
+        lo = 0
+        hi = 0
+        for i in space:
+            if i < x:
+                lo = i
+            else:
+                hi = i
+                break
 
+        rnd = np.random.uniform(lo, hi)
+        if (rnd > x):
+            x = lo
+        else:
+            x = hi
+
+    return arr
 
 def quantize_matrix(arr):
     raise NotImplementedError()
@@ -118,7 +152,7 @@ class SGQServer(ICommunicationCtrl):
         error = np.sum(self.Weights_Last_Received[data.node_id] - self.Global_State)
         if error > SGQServer.__max_error:
             SGQServer.__max_error = error
-            print(error)
+            print("Error:", error)
         # return
         yield NetEncapsulation(data.node_id, data_rtn.encode())
 
@@ -139,6 +173,9 @@ class SGQServer(ICommunicationCtrl):
 
 class SGQPackage:
 
+    __var_codec = q_space_codec[2]
+    __quant_method = ternarization
+
     def __init__(self, content, node_id = -2):
         """
             Build SGQ transmitting package
@@ -149,7 +186,7 @@ class SGQPackage:
         self.__alpha = 0
         self.__beta = 0
         if content is not None:
-            self.__alpha, self.__beta = ternarization(content)
+            self.__alpha, self.__beta = SGQPackage.__quant_method(content)
 
     def content(self):
         return self.__alpha * self.__beta
@@ -163,7 +200,8 @@ class SGQPackage:
         res = dict()
         res['SGQNode_ID'] = self.node_id
         res['SGQALPHA'] = self.__alpha
-        res['SGQBETA'] = self.__beta
+        res['SGQBETA_SHAPE'] = self.__beta.shape
+        res['SGQBETA'] = SGQPackage.__var_codec.encode(self.__beta.astype(int).reshape(-1))
         return res
 
     @staticmethod
@@ -175,5 +213,13 @@ class SGQPackage:
         """
         pkg = SGQPackage(None, dic['SGQNode_ID'])
         pkg.__alpha = dic['SGQALPHA']
-        pkg.__beta = dic['SGQBETA']
+        # get shape
+        len = 1
+        shape = dic['SGQBETA_SHAPE']
+        for i in shape:
+            len *= i
+        # rebuild beta
+        beta = SGQPackage.__var_codec.decode(dic['SGQBETA'])
+        beta = beta[:len]
+        pkg.__beta = np.asarray(beta, dtype=float).reshape(shape)
         return pkg
