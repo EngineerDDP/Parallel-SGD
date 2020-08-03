@@ -7,9 +7,9 @@ if __name__ == '__main__':
     check_code = random.random()
     package = StarNetwork_Initialization_Package()
     worker_list = [
-        #(0, check_code, '192.168.1.114'),
+        ('0', check_code, '10.199.196.236'),
         #(1, check_code, '192.168.1.112'),
-        (2, check_code, '192.168.1.122')
+        #('2', check_code, '192.168.1.122')
     ]
     for worker in worker_list:
         package.put(*worker)

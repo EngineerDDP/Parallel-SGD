@@ -1,9 +1,6 @@
 from threading import Thread
 from log import Logger
 
-from network.agreements import General
-from network.agreements import Transfer as TransferAgreements
-
 from psgd.interfaces import ITransfer, ReadTimeOut
 
 

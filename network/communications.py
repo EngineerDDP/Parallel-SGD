@@ -88,7 +88,7 @@ class Communication_Controller:
             Get one json like object from target nodes.
         :return: a tuple, which first element is the sender id, second element is the json object.
         """
-        return self.com.recv_que.get()
+        return self.com.recv_que.get(timeout=10)
 
     def send_one(self, target, dic):
         """
