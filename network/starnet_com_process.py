@@ -142,16 +142,19 @@ class Worker_Register(IWorker_Register):
             elif flag:
                 # try reach
                 worker_con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                worker_con.connect((ip_addr, STAR_NET_WORKING_PORTS))
-                # try register
-                data = {
-                    Key.Type: Type_Val.WorkerReports,
-                    Key.From: self.__id,
-                    Key.To:   id,
-                    Key.Content:uuid
-                }
-                pack(data, worker_con)
-                self.__workers.put(id, worker_con)
+                try:
+                    worker_con.connect((ip_addr, STAR_NET_WORKING_PORTS))
+                    # try register
+                    data = {
+                        Key.Type: Type_Val.WorkerReports,
+                        Key.From: self.__id,
+                        Key.To:   id,
+                        Key.Content:uuid
+                    }
+                    pack(data, worker_con)
+                    self.__workers.put(id, worker_con)
+                except OSError as error:
+                    raise OSError('Error: {}, address: {}'.format(error, ip_addr))
 
     def put(self, id, con):
         self.__workers.put(id, con)
@@ -225,7 +228,8 @@ class Communication_Process(ICommunication_Process):
                 try:
                     raw_pack = TLVPack.recv(fd).Content
                     data = Serialize.unpack(raw_pack)
-                    self.recv_que.put(data)
+                    _from = data[Key.From]
+                    self.recv_que.put((_from, data[Key.Content]))
                 except OSError as error:
                     self.__report_connection_lost(self.__connections.find(fd), fd.getpeername())
                     self.__connections.remove(fd)
@@ -269,13 +273,14 @@ class Communication_Process(ICommunication_Process):
                 target, data = self.send_que.get()
                 if len(target) == 0:
                     continue
-                data[Key.Type] = Type_Val.Normal
-                # write sender info
-                data[Key.From] = self.__connections.get_id()
-                # write target info
-                data[Key.To] = target
+                pkg = {
+                    Key.Type:       Type_Val.Normal,
+                    Key.From:       self.__connections.get_id(),
+                    Key.To:         -1,
+                    Key.Content:    data
+                }
                 # write in TLV
-                package = TLVPack(Serialize.pack(data))
+                package = TLVPack(Serialize.pack(pkg))
                 # send multiple
                 for id in target:
                     id = str(id)
@@ -310,17 +315,17 @@ def start_star_net(nodes: StarNetwork_Initialization_Package):
             # write key
             data[Key.To] = id
             # serialize
-            raw_pack = TLVPack(Serialize.pack(data))
+            raw_pack = TLVPack(Serialize.pack(data.copy()))
             # send
             raw_pack.send(con)
             # add
             worker_register.identify(id, uuid, con=con)
 
     except OSError as error:
-        for con in worker_register:
-            con.close()
-
-        print("Error encountered while creating network, info {}".format(error))
+        for con in worker_register.to_list():
+            if isinstance(con, socket.socket):
+                con.close()
+        raise OSError('Error: {}, address: {}'.format(error, address))
 
     if worker_register.check():
         com = Communication_Process(worker_register)

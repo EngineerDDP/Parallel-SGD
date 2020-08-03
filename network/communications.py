@@ -61,6 +61,7 @@ class Worker_Communication_Constructor:
                     if data[Key.Type] == Type_Val.WorkerReports:
                         self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
 
+        self.__bind_listener.close()
         return self.__id_register
 
 
@@ -96,7 +97,10 @@ class Communication_Controller:
         :param dic: json like object : encode
         :return: None
         """
-        self.com.send_que.put((target, dic))
+        if isinstance(target, list):
+            self.com.send_que.put((target, dic))
+        else:
+            self.com.send_que.put(([target], dic))
 
         return None
 

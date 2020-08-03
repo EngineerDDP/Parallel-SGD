@@ -7,7 +7,9 @@ if __name__ == '__main__':
     check_code = random.random()
     package = StarNetwork_Initialization_Package()
     worker_list = [
-        (0, check_code, '127.0.0.1')
+        #(0, check_code, '192.168.1.114'),
+        #(1, check_code, '192.168.1.112'),
+        (2, check_code, '192.168.1.122')
     ]
     for worker in worker_list:
         package.put(*worker)
@@ -16,6 +18,6 @@ if __name__ == '__main__':
     com = Communication_Controller(con)
     com.establish_communication()
 
-    while True:
-        data = com.get_one()
-        print(data)
+    # while True:
+    #     data = com.get_one()
+    #     print(data)
