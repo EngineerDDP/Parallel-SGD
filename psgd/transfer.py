@@ -78,7 +78,6 @@ class NTransfer(ITransfer):
         # write tag
         dic[NTransfer.STR_LAYER_NO] = layer_no
         dic[NTransfer.STR_W_TYPE] = w_type
-        dic[General.Type] = TransferAgreements.Type
         self.communication_process.send_one(target, dic)
 
     def __run(self):

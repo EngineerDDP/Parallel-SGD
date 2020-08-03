@@ -1,7 +1,7 @@
 import numpy as np
 
 from profiles.settings import GlobalSettings
-from codec.paraserver import GradDiffParaServerCodec, PAServerCompack
+from codec.naive_ps import GradDiffParaServerCodec, PAServerCompack
 from log import Logger
 
 
@@ -31,11 +31,11 @@ class DCASGDServerCodec(GradDiffParaServerCodec):
         for key in GlobalSettings.get_default().nodes:
             self.Bak_Weights_Node[key] = self.Weights_init
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, json_dict:dict):
         """
             Adaptive DC-ASGD algorithm.
         """
-        compack = PAServerCompack.decompose_compack(json_dict)
+        compack = PAServerCompack.from_dictionary(json_dict)
         content = compack.Content
         content_square = np.multiply(content, content)
         # Update weights with delay-compensation

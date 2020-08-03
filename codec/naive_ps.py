@@ -150,6 +150,7 @@ class PAClientComPack(IComPack):
 
         return send_target, pack
 
+    @staticmethod
     def decompose_compack(self, params=None):
         raise NotImplementedError()
 
