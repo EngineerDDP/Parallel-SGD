@@ -5,7 +5,7 @@ from time import sleep
 from utils.constants import Initialization_Server
 
 from network.agreements import *
-from network.interfaces import IWorker_Register, ICommunication_Process
+from network.interfaces import IWorker_Register, ICommunication_Process, ICommunication_Controller
 from network.serialization import unpack
 
 
@@ -65,7 +65,7 @@ class Worker_Communication_Constructor:
         return self.__id_register
 
 
-class Communication_Controller:
+class Communication_Controller(ICommunication_Controller):
 
     def __init__(self, com: ICommunication_Process):
         """
@@ -73,15 +73,19 @@ class Communication_Controller:
             Change CommunicationController.static_server_address and CommunicationController.static_server_port
             before initializing this class.
         """
-        self.com = com
-        self.Node_ID = com.node_id()
+        super().__init__()
+        self.__com = com
+
+    @property
+    def Node_Id(self):
+        return self.__com.node_id()
 
     def establish_communication(self):
         """
             Establish connection.
         :return: None
         """
-        self.com.start()
+        self.__com.start()
 
     def get_one(self, blocking=True):
         """
@@ -90,9 +94,9 @@ class Communication_Controller:
         """
         if self.is_closed():
             raise OSError('Connection has already been closed.')
-        if self.com.recv_que.empty() and not blocking:
+        if self.__com.recv_que.empty() and not blocking:
             return None
-        return self.com.recv_que.get()
+        return self.__com.recv_que.get()
 
     def send_one(self, target, dic):
         """
@@ -104,30 +108,30 @@ class Communication_Controller:
         if self.is_closed():
             raise OSError('Connection has already been closed.')
         if isinstance(target, list):
-            self.com.send_que.put((target, dic))
+            self.__com.send_que.put((target, dic))
         else:
-            self.com.send_que.put(([target], dic))
+            self.__com.send_que.put(([target], dic))
 
         return None
 
     def available_clients(self):
-        return self.com.nodes()
+        return self.__com.nodes()
 
     def close(self):
         """
             Stop communicating with remote nodes.
         :return: None
         """
-        self.com.close()
+        self.__com.close()
         sleep(1)
-        self.com.terminate()
+        self.__com.terminate()
 
     def is_closed(self):
         """
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return self.com.Exit.value is True
+        return self.__com.Exit.value is True
 
 
 def get_repr():

@@ -40,7 +40,16 @@ class Coordinator:
                     reply = Reply.weights_and_layers_package(self.__model.getWeightsInit())
 
                 elif data == Init.Codec_And_SGD_Type:
-                    reply = Reply.codec_and_sgd_package(self.__model.codec_ctrl(), self.__model.psgd_type())
+                    if id_from != Parameter_Server:
+                        reply = Reply.codec_and_sgd_package(
+                            self.__model.codec_ctrl(),
+                            self.__model.psgd_type()
+                        )
+                    else:
+                        reply = Reply.codec_and_sgd_packages(
+                            self.__model.psgd_server_codec(),
+                            self.__model.psgd_server_type()
+                        )
 
                 elif data == Init.Samples:
                     reply = Reply.data_sample_package(*self.__model.train_data(), *self.__model.eval_data())
@@ -51,7 +60,9 @@ class Coordinator:
                         self.__model.loss_type(),
                         self.__model.learn_rate(),
                         self.__model.target_acc(),
-                        self.__model.weights_types())
+                        self.__model.weights_types(),
+                        self.__model.optimizer_type()
+                    )
 
                 else:
                     reply = None

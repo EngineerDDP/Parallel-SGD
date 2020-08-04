@@ -68,13 +68,13 @@ class FCLayer_v2(ILayer):
         # calculate gradient
         act_grad = self.Act.gradient(self.logit(x))
         # y shape=[output, samples count]
-        y = np.multiply(act_grad, gradient)
+        y_grad = np.multiply(act_grad, gradient)
 
         # adjust weight
-        delta_weight = (y.T.dot(x)).T
-        delta_bias = y.sum(axis=0)
+        delta_weight = (y_grad.T.dot(x)).T
+        delta_bias = y_grad.sum(axis=0)
 
-        return delta_weight, delta_bias, y
+        return delta_weight, delta_bias, y_grad
 
     def apply_wb(self, w, b, y):
 

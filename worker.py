@@ -1,8 +1,9 @@
 import time
 import os
+from threading import Thread
 
-from psgd.psgd_training_client import PSGDTraining_Client
-from utils.constants import Initialization_Server
+from psgd.psgd_training_client import PSGDTraining_Client, PSGDTraining_Parameter_Server
+from utils.constants import Initialization_Server, Parameter_Server
 from codec.tag import Tag
 from utils.log import Logger
 from network.communications import Communication_Controller, Worker_Communication_Constructor, get_repr
@@ -44,7 +45,7 @@ class PSGD_Worker:
                 register = constructor.buildCom()
                 com = Communication_Controller(Communication_Process(register))
 
-                self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_ID))
+                self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
                 self.init_PSGD(com)
                 self.do_training(com)
@@ -103,26 +104,36 @@ class PSGD_Worker:
             learn_rate = data.learn_rate
             w_type = data.w_types
 
-            self.__training_log = Logger('Training log @ node-{}'.format(com.Node_ID), log_to_file=True)
+            self.__training_log = Logger('Training log @ node-{}'.format(com.Node_Id), log_to_file=True)
 
-            self.__running_thread = PSGDTraining_Client(
-                model_init=layers,
-                loss=loss_t,
-                codec_type=codec,
-                sync_class=sgd,
-                com=com,
-                w_types=w_type,
-                tags=build_tags(node_id=com.Node_ID),
-                train_x=train_x,
-                train_y=train_y,
-                eval_x=eval_x,
-                eval_y=eval_y,
-                batch_size=GlobalSettings.get_default().batch.batch_size,
-                epochs=epoch,
-                logger=self.__training_log,
-                learn_rate=learn_rate,
-                target_acc=target_acc
-            )
+            if com.Node_Id != Parameter_Server:
+                self.__running_thread = PSGDTraining_Client(
+                    model_init=layers,
+                    loss=loss_t,
+                    codec_type=codec,
+                    sync_class=sgd,
+                    com=com,
+                    w_types=w_type,
+                    tags=build_tags(node_id=com.Node_Id),
+                    train_x=train_x,
+                    train_y=train_y,
+                    eval_x=eval_x,
+                    eval_y=eval_y,
+                    batch_size=GlobalSettings.get_default().batch.batch_size,
+                    epochs=epoch,
+                    logger=self.__training_log,
+                    learn_rate=learn_rate,
+                    target_acc=target_acc
+                )
+            else:
+                self.__running_thread = PSGDTraining_Parameter_Server(
+                    model_init=layers,
+                    ps_codec=codec,
+                    ps_sgd_type=sgd,
+                    com=com,
+                    w_types=w_type,
+                    logger=self.__training_log
+                )
 
             return True
         except Exception as error:
@@ -132,12 +143,11 @@ class PSGD_Worker:
     def do_training(self, com: Communication_Controller):
         self.client_logger.log_message('Prepare to start training process.')
         # check
-        assert isinstance(self.__running_thread, PSGDTraining_Client)
+        assert isinstance(self.__running_thread, Thread)
         assert isinstance(self.__training_log, Logger)
 
         ready_state = {}
         self.client_logger.log_message('Synchronize timeline with cluster.')
-        self.__training_log.log_message(self.__running_thread.Model.summary())
 
         for node_id in GlobalSettings.get_default().nodes:
             com.send_one(node_id, Ready_Type())
@@ -154,6 +164,8 @@ class PSGD_Worker:
         if not os.path.exists('./training'):
             os.mkdir('./training')
         try:
+            self.client_logger.log_message('Execution process started.')
+
             begin = time.time()
             self.__running_thread.start()
             self.__running_thread.join()
