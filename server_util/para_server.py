@@ -1,4 +1,4 @@
-from log import Logger
+from utils.log import Logger
 
 from codec.paraserver import GradDiffParaServerCodec, ParaServerCodec
 from codec.dc_asgdcodec import DCASGDServerCodec

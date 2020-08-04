@@ -1,14 +1,4 @@
-from neuralnetworks.layers import *
-from neuralnetworks.model import *
-from neuralnetworks.losses import *
-from neuralnetworks.activations import *
-from neuralnetworks.optimizer import *
-from neuralnetworks.metrics import *
-from log import Logger
-
-from dataset.mnist_input import load_mnist
 from dataset.cifar import load_data
-import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 import keras

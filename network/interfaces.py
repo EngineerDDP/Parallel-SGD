@@ -44,5 +44,9 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
     def node_id(self):
         pass
 
+    @abstractmethod
+    def nodes(self):
+        pass
+
     def close(self):
         self.Exit.value = True

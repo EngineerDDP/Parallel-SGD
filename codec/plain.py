@@ -2,7 +2,7 @@ from codec.essential import BlockWeight
 from codec.interfaces import ICommunicationCtrl, IComPack, NetEncapsulation
 
 from profiles.settings import GlobalSettings
-from log import Logger
+from utils.log import Logger
 
 
 class PlainCommunicationCtrl(ICommunicationCtrl):

@@ -2,14 +2,14 @@ from threading import Thread
 
 import pandas as pd
 
-from neuralnetworks.metrics import CategoricalAccuracy
-from neuralnetworks.model import SequentialModel_v2
-from neuralnetworks.optimizer import ParallelSGDOptimizer
+from nn.metrics import CategoricalAccuracy
+from nn.model import SequentialModel_v2
+from nn.optimizer import ParallelSGDOptimizer
 from profiles.settings import GlobalSettings
 from psgd.transfer import NTransfer
 
 
-class Slave(Thread):
+class PSGDTraining_Client(Thread):
 
     def __init__(self, model_init, loss, codec_type, sync_class, com, w_types, tags, train_x, train_y, eval_x, eval_y, batch_size, epochs, logger, learn_rate=0.01, target_acc=None):
 
@@ -81,11 +81,11 @@ class Slave(Thread):
 # if __name__ == '__main__':
 #     """
 #         Usage:
-#         python client.py --ip 121.248.202.131 --port 15387
+#         python psgd_training_client.py --ip 121.248.202.131 --port 15387
 #     """
 #
 #     if len(sys.argv) < 5:
-#         print('usage: client.py')
+#         print('usage: psgd_training_client.py')
 #         print('\t --ip <ip address of initialization server>')
 #         print('\t --port <port of initialization server>')
 #         sys.exit(-1)

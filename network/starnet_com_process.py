@@ -14,9 +14,13 @@ class StarNetwork_Initialization_Package:
 
     def __init__(self):
         self.__content = []
+        self.__unique = set()
 
     def put(self, id, uuid, address):
-        self.__content.append((str(id), uuid, address))
+        if id not in self.__unique:
+            self.__content.append((str(id), uuid, address))
+        else:
+            raise LookupError('Id for new nodes were used before.')
 
     def __iter__(self):
         return self.__content.__iter__()
@@ -195,7 +199,7 @@ class Communication_Process(ICommunication_Process):
 
         super().__init__(name='Communication thread address: {}'.format(id_register.get_id()))
 
-        self.connections = id_register
+        self.__connections = id_register
         # local thread queue
         self.__dispatch_queue = {}
 
@@ -209,14 +213,14 @@ class Communication_Process(ICommunication_Process):
         """
         import queue, threading
 
-        for id in self.connections.ids():
+        for id in self.__connections.ids():
             self.__dispatch_queue[id] = queue.Queue()
 
         __deque_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.', daemon=True)
         __deque_thread.start()
 
         while not self.Exit.value:
-            active_connections = self.connections.to_list()
+            active_connections = self.__connections.to_list()
 
             if len(active_connections) == 0:
                 self.Exit.value = True
@@ -231,12 +235,12 @@ class Communication_Process(ICommunication_Process):
                     _from = data[Key.From]
                     self.recv_que.put((_from, data[Key.Content]))
                 except OSError as error:
-                    self.__report_connection_lost(self.connections.find(fd), fd.getpeername())
-                    self.connections.remove(fd)
+                    self.__report_connection_lost(self.__connections.find(fd), fd.getpeername())
+                    self.__connections.remove(fd)
 
             # write
             for fd in writeable:
-                id = self.connections.find(fd)
+                id = self.__connections.find(fd)
                 queue = self.__dispatch_queue.get(id, None)
                 if queue is not None and not queue.empty():
                     item = queue.get_nowait()
@@ -244,17 +248,17 @@ class Communication_Process(ICommunication_Process):
 
             # handle exception
             for fd in excepts:
-                self.__report_connection_lost(self.connections.find(fd), fd.raddr)
-                self.connections.remove(fd)
+                self.__report_connection_lost(self.__connections.find(fd), fd.raddr)
+                self.__connections.remove(fd)
                 # del queue
-                id = self.connections.find(fd)
+                id = self.__connections.find(fd)
                 if self.__dispatch_queue.get(id, None) is not None:
                     del self.__dispatch_queue[id]
                     self.__dispatch_queue[id] = None
 
             sleep(ICommunication_Process.Circle_interval)
 
-        for fd in self.connections.to_list():
+        for fd in self.__connections.to_list():
             request_close(fd)
             fd.close()
 
@@ -275,7 +279,7 @@ class Communication_Process(ICommunication_Process):
                     continue
                 pkg = {
                     Key.Type:       Type_Val.Normal,
-                    Key.From:       self.connections.get_id(),
+                    Key.From:       self.__connections.get_id(),
                     Key.To:         target,
                     Key.Content:    data
                 }
@@ -291,11 +295,14 @@ class Communication_Process(ICommunication_Process):
             pass
 
     def node_id(self):
-        return self.connections.get_id()
+        return self.__connections.get_id()
+
+    def nodes(self):
+        return self.__connections.ids()
 
 
-def start_star_net(nodes: StarNetwork_Initialization_Package):
-    from constants import Initialization_Server
+def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_Process:
+    from utils.constants import Initialization_Server
 
     worker_register = Worker_Register()
     # register
@@ -325,11 +332,13 @@ def start_star_net(nodes: StarNetwork_Initialization_Package):
         for con in worker_register.to_list():
             if isinstance(con, socket.socket):
                 con.close()
-        raise OSError('Error: {}, address: {}'.format(error, address))
+        raise OSError('Error: {}.'.format(error))
 
     if worker_register.check():
         com = Communication_Process(worker_register)
         return com
+    else:
+        raise OSError('Some of workers didnt respond properly.')
 
 
 

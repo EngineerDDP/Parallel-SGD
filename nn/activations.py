@@ -1,6 +1,6 @@
 import numpy as np
 
-from neuralnetworks.interfaces import IActivation
+from nn.interfaces import IActivation
 
 
 class Linear(IActivation):

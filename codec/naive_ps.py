@@ -1,7 +1,7 @@
 from codec.interfaces import ICommunicationCtrl, IComPack, yield_none, NetEncapsulation
 
-from network.agreements import DefaultNodes
-from log import Logger
+from utils.constants import Parameter_Server
+from utils.log import Logger
 
 from profiles.settings import GlobalSettings
 
@@ -145,14 +145,14 @@ class PAClientComPack(IComPack):
     @staticmethod
     def compose_compack(block_weights, node_id=None):
 
-        send_target = [DefaultNodes.Parameter_Server]
+        send_target = [Parameter_Server]
         pack = PAClientComPack(node_id, block_weights.Layer_ID, block_weights.Block_ID, block_weights.Content)
 
         return send_target, pack
 
     @staticmethod
     def decompose_compack(self, params=None):
-        raise NotImplementedError()
+        pass
 
 
 class PAServerCompack(PAClientComPack):

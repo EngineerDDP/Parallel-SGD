@@ -1,7 +1,7 @@
 import numpy as np
 
 from time import sleep
-from neuralnetworks.interfaces import IOptimizer
+from nn.interfaces import IOptimizer
 
 
 class GradientDecentOptimizer_v2(IOptimizer):

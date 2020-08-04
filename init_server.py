@@ -14,7 +14,7 @@ if __name__ == '__main__':
     """
         Usage:
         python init_server.py --node_count 4 --batch_size 128 --redundancy 2 --codec ccdc \
-         --psgd ssgd --learn_rate 0.05 --epochs 10 --working_ports 15387 --block_assignment iid \
+         --psgd ssgd --learn_rate 0.05 --epochs 10 --working_net_protocol --block_assignment iid \
          --server_codec graddiff
     """
     parse = argparse.ArgumentParser()

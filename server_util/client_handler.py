@@ -11,15 +11,17 @@ from profiles.settings import GlobalSettings
 
 from network.communications import TLVPack
 
-from log import Logger
+from utils.log import Logger
 
 Global_Logger = None
+
 
 def create_logger(port):
     global Global_Logger
     Global_Logger = Logger('Server_{}'.format(port), log_to_file=True)
     Global_Logger.log_message('Starting server at port {}.'.format(port))
     return Global_Logger
+
 
 def start_server(port):
     server = socketserver.ThreadingTCPServer(("", port), ClientHandler)
@@ -186,10 +188,10 @@ class ClientHandler(socketserver.BaseRequestHandler):
                                     Initialize.CodeType: model.codec_ctrl(),
                                     Initialize.SyncClass: model.psgd_type(),
                                     Initialize.Epoches: model.epoches(),
-                                    Initialize.LOSS:model.loss_type(),
-                                    Initialize.Learn_Rate:model.learn_rate(),
-                                    Initialize.Target_Accuracy:model.target_acc(),
-                                    Initialize.Block_Assignment:model.Block_Assignment
+                                    Initialize.LOSS: model.loss_type(),
+                                    Initialize.Learn_Rate: model.learn_rate(),
+                                    Initialize.Target_Accuracy: model.target_acc(),
+                                    Initialize.Block_Assignment: model.Block_Assignment
                                     }
                         Global_Logger.log_message('Weights assigned: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Data.Type:
@@ -203,11 +205,12 @@ class ClientHandler(socketserver.BaseRequestHandler):
                         Global_Logger.log_message('Data loaded: {}'.format(dic_back.keys()))
                     elif dic[General.Type] == Initialize.Current_State:
                         state = ClientHandler.Client_List.isGreen()
-                        state_dic  =   {General.Type: Initialize.Current_State,
-                                        General.From: (-1),
-                                        General.To: (-1),
-                                        Initialize.Current_State: state
-                                       }
+                        state_dic = {
+                            General.Type: Initialize.Current_State,
+                            General.From: (-1),
+                            General.To: (-1),
+                            Initialize.Current_State: state
+                        }
                         dic_back = state_dic
                         ClientHandler.Client_List.setGreen(node_id)
                         # print('States check, node: {}'.format(Node_ID))

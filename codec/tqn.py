@@ -1,12 +1,5 @@
 import numpy as np
 
-from codec.interfaces import yield_none, NetEncapsulation, ICommunicationCtrl
-from codec.essential import BlockWeight
-from log import Logger
-from network.agreements import DefaultNodes
-
-from profiles.settings import GlobalSettings
-
 
 def stochastic_ternarization(arr):
     """

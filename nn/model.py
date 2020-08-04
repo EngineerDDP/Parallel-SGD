@@ -1,7 +1,7 @@
 import time
 
-from neuralnetworks.interfaces import ILayer, IOptimizer, IMetrics, ILoss, IActivation
-from log import Logger
+from nn.interfaces import ILayer, IOptimizer, IMetrics, ILoss
+from utils.log import Logger
 
 
 class SequentialModel_v2:
@@ -17,6 +17,7 @@ class SequentialModel_v2:
         self.Log = logger
         self.Metrics = []
         self.History_Title = ["Time", "Epoch", "Batch", "Total Batch"]
+        self.Evaluation_Title = []
         self.History = []
 
     def add(self, unit:ILayer):

@@ -20,7 +20,7 @@ class NoiseSimulation:
         n1 = np.random.normal(0.0, self.NScale, size=x.shape)
         # select points
         b1 = np.random.binomial(1, self.BRate, size=x.shape)
-        if self.Oneside == False:
+        if not self.Oneside:
             s1 = b1[np.where(b1 == 1)].shape
             # select side
             s1 = self.BScale * np.random.binomial(1, 0.5, size=s1)

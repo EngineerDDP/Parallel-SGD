@@ -1,5 +1,5 @@
 from utils.metrichelper import *
-from neuralnetworks.interfaces import IMetrics
+from nn.interfaces import IMetrics
 
 
 class BinaryAccuracy(IMetrics):

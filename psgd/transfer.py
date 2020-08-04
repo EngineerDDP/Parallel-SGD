@@ -1,5 +1,5 @@
 from threading import Thread
-from log import Logger
+from utils.log import Logger
 
 from psgd.interfaces import ITransfer, ReadTimeOut
 

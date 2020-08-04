@@ -1,12 +1,11 @@
-from codec.essential import BlockWeight, BatchWeight
-from codec.tag import Tag
+from codec.essential import BlockWeight
 from profiles.settings import GlobalSettings
 
 # import np
 import numpy as np
 
 # import event logger
-from log import Logger
+from utils.log import Logger
 from time import sleep
 
 """

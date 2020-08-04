@@ -2,7 +2,7 @@ import socket
 import select
 
 from time import sleep
-from constants import Initialization_Server
+from utils.constants import Initialization_Server
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, ICommunication_Process
@@ -83,12 +83,16 @@ class Communication_Controller:
         """
         self.com.start()
 
-    def get_one(self):
+    def get_one(self, blocking=True):
         """
             Get one json like object from target nodes.
         :return: a tuple, which first element is the sender id, second element is the json object.
         """
-        return self.com.recv_que.get(timeout=10)
+        if self.is_closed():
+            raise OSError('Connection has already been closed.')
+        if self.com.recv_que.empty() and not blocking:
+            return None
+        return self.com.recv_que.get()
 
     def send_one(self, target, dic):
         """
@@ -97,12 +101,17 @@ class Communication_Controller:
         :param dic: json like object : encode
         :return: None
         """
+        if self.is_closed():
+            raise OSError('Connection has already been closed.')
         if isinstance(target, list):
             self.com.send_que.put((target, dic))
         else:
             self.com.send_que.put(([target], dic))
 
         return None
+
+    def available_clients(self):
+        return self.com.nodes()
 
     def close(self):
         """
@@ -120,6 +129,9 @@ class Communication_Controller:
         """
         return self.com.Exit.value is True
 
+
+def get_repr():
+    return socket.gethostbyname(socket.gethostname())
 
 if __name__ == "__main__":
     pass

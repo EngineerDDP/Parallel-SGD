@@ -2,7 +2,7 @@ import numpy as np
 
 from profiles.settings import GlobalSettings
 from codec.naive_ps import GradDiffParaServerCodec, PAServerCompack
-from log import Logger
+from utils.log import Logger
 
 
 class DCASGDServerCodec(GradDiffParaServerCodec):

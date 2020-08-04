@@ -1,12 +1,12 @@
 import time
 import os
 
-from client import Slave
-from constants import Initialization_Server
+from psgd.psgd_training_client import PSGDTraining_Client
+from utils.constants import Initialization_Server
 from codec.tag import Tag
-from log import Logger
-from network.communications import Communication_Controller, Worker_Communication_Constructor
-from profiles.settings import GlobalSettings
+from utils.log import Logger
+from network.communications import Communication_Controller, Worker_Communication_Constructor, get_repr
+from utils.models import *
 
 # network agreements in used
 from network.starnet_com_process import Worker_Register, Communication_Process, STAR_NET_WORKING_PORTS
@@ -14,86 +14,6 @@ from network.starnet_com_process import Worker_Register, Communication_Process, 
 
 CLZ_WORKREGISTER = Worker_Register
 CLZ_COM_PROCESS = Communication_Process
-
-class Init:
-    GlobalSettings = 'Req_GlobalSettings'
-    Weights_And_Layers = 'Req_WeightsAndLayers'
-    Codec_And_SGD_Type = 'Req_CodecAndSGD'
-    Samples = 'Req_Samples'
-    MISC = 'Req_OtherStuff'
-
-class Reply:
-    GlobalSettings = 'Reply_GlobalSettings'
-    Weights_And_Layers = 'Reply_WeightsAndLayers'
-    Codec_And_SGD_Type = 'Reply_CodecAndSGD'
-    Samples = 'Reply_Samples'
-    MISC = 'Reply_OtherStuff'
-
-    class global_setting_package:
-
-        def __init__(self, settings: GlobalSettings):
-            self.n = settings.nodes
-            self.r = settings.redundancy
-            self.b = settings.batch.batch_size
-            self.ass = settings.block_assignment.__class__
-
-        def restore(self):
-            GlobalSettings.set_default(self.n, self.r, self.b, self.ass)
-
-    class weights_and_layers_package:
-
-        def __init__(self, layers: list):
-            self.__storage = [(i.__class__, i.params()) for i in layers]
-
-        def restore(self):
-            return [i[0](*i[1]) for i in self.__storage]
-
-    class codec_and_sgd_package:
-
-        def __init__(self, codec, sgd_t):
-            self.__codec = codec
-            self.__sgd_t = sgd_t
-
-        def restore(self):
-            return self.__codec, self.__sgd_t
-
-    class data_sample_package:
-
-        def __init__(self, train_x, train_y, test_x, test_y):
-            self.__train_x = train_x
-            self.__train_y = train_y
-            self.__test_x = test_x
-            self.__test_y = test_y
-
-        def restore(self):
-            return self.__train_x, self.__train_y, self.__test_x, self.__test_y
-
-    class misc_package:
-
-        def __init__(self, epoch, loss_type, learn_rate, target_acc, w_types):
-            self.epoch = epoch
-            self.loss_type = loss_type
-            self.learn_rate = learn_rate
-            self.target_acc = target_acc
-            self.w_types = w_types
-
-class Ready_Type:
-
-    def __init__(self):
-        pass
-
-class Training_Doc:
-
-    def __init__(self, filename):
-
-        self.filename = filename
-        self.content = b''
-        with open(filename, 'rb') as f:
-            self.content = f.read()
-
-    def restore(self):
-        with open(self.filename, 'wb') as f:
-            f.write(self.content)
 
 
 def build_tags(node_id: int):
@@ -112,8 +32,10 @@ class PSGD_Worker:
 
     def __init__(self):
         self.__running_thread = None
-        self.client_logger = Logger(title_info='Client_log', log_to_file=True)
+        self.client_logger = Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
         self.__training_log = None
+
+        self.client_logger.log_message('Working started and ready for job submission.')
 
     def slave_forever(self):
         while True:
@@ -121,88 +43,101 @@ class PSGD_Worker:
             try:
                 register = constructor.buildCom()
                 com = Communication_Controller(Communication_Process(register))
+
+                self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_ID))
+
                 self.init_PSGD(com)
                 self.do_training(com)
-                # wait for save close
+                # wait for safe closure
                 time.sleep(10)
                 com.close()
             except Exception as e:
                 self.client_logger.log_message('Exception occurred: {}'.format(e))
 
-
-    def init_PSGD(self, com: Communication_Controller):
+    def init_PSGD(self, com: Communication_Controller) -> bool:
         # initialize global settings
         com.send_one(Initialization_Server, Init.GlobalSettings)
         _, data = com.get_one()
         # restore global settings
-        assert isinstance(data, Reply.global_setting_package)
+        if not isinstance(data, Reply.global_setting_package):
+            if isinstance(data, Reply):
+                if data == Reply.I_Need_Your_Working_Log:
+                    com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
+            return False
 
-        data.restore()
+        try:
+            data.restore()
 
-        # initialize codec and sgd type
-        com.send_one(Initialization_Server, Init.Codec_And_SGD_Type)
-        _, data = com.get_one()
-        # restore
-        assert isinstance(data, Reply.codec_and_sgd_package)
+            # initialize codec and sgd type
+            com.send_one(Initialization_Server, Init.Codec_And_SGD_Type)
+            _, data = com.get_one()
+            # restore
+            assert isinstance(data, Reply.codec_and_sgd_package)
 
-        codec, sgd = data.restore()
+            codec, sgd = data.restore()
 
-        # initialize weights and layer
-        com.send_one(Initialization_Server, Init.Weights_And_Layers)
-        _, data = com.get_one()
-        # restore
-        assert isinstance(data, Reply.weights_and_layers_package)
+            # initialize weights and layer
+            com.send_one(Initialization_Server, Init.Weights_And_Layers)
+            _, data = com.get_one()
+            # restore
+            assert isinstance(data, Reply.weights_and_layers_package)
 
-        layers = data.restore()
+            layers = data.restore()
 
-        # initialize dataset
-        com.send_one(Initialization_Server, Init.Samples)
-        _, data = com.get_one()
-        # restore
-        assert isinstance(data, Reply.data_sample_package)
+            # initialize dataset
+            com.send_one(Initialization_Server, Init.Samples)
+            _, data = com.get_one()
+            # restore
+            assert isinstance(data, Reply.data_sample_package)
 
-        train_x, train_y, eval_x, eval_y = data.restore()
+            train_x, train_y, eval_x, eval_y = data.restore()
 
-        # others
-        com.send_one(Initialization_Server, Init.MISC)
-        _, data = com.get_one()
-        assert isinstance(data, Reply.misc_package)
+            # others
+            com.send_one(Initialization_Server, Init.MISC)
+            _, data = com.get_one()
+            assert isinstance(data, Reply.misc_package)
 
-        loss_t = data.loss_type
-        target_acc = data.target_acc
-        epoch = data.epoch
-        learn_rate = data.learn_rate
-        w_type = data.w_types
+            loss_t = data.loss_type
+            target_acc = data.target_acc
+            epoch = data.epoch
+            learn_rate = data.learn_rate
+            w_type = data.w_types
 
-        self.__training_log = Logger('Training log @ node-{}'.format(com.Node_ID), log_to_file=True)
+            self.__training_log = Logger('Training log @ node-{}'.format(com.Node_ID), log_to_file=True)
 
-        self.__running_thread = Slave(
-            model_init=layers,
-            loss=loss_t,
-            codec_type=codec,
-            sync_class=sgd,
-            com=com,
-            w_types=w_type,
-            tags=build_tags(node_id=com.Node_ID),
-            train_x=train_x,
-            train_y=train_y,
-            eval_x=eval_x,
-            eval_y=eval_y,
-            batch_size=GlobalSettings.get_default().batch.batch_size,
-            epochs=epoch,
-            logger=self.__training_log,
-            learn_rate=learn_rate,
-            target_acc=target_acc
-        )
+            self.__running_thread = PSGDTraining_Client(
+                model_init=layers,
+                loss=loss_t,
+                codec_type=codec,
+                sync_class=sgd,
+                com=com,
+                w_types=w_type,
+                tags=build_tags(node_id=com.Node_ID),
+                train_x=train_x,
+                train_y=train_y,
+                eval_x=eval_x,
+                eval_y=eval_y,
+                batch_size=GlobalSettings.get_default().batch.batch_size,
+                epochs=epoch,
+                logger=self.__training_log,
+                learn_rate=learn_rate,
+                target_acc=target_acc
+            )
+
+            return True
+        except Exception as error:
+            self.client_logger.log_message('Error encountered while initializing training environment : {}.'.format(error))
+            return False
 
     def do_training(self, com: Communication_Controller):
         self.client_logger.log_message('Prepare to start training process.')
         # check
-        assert isinstance(self.__running_thread, Slave)
+        assert isinstance(self.__running_thread, PSGDTraining_Client)
         assert isinstance(self.__training_log, Logger)
 
         ready_state = {}
         self.client_logger.log_message('Synchronize timeline with cluster.')
+        self.__training_log.log_message(self.__running_thread.Model.summary())
 
         for node_id in GlobalSettings.get_default().nodes:
             com.send_one(node_id, Ready_Type())
@@ -218,21 +153,26 @@ class PSGD_Worker:
         # make output file
         if not os.path.exists('./training'):
             os.mkdir('./training')
+        try:
+            begin = time.time()
+            self.__running_thread.start()
+            self.__running_thread.join()
+            end = time.time()
 
-        begin = time.time()
-        self.__running_thread.start()
-        self.__running_thread.join()
-        end = time.time()
+            self.__training_log.log_message('Execution complete, time:{}'.format(end - begin))
+            self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))
 
-        self.__training_log.log_message('Execution complete, time:{}'.format(end - begin))
-        self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))
+            train_csv = Binary_File_Package(self.__running_thread.Trace_Train)
+            eval_csv = Binary_File_Package(self.__running_thread.Trace_Eval)
 
-        log_file = Training_Doc(self.__training_log.File_Name)
-        train_csv = Training_Doc(self.__running_thread.Trace_Train)
-        eval_csv = Training_Doc(self.__running_thread.Trace_Eval)
+            com.send_one(Initialization_Server, train_csv)
+            com.send_one(Initialization_Server, eval_csv)
+        except Exception as error:
+            self.client_logger.log_message('Error encountered while executing : {}'.format(error))
+            self.__training_log.log_message('Error encountered while executing : {}'.format(error))
 
+        self.client_logger.log_message('Training process exited.')
+        log_file = Binary_File_Package(self.__training_log.File_Name)
         com.send_one(Initialization_Server, log_file)
-        com.send_one(Initialization_Server, train_csv)
-        com.send_one(Initialization_Server, eval_csv)
 
 

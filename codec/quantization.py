@@ -1,7 +1,7 @@
 import numpy as np
 
-from log import Logger
-from codec.pacodec import PAClientCodec
+from utils.log import Logger
+from codec.naive_ps import PAClientCodec
 
 
 class Quantization1BitPSCodec(PAClientCodec):

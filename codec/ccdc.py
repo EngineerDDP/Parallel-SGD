@@ -10,7 +10,7 @@ from codec.interfaces import ICommunicationCtrl
 from codec.interfaces import IComPack
 
 from profiles.settings import GlobalSettings
-from log import Logger
+from utils.log import Logger
 
 
 Qunatization = 'int32'
@@ -104,7 +104,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         self.Parts_BlockWeight_Buffers.clear()
         self.ComPack_Combs.clear()
 
-    def update_blocks(self, blockweight):
+    def update_blocks(self, blockweight: BlockWeight):
         """
             Update a block weights to the cluster
         """
@@ -117,7 +117,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         # check if any of those blocks were ready to broadcast
         return self.coding()
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, json_dict: dict):
         """
             Received a communication package from other node
         """
@@ -154,7 +154,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
 
             yield (targets, dic)
 
-    def decoding(self, new_block_id):
+    def decoding(self, new_block_id: int):
 
         if len(self.Parts_BlockWeight_Buffers) < GlobalSettings.get_default().redundancy:
             return

@@ -1,9 +1,9 @@
 import numpy as np
 
-from neuralnetworks.interfaces import ILayer
+from nn.interfaces import ILayer
 
-from neuralnetworks.activations import Linear
-from neuralnetworks.activations import ReLU
+from nn.activations import Linear
+from nn.activations import ReLU
 
 
 class FCLayer_v2(ILayer):

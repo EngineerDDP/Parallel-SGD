@@ -5,7 +5,7 @@ from codec.essential import BlockWeight
 import numpy as np
 
 # import event logger
-from log import Logger
+from utils.log import Logger
 
 # import network agreements
 from network.agreements import DefaultNodes
@@ -13,7 +13,6 @@ from network.agreements import DefaultNodes
 """
     ---------------DEFINE HERE---------------
 """
-from codec.sgq import SGQClient, SGQServer
 from codec.naive_ps import PAClientCodec, GradDiffParaServerCodec
 # Type
 SLAVE_CODEC = PAClientCodec

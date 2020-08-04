@@ -1,6 +1,6 @@
 import numpy as np
 
-from neuralnetworks.interfaces import ILoss
+from nn.interfaces import ILoss
 
 
 class MseLoss(ILoss):

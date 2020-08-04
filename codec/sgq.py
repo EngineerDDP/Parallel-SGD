@@ -6,9 +6,8 @@ from huffman import codec
 from codec.interfaces import yield_none, NetEncapsulation
 from codec.interfaces import ICommunicationCtrl
 from codec.essential import BlockWeight
-from codec.tqn import TQNPackage
-from log import Logger
-from network.agreements import DefaultNodes
+from utils.log import Logger
+from utils.constants import Parameter_Server
 
 from profiles.settings import GlobalSettings
 
@@ -98,7 +97,7 @@ class SGQClient(ICommunicationCtrl):
         """
         content = block_weight.Content
         pkg = SGQPackage(content, self.Node_id)
-        yield NetEncapsulation(DefaultNodes.Parameter_Server, pkg.encode())
+        yield NetEncapsulation(Parameter_Server, pkg.encode())
 
     def dispose(self):
         """
