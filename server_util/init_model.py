@@ -160,6 +160,10 @@ class IServerModel(metaclass=ABCMeta):
     def eval_data(self):
         pass
 
+    @abstractmethod
+    def get_assignment(self):
+        pass
+
 
 class ModelDNN(IServerModel):
 
@@ -168,11 +172,11 @@ class ModelDNN(IServerModel):
                  layer_units=None,
                  activation='tanh',
                  output='softmax',
-                 loss='crossentropy_softmax',
+                 loss='xentropy_softmax',
                  learn_rate=0.05,
                  codec='CCDC',
                  psgd_type='ssgd',
-                 optimizer_type='graddelta_psgd',
+                 optimizer_type='psgd',
                  server_type='asgd',
                  server_codec='grad',
                  epoches=10,
@@ -239,6 +243,9 @@ class ModelDNN(IServerModel):
 
     def eval_data(self):
         return self.Test_Data
+
+    def get_assignment(self):
+        return self.Block_Assignment
 
     # ---------- attributes ----------
 

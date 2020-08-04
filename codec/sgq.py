@@ -1,7 +1,7 @@
 import numpy as np
 
 #custmized module
-from huffman import codec
+from utils.huffman import codec
 
 from codec.interfaces import yield_none, NetEncapsulation
 from codec.interfaces import ICommunicationCtrl

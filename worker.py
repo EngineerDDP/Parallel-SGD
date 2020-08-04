@@ -42,13 +42,15 @@ class PSGD_Worker:
         while True:
             constructor = Worker_Communication_Constructor('0.0.0.0', STAR_NET_WORKING_PORTS, worker_register=Worker_Register())
             try:
+                self.client_logger.log_message('Worker started, prepare for connection...')
                 register = constructor.buildCom()
                 com = Communication_Controller(Communication_Process(register))
 
                 self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
-                self.init_PSGD(com)
-                self.do_training(com)
+                if self.init_PSGD(com):
+                    self.do_training(com)
+                self.client_logger.log_message('Worker restarting...')
                 # wait for safe closure
                 time.sleep(10)
                 com.close()
@@ -56,6 +58,7 @@ class PSGD_Worker:
                 self.client_logger.log_message('Exception occurred: {}'.format(e))
 
     def init_PSGD(self, com: Communication_Controller) -> bool:
+        self.client_logger.log_message('ACK job submission and request global settings.')
         # initialize global settings
         com.send_one(Initialization_Server, Init.GlobalSettings)
         _, data = com.get_one()
@@ -63,12 +66,14 @@ class PSGD_Worker:
         if not isinstance(data, Reply.global_setting_package):
             if isinstance(data, Reply):
                 if data == Reply.I_Need_Your_Working_Log:
+                    self.client_logger.log_message('Nothing needs to be done, send back logfile and exit process.')
                     com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
             return False
 
         try:
             data.restore()
 
+            self.client_logger.log_message('Request codec and sgd class.')
             # initialize codec and sgd type
             com.send_one(Initialization_Server, Init.Codec_And_SGD_Type)
             _, data = com.get_one()
@@ -77,6 +82,7 @@ class PSGD_Worker:
 
             codec, sgd = data.restore()
 
+            self.client_logger.log_message('Request weights and layer type.')
             # initialize weights and layer
             com.send_one(Initialization_Server, Init.Weights_And_Layers)
             _, data = com.get_one()
@@ -85,6 +91,7 @@ class PSGD_Worker:
 
             layers = data.restore()
 
+            self.client_logger.log_message('Request data samples.')
             # initialize dataset
             com.send_one(Initialization_Server, Init.Samples)
             _, data = com.get_one()
@@ -93,6 +100,7 @@ class PSGD_Worker:
 
             train_x, train_y, eval_x, eval_y = data.restore()
 
+            self.client_logger.log_message('Request other stuff.')
             # others
             com.send_one(Initialization_Server, Init.MISC)
             _, data = com.get_one()
@@ -174,11 +182,13 @@ class PSGD_Worker:
             self.__training_log.log_message('Execution complete, time:{}'.format(end - begin))
             self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))
 
-            train_csv = Binary_File_Package(self.__running_thread.Trace_Train)
-            eval_csv = Binary_File_Package(self.__running_thread.Trace_Eval)
+            if isinstance(self.__running_thread, PSGDTraining_Client):
+                train_csv = Binary_File_Package(self.__running_thread.Trace_Train)
+                eval_csv = Binary_File_Package(self.__running_thread.Trace_Eval)
 
-            com.send_one(Initialization_Server, train_csv)
-            com.send_one(Initialization_Server, eval_csv)
+                com.send_one(Initialization_Server, train_csv)
+                com.send_one(Initialization_Server, eval_csv)
+
         except Exception as error:
             self.client_logger.log_message('Error encountered while executing : {}'.format(error))
             self.__training_log.log_message('Error encountered while executing : {}'.format(error))
@@ -188,3 +198,5 @@ class PSGD_Worker:
         com.send_one(Initialization_Server, log_file)
 
 
+if __name__ == '__main__':
+    PSGD_Worker().slave_forever()

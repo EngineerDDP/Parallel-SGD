@@ -1,7 +1,8 @@
+from utils.log import Logger
 from utils.models import *
 from utils.constants import *
 
-from network.communications import Communication_Controller
+from network.communications import Communication_Controller, get_repr
 from server_util.init_model import IServerModel
 
 # method to start up a network
@@ -14,17 +15,29 @@ class Coordinator:
     def __init__(self, hyper_model: IServerModel):
         self.__com = None
         self.__model = hyper_model
+        self.__log = Logger(title_info='Coordinator-{}'.format(get_repr()), log_to_file=True)
 
     def set_workers(self, works: list) -> None:
+        """
+            Set worker list.
+        :param works: list of tuples
+                        like: [ (id1, uuid1, address1), (id2, uuid2, address2), ... ]
+        :return: None, raise exceptions if two workers with same id are assigned.
+        """
         pkg = IPA()
         # set all address
         for id, uuid, addr in works:
             pkg.put(id, uuid, addr)
+            self.__log.log_message('Add worker (id: {}, address: {}).'.format(id, addr))
 
         self.__com = NET(pkg)
         self.__com = Communication_Controller(self.__com)
 
     def resources_dispatch(self):
+        """
+            Reply to worker's requirements, prepare for the job
+        :return:
+        """
         # assertion
         assert isinstance(self.__com, Communication_Controller)
         assert isinstance(self.__model, IServerModel)
@@ -67,7 +80,33 @@ class Coordinator:
                 else:
                     reply = None
 
+                self.__log.log_message('Reply requirements ({}) to {}'.format(id_from, data.__class__.__name__))
                 self.__com.send_one(id_from, reply)
 
             elif isinstance(data, Binary_File_Package):
                 data.restore()
+                self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
+
+
+    def require_client_log(self):
+        """
+            Require client_log file from all workers.
+        :return: None
+        """
+        assert isinstance(self.__com, Communication_Controller)
+
+        # take all ACK
+        for id in self.__com.available_clients():
+            _, _ = self.__com.get_one()
+
+        # send request
+        for id in self.__com.available_clients():
+            self.__com.send_one(id, Reply.I_Need_Your_Working_Log)
+
+        # get result
+        for id in self.__com.available_clients():
+            _, log = self.__com.get_one()
+            if isinstance(log, Binary_File_Package):
+                log.restore()
+
+        return
