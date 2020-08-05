@@ -45,17 +45,21 @@ class PSGD_Worker:
                 self.client_logger.log_message('Worker started, prepare for connection...')
                 register = constructor.buildCom()
                 com = Communication_Controller(Communication_Process(register))
+                com.establish_communication()
 
                 self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
                 if self.init_PSGD(com):
                     self.do_training(com)
-                self.client_logger.log_message('Worker restarting...')
-                # wait for safe closure
-                time.sleep(10)
+
                 com.close()
+
             except Exception as e:
                 self.client_logger.log_message('Exception occurred: {}'.format(e))
+
+            self.client_logger.log_message('Worker restarting...')
+            # wait for safe closure
+            time.sleep(10)
 
     def init_PSGD(self, com: Communication_Controller) -> bool:
         self.client_logger.log_message('ACK job submission and request global settings.')
@@ -64,10 +68,9 @@ class PSGD_Worker:
         _, data = com.get_one()
         # restore global settings
         if not isinstance(data, Reply.global_setting_package):
-            if isinstance(data, Reply):
-                if data == Reply.I_Need_Your_Working_Log:
-                    self.client_logger.log_message('Nothing needs to be done, send back logfile and exit process.')
-                    com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
+            if data == Reply.I_Need_Your_Working_Log:
+                self.client_logger.log_message('Nothing needs to be done, send back logfile and exit process.')
+                com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
             return False
 
         try:

@@ -1,4 +1,4 @@
-from codec.essential import BlockWeight
+from codec.essential import Block_Weight
 from profiles.settings import GlobalSettings
 
 # import np
@@ -12,10 +12,10 @@ from time import sleep
     ---------------DEFINE HERE---------------
 """
 # import test codec
-from codec.ndc import NaiveDuplicationCodec
+from codec.tutorial_codec import myComCtrl
 from profiles.blockassignment.duplicate import DuplicateAssignment
 # Type
-SLAVE_CODEC = NaiveDuplicationCodec
+SLAVE_CODEC = myComCtrl
 ASSIGNMENTS = DuplicateAssignment
 """
     ---------------DEFINE HERE---------------
@@ -23,7 +23,7 @@ ASSIGNMENTS = DuplicateAssignment
 
 # const parameters
 SLAVE_CNT = 4
-REDUNDANCY = 2
+REDUNDANCY = 1
 TEST_ROUNDS = 10
 WEIGHTS_SHAPE = np.random.randint(3, 1024, size=2)
 LAYER = 0
@@ -37,17 +37,18 @@ GlobalSettings.set_default(SLAVE_CNT, REDUNDANCY, BATCHSIZE, ASSIGNMENTS)
 Default = GlobalSettings.get_default()
 
 # build codec
-slave_codec = [SLAVE_CODEC(node_id=i, logger=Logger('Test codec, id={}'.format(i))) for i in range(SLAVE_CNT)]
+slave_codec = [SLAVE_CODEC(node_id=i) for i in range(SLAVE_CNT)]
 
 for i in range(TEST_ROUNDS):
     # starting consensus stage
+    node_id = 0
     for slave in slave_codec:
         # build each block
-        for block_id in Default.block_assignment.node_2_block[slave.Node_ID]:
+        for block_id in Default.block_assignment.node_2_block[node_id]:
             # get random
             arr = np.random.random(size=WEIGHTS_SHAPE)
             # build blockweights
-            blockweight = BlockWeight(LAYER, i, block_id, Default.block_assignment.block_2_node[block_id], arr)
+            blockweight = Block_Weight(LAYER, i, block_id, Default.block_assignment.block_2_node[block_id], arr)
             # send consensus package
             for package in slave.update_blocks(blockweight):
                 # get proper receiver
@@ -56,8 +57,11 @@ for i in range(TEST_ROUNDS):
                     recv = slave_codec[tgt]
                     # recv pkg
                     recv.receive_blocks(package.content())
-                    print("INFO: ----------- Node:{} Transmitting to {} successful -----------".format(slave.Node_ID, tgt))
+                    print("INFO: ----------- Node:{} Transmitting to {} successful -----------".format(node_id, tgt))
 
+        node_id += 1
+
+    node_id = 0
     for slave in slave_codec:
         # wait until done
         time_out = 0
@@ -65,7 +69,7 @@ for i in range(TEST_ROUNDS):
             sleep(0.001)
             time_out += 1
             if time_out > SYNCWAITTIMEOUT:
-                print("WARNING: Timeout occurred while get the result from worker {}.".format(slave.Node_ID))
+                print("WARNING: Timeout occurred while get the result from worker {}.".format(node_id))
                 for package in slave.do_something_to_save_yourself():
                     # get proper receiver
                     for tgt in package.target():
@@ -73,10 +77,12 @@ for i in range(TEST_ROUNDS):
                         recv = slave_codec[tgt]
                         # recv pkg
                         recv.receive_blocks(package.content())
-                        print("INFO: ----------- Node:{} Backup to {} successful -----------".format(slave.Node_ID, tgt))
+                        print("INFO: ----------- Node:{} Backup to {} successful -----------".format(node_id, tgt))
 
         arr_res = slave.get_result()
-        print("INFO: ----------- Node:{} Decode successful -----------".format(slave.Node_ID))
+        print("INFO: ----------- Node:{} Decode successful -----------".format(node_id))
+
+        node_id += 1
 
     print("INFO: -----------Test complete {}/{} -----------".format(i, TEST_ROUNDS))
 

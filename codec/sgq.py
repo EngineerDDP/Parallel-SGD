@@ -3,9 +3,9 @@ import numpy as np
 #custmized module
 from utils.huffman import codec
 
-from codec.interfaces import yield_none, NetEncapsulation
-from codec.interfaces import ICommunicationCtrl
-from codec.essential import BlockWeight
+from codec.interfaces import yield_none, netEncapsulation
+from codec.interfaces import ICommunication_Ctrl
+from codec.essential import Block_Weight
 from utils.log import Logger
 from utils.constants import Parameter_Server
 
@@ -81,7 +81,7 @@ def quantize_matrix(arr):
     raise NotImplementedError()
 
 
-class SGQClient(ICommunicationCtrl):
+class SGQClient(ICommunication_Ctrl):
 
     def __init__(self, node_id, logger=Logger('None')):
 
@@ -89,7 +89,7 @@ class SGQClient(ICommunicationCtrl):
         self.Node_id = node_id
         self.Logger = logger
 
-    def update_blocks(self, block_weight:BlockWeight):
+    def update_blocks(self, block_weight:Block_Weight):
         """
             Update weights to parameter server
         :param block_weight:
@@ -97,7 +97,7 @@ class SGQClient(ICommunicationCtrl):
         """
         content = block_weight.Content
         pkg = SGQPackage(content, self.Node_id)
-        yield NetEncapsulation(Parameter_Server, pkg.encode())
+        yield netEncapsulation(Parameter_Server, pkg.encode())
 
     def dispose(self):
         """
@@ -115,7 +115,7 @@ class SGQClient(ICommunicationCtrl):
         self.set_result(pkg.content())
 
 
-class SGQServer(ICommunicationCtrl):
+class SGQServer(ICommunication_Ctrl):
 
     __max_error = 0
 
@@ -154,7 +154,7 @@ class SGQServer(ICommunicationCtrl):
             SGQServer.__max_error = error
             print("Error:", error)
         # return
-        yield NetEncapsulation(data.node_id, data_rtn.encode())
+        yield netEncapsulation(data.node_id, data_rtn.encode())
 
 
     def update_blocks(self, block_weight):

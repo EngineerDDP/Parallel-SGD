@@ -30,14 +30,18 @@ class Coordinator:
             pkg.put(id, uuid, addr)
             self.__log.log_message('Add worker (id: {}, address: {}).'.format(id, addr))
 
+        self.__log.log_message('Try connecting to the cluster.')
         self.__com = NET(pkg)
         self.__com = Communication_Controller(self.__com)
+        self.__com.establish_communication()
+        self.__log.log_message('Connection with cluster established.')
 
     def resources_dispatch(self):
         """
             Reply to worker's requirements, prepare for the job
         :return:
         """
+
         # assertion
         assert isinstance(self.__com, Communication_Controller)
         assert isinstance(self.__model, IServerModel)

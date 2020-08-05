@@ -36,7 +36,6 @@ if __name__ == '__main__':
     psgd = arg.psgd
     lr = arg.learn_rate
     epo = arg.epochs
-    port = arg.working_ports
     assignment = arg.block_assignment
     server_codec = arg.server_codec
 
@@ -48,7 +47,6 @@ if __name__ == '__main__':
     print('\t --psgd <parallel stochastic gradient descent synchronization type {}>'.format(psgd))
     print('\t --learn_rate <learn rate for GD algorithm {}>'.format(lr))
     print('\t --epochs <training epochs {}>'.format(epo))
-    print('\t --working_ports <ports activated {}>'.format(port))
     print('\t --block_assignment <block assignment strategy {}>'.format(assignment))
     print('\t --server_codec <parameter server codec {}>'.format(server_codec))
 
@@ -72,4 +70,6 @@ if __name__ == '__main__':
         workers = json.load(f)
 
     core.set_workers(workers)
+
+    core.require_client_log()
 

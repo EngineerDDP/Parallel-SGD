@@ -1,15 +1,15 @@
-from codec.essential import BlockWeight
-from codec.interfaces import ICommunicationCtrl, IComPack, NetEncapsulation
+from codec.essential import Block_Weight
+from codec.interfaces import ICommunication_Ctrl, IComPack, netEncapsulation
 
 from profiles.settings import GlobalSettings
 from utils.log import Logger
 
 
-class PlainCommunicationCtrl(ICommunicationCtrl):
+class PlainCommunicationCtrl(ICommunication_Ctrl):
 
     def __init__(self, node_id, logger=Logger('None')):
 
-        ICommunicationCtrl.__init__(self)
+        ICommunication_Ctrl.__init__(self)
 
         self.Node_ID = node_id
 
@@ -42,7 +42,7 @@ class PlainCommunicationCtrl(ICommunicationCtrl):
 
         self.check_for_combine(blockweight.Block_ID)
 
-        yield NetEncapsulation(send, pack)
+        yield netEncapsulation(send, pack)
 
     def receive_blocks(self, json_dict):
 
@@ -108,6 +108,6 @@ class PlainComPack(IComPack):
         block_id = GlobalSettings.get_default().block_assignment.node_2_block[self.Node_ID]
         content = self.Content
 
-        blockweight = BlockWeight(self.Layer_ID, self.Batch_ID, block_id[0], set(block_id), content)
+        blockweight = Block_Weight(self.Layer_ID, self.Batch_ID, block_id[0], set(block_id), content)
 
         return blockweight

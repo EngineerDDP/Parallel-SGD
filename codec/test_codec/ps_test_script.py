@@ -1,5 +1,5 @@
 # import test codec
-from codec.essential import BlockWeight
+from codec.essential import Block_Weight
 
 # import np
 import numpy as np
@@ -38,7 +38,7 @@ for i in range(TEST_ROUNDS):
         # get random
         arr = np.random.random(size=WEIGHTS_SHAPE)
         # build BlockWeight
-        blockweight = BlockWeight(LAYER, i, slave.Node_id, {slave.Node_id}, content=arr)
+        blockweight = Block_Weight(LAYER, i, slave.Node_id, {slave.Node_id}, content=arr)
         # send consensus package
         for package in slave.update_blocks(blockweight):
             # check the package that will be sent to parameter server

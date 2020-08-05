@@ -1,15 +1,15 @@
-from codec.interfaces import ICommunicationCtrl, IComPack, yield_none, NetEncapsulation
+from codec.interfaces import ICommunication_Ctrl, IComPack, yield_none, netEncapsulation
 
 from utils.constants import Parameter_Server
 from utils.log import Logger
 
 from profiles.settings import GlobalSettings
 
-class PAClientCodec(ICommunicationCtrl):
+class PAClientCodec(ICommunication_Ctrl):
 
     def __init__(self, node_id, logger=Logger('None')):
 
-        ICommunicationCtrl.__init__(self)
+        ICommunication_Ctrl.__init__(self)
 
         self.Node_id = node_id
         self.Log = logger
@@ -24,7 +24,7 @@ class PAClientCodec(ICommunicationCtrl):
 
         send, pack = PAClientComPack.compose_compack(block_weight, self.Node_id)
         pack = PAClientComPack.to_dictionary(pack)
-        yield NetEncapsulation(send, pack)
+        yield netEncapsulation(send, pack)
 
     def receive_blocks(self, json_dict):
 
@@ -34,11 +34,11 @@ class PAClientCodec(ICommunicationCtrl):
         return yield_none()
 
 
-class GradDiffParaServerCodec(ICommunicationCtrl):
+class GradDiffParaServerCodec(ICommunication_Ctrl):
 
     def __init__(self, node_id, logger=Logger('PAS')):
 
-        ICommunicationCtrl.__init__(self)
+        ICommunication_Ctrl.__init__(self)
         self.Node_ID = node_id
         # save PA current state
         self.Current_Weights = 0
@@ -79,14 +79,14 @@ class GradDiffParaServerCodec(ICommunicationCtrl):
         # build communication package
         comback = PAServerCompack.compose_compack(grad_diff)
 
-        yield NetEncapsulation(compack.Node_ID, comback.to_dictionary())
+        yield netEncapsulation(compack.Node_ID, comback.to_dictionary())
 
 
-class ParaServerCodec(ICommunicationCtrl):
+class ParaServerCodec(ICommunication_Ctrl):
 
     def __init__(self, node_id, logger=Logger('PAS')):
 
-        ICommunicationCtrl.__init__(self)
+        ICommunication_Ctrl.__init__(self)
         self.Node_ID = node_id
         # save PA current state
         self.Current_Weights = 0
@@ -114,7 +114,7 @@ class ParaServerCodec(ICommunicationCtrl):
         self.Current_Weights = self.Current_Weights + compack.Content
         comback = PAServerCompack.compose_compack(self.Current_Weights.astype('double'))
 
-        yield NetEncapsulation(compack.Node_ID, comback.to_dictionary())
+        yield netEncapsulation(compack.Node_ID, comback.to_dictionary())
 
 
 class PAClientComPack(IComPack):

@@ -1,4 +1,4 @@
-from codec.essential import BlockWeight
+from codec.essential import Block_Weight
 from psgd.ssgd import SynchronizedSGD
 
 

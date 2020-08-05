@@ -9,7 +9,7 @@ class BatchWeight:
         self.Content = content
 
 
-class BlockWeight:
+class Block_Weight:
     """
         Weights calculated using one block
     """

@@ -10,7 +10,7 @@ class Init(Enum):
     Samples = 'Req_Samples'
     MISC = 'Req_OtherStuff'
 
-class Reply(Enum):
+class Reply:
     I_Need_Your_Working_Log = 'I need your working log'
 
     class global_setting_package:

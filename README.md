@@ -1,6 +1,14 @@
-# 参数说明
+# Parallel SGD
 
-## 工作节点参数
+　　Parallel SGD已经更新到r0.4版本了，使用了全新的网络与调度架构重新设计，再也不需要通过复杂的
+调度脚本去挨个节点拉取 log 文件了，所有的参数使用 job_submit 一次提交到处运（崩）行（溃）。
+此外，r0.4重构了原有的 network.agreements ，从 agreements 开刀，全面消减模块之间的互相依赖
+关系，大幅精简了调用复杂度。  
+　　本段没内容了，往下看使用说明。
+
+## 参数说明
+
+### 工作节点参数
 所有的参数都通过 job_submit.py 传入，worker节点无需传入任何参数。  
 启动时，使用以下命令启动Worker，无需传入参数。当任务提交时，节点会自动申请并获取工作状态信息。
 ```shell script
@@ -19,19 +27,19 @@ worker.json格式如下：
 第二列是用于识别改任务类别的worker uuid，第三列是用于连接的网络地址。
 
 
-## 任务提交
+### 任务提交
 提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
 ```shell script
 python job_submit.py 
-    --node_count 4  \
-    --batch_size 128  \
-    --redundancy 2  \
-    --codec ccdc  \
-    --psgd ssgd  \
-    --learn_rate 0.05  \
-    --epochs 10  \
-    --block_assignment iid \
-    --server_codec graddiff \
+    --node_count 4  
+    --batch_size 128  
+    --redundancy 2  
+    --codec ccdc  
+    --psgd ssgd  
+    --learn_rate 0.05  
+    --epochs 10  
+    --block_assignment iid 
+    --server_codec graddiff 
     --workers worker.json
 ```
 * node_count  
@@ -52,8 +60,8 @@ worker上执行的实际编码器，当需要与参数服务器协同工作时�
 * psgd  
 worker上执行的实际SGD同步器。
 （asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行
-同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当连续超出两个
-SGD等待最长同步时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法，
+同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当超出
+SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法，
 尝试补救，当两次超时并且无法挽回后，ssgd 会报告超时错误）
 * learn_rate  
 worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。
@@ -72,3 +80,5 @@ block_assignment 指定的节点上。需要划分为多少个block，以及每�
 * workers  
 工作节点目录，参数内容为文件名。
 （默认为 worker.json）
+
+(By. HHU-分布式计算研究所)
