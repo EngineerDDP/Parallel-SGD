@@ -9,12 +9,11 @@
 ## 参数说明
 
 ### 工作节点参数
-所有的参数都通过 job_submit.py 传入，worker节点无需传入任何参数。  
-启动时，使用以下命令启动Worker，无需传入参数。当任务提交时，节点会自动申请并获取工作状态信息。
+　　所有的参数都通过 job_submit.py 传入，worker节点无需传入任何参数。启动时，使用以下命令启动Worker，无需传入参数。当任务提交时，节点会自动申请并获取工作状态信息。
 ```shell script
 python worker.py 
 ```
-在提交任务到集群上之前，需要在任意节点设置worker.json，标明当前集群的节点列表。
+　　在提交任务到集群上之前，需要在任意节点设置worker.json，标明当前集群的节点列表。
 worker.json格式如下：
 ```json
 [
@@ -22,12 +21,12 @@ worker.json格式如下：
     [1, "a07f9e18", "192.168.1.2"]
 ]
 ```
-主体为一个数组，每行包含一个可用的worker信息，第一列是为worker分配的id，
+　　主体为一个数组，每行包含一个可用的worker信息，第一列是为worker分配的id，
 第二列是用于识别改任务类别的worker uuid，第三列是用于连接的网络地址。  
 **注意**：无需在每个节点上配置worker.json，只需要在其中一个节点上配置了worker.json即可。  
 
 ### 任务提交
-提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
+　　提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
 ```shell script
 python job_submit.py 
     --node_count 4  
@@ -91,4 +90,6 @@ block_assignment 指定的节点上。需要划分为多少个block，以及每�
 * *workers*  
 工作节点目录，参数内容为文件名，默认为 worker.json。
 
-(By. HHU-分布式计算研究所)
+## 框架结构
+
+pass
