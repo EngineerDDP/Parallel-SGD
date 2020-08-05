@@ -294,8 +294,7 @@ class Communication_Process(ICommunication_Process):
                             }
                             # write in TLV
                             pkg = TLVPack(Serialize.pack(pkg))
-                        fd: socket.socket
-                        fd.sendall()
+
                         pkg.send(fd)
 
                 del data

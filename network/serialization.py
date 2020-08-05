@@ -49,8 +49,8 @@ class TLVPack:
             raise OSError('Connection closed by remote computer.')
 
         length = b''
-        while len(length) != 4:
-            length += io.recv(4)
+        while len(length) < 4:
+            length += io.recv(4 - len(length))
 
         length = int.from_bytes(length, 'big')
 
