@@ -75,7 +75,8 @@ update_blocks(self, block_weight) 和 receive_blocks(self, json_dict)。
 
 **注意**：传入的参数默认是权重梯度而不是权重，要使用参数更新机制，需要更换 P-SGD Optimizer，
 Optimizer 可在 server_util.init_model.__optimizer_map 中找到。  
-下面的代码接收了梯度平均化方法的参数提交：
+
+　　下面的代码接收了梯度平均化方法的参数提交：
 ```python
 from codec.interfaces import ICommunication_Ctrl
 from codec.essential import Block_Weight
@@ -105,10 +106,10 @@ print('Workers in current job: {}'.format(GlobalSettings.get_default().nodes))
 
 　　其次，您需要知道在 P-SGD Transfer 中允许传输的数据类型是什么。P-SGD Transfer 对象
 之间允许交互的类型是 dict ，您需要将您的数据封装至 dict 中，编码控制器是第一个产生 dict 
-对象的类，因此，您需要新建一个 dict 对象。要将其返回给 P-SGD Transfer 处理，您还需要
-将其封装成 netEncapsulation 对象，要实现一个梯度平均化编码控制器的任务提交逻辑，应当
-将本节点计算所得的梯度传输给参数服务器或其他没有该数据的执行节点，我们先实现一个
-无参数服务器的简单模型，那么代码如下：
+对象的类，因此，您需要新建一个 dict 对象。  
+　　要将其返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。
+依照梯度平均化编码控制器的任务提交逻辑，应当将本节点计算所得的梯度传输给参数服
+务器或其他没有该数据的执行节点，我们先实现一个无参数服务器的简单模型，代码如下：
 ```python
 from codec.interfaces import ICommunication_Ctrl
 from codec.essential import Block_Weight
@@ -154,7 +155,7 @@ ICommunication_Control 的发送队列，当发送连接可用时，您的数据
 更新权值时，会调用 get_result 方法直接获取数据，如果获取不到数据则会进行超时计数，
 超过一个 SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，Sync-SGD 会尝试调用编码器的
 do_something_to_save_yourself 方法试图恢复集群的稳定状态，当超出两个 SynchronizedSGD.INT_READ_TIMEOUT_MS 
-周期后，P-SGD Transfer 就会报告超时错误，与集群的连接就会断开。
+周期后，P-SGD Transfer 就会报告超时错误，与集群的连接就会断开。  
 　　当有消息需要处理时，P-SGD Transfer 会调用 receive_blocks 方法，实现该方法并与
 您的 update_blocks 匹配，就可以完成一次任务的转发。要注意的是，节点不一定会在接收消息的
 时候完成参数的归一，可能会有其他比较快的计算节点抢先完成计算，本节点在自己计算完成并提交
