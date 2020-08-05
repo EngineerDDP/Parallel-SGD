@@ -26,7 +26,7 @@ class Serialize:
 
 
 class TLVPack:
-    Block_Size = 10 * 1024 * 1024
+    Block_Size = 1024 * 1024
     TLV_Type_Normal = 1
     TLV_Type_Exit = 0
 
@@ -36,22 +36,23 @@ class TLVPack:
 
     def send(self, io):
         tlv_package = TLVPack.TLV_Type_Normal.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
-        io.sendall(tlv_package)
-
-    @staticmethod
-    def flush_garbage(io):
-        b = int(0).to_bytes(4, 'big')
-        io.sendall(b)
+        put = 0
+        while put < len(tlv_package):
+            put += io.send(tlv_package[put:])
 
     @staticmethod
     def recv(io):
         type_ = io.recv(1)
-        length = io.recv(4)
         type_ = int.from_bytes(type_, 'big')
-        length = int.from_bytes(length, 'big')
 
         if type_ == TLVPack.TLV_Type_Exit:
             raise OSError('Connection closed by remote computer.')
+
+        length = b''
+        while len(length) != 4:
+            length += io.recv(4)
+
+        length = int.from_bytes(length, 'big')
 
         content = b''
         take = 0
@@ -65,7 +66,6 @@ class TLVPack:
 
 def request_close(io):
     io.send(TLVPack.TLV_Type_Exit.to_bytes(1, 'big'))
-    TLVPack.flush_garbage(io)
 
 def unpack(io):
     return Serialize.unpack(TLVPack.recv(io).Content)

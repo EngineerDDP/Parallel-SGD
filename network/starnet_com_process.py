@@ -146,7 +146,7 @@ class Worker_Register(IWorker_Register):
             # id behind myself
             elif flag:
                 # try reach
-                worker_con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                worker_con = socket.socket(socket.AF_INET, socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
                 try:
                     worker_con.connect((ip_addr, STAR_NET_WORKING_PORTS))
                     # try register
@@ -294,6 +294,8 @@ class Communication_Process(ICommunication_Process):
                             }
                             # write in TLV
                             pkg = TLVPack(Serialize.pack(pkg))
+                        fd: socket.socket
+                        fd.sendall()
                         pkg.send(fd)
 
                 del data
