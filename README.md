@@ -56,7 +56,8 @@ python job_submit.py
 * codec  
 worker上执行的实际编码器，当需要与参数服务器协同工作时，该编码器要能与参数服务器上执行的编码器匹配。
 （编码器类继承自 codec.interfaces.ICommunicationCtrl 实现一个编码器类并在 server_util.init_model.__codec_map 
-中注册，即可在此处传入对应参数，启动对应的客户端编码器）
+中注册，即可在此处传入对应参数，启动对应的客户端编码器）  
+（关于编码器设计的详情，请参阅[编码控制器教程](./codec/README.md)）
 * psgd  
 worker上执行的实际SGD同步器。
 （asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行
@@ -72,7 +73,8 @@ worker上执行的训练轮次。
 （继承自 profiles.blockassignment.interfaces.IBlockAssignment ，使用自定义的 block_assignment 分配样本，需要
 在 server_util.init_model.__assignment_map 中注册）  
 （本项目的样本被划分为训练集与测试集，样本是固定的。训练集又被划分为多个batch，每个batch被均分为多个block，并发送到
-block_assignment 指定的节点上。需要划分为多少个block，以及每个block复制多少份发送给多少节点由block_assignment决定）
+block_assignment 指定的节点上。需要划分为多少个block，以及每个block复制多少份发送给多少节点由block_assignment决定）  
+（关于分配策略的详情，请参阅[分配策略](./profiles/blockassignment/README.md)）
 * server_codec  
 参数服务器编码器。
 （继承自 codec.interfaces.ICommunicationCtrl ，实现一个编码器并在 server_util.init_model.__para_server_map 中
