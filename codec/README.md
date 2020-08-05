@@ -287,7 +287,7 @@ ASSIGNMENTS = DuplicateAssignment
 # more codes below ......
 ```
 ## 其他
-　　关于分配策略（IBlockAssignment）的详情，请参阅 [分配策略](../profiles/blockassignment/README.md)
+　　关于分配策略（IBlockAssignment）的详情，请参阅 [分配策略](../profiles/blockassignment/README.md)。
 
 ## 注解
 　　文中提到了一些关键词，其对应的含义如下表：

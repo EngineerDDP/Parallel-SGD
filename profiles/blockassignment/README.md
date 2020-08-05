@@ -33,11 +33,11 @@ from profiles.blockassignment.interfaces import IBlockAssignment
 |3|3|
 
 　　block_2_node 属性定义了从block到node的映射，可以是数组，也可以是 dict。该映射关系就表述了表1.中的映射
-情况，使用 Hash 或 Array，使得我们能够使用 O(1) 的时间访问到对应的映射关系。
+情况，使用 Hash 或 Array，使得我们能够使用 O(1) 的时间访问到对应的映射关系。  
 　　node_2_block 属性定义了从node到block的映射，可以是数组，也可以是 dict。该映射关系就表述了表2.中的映射
-情况，使用 Hash 或 Array，使得我们能够使用 O(1) 的时间访问到对应的映射关系。
-　　blocks 属性定义了所有可用的 block 的编号，返回为数组。
-　　block_count 属性返回上述 blocks 属性返回的 block 个数。
+情况，使用 Hash 或 Array，使得我们能够使用 O(1) 的时间访问到对应的映射关系。  
+　　blocks 属性定义了所有可用的 block 的编号，返回为数组。  
+　　block_count 属性返回上述 blocks 属性返回的 block 个数。  
 
 ## 其他
 　　本项目给出的数据划分方案是基于 batch 的，通过给定的长度，将每个 batch 划分为小的 block 并发送给每个计算
