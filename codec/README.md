@@ -140,7 +140,7 @@ class myComCtrl(ICommunication_Ctrl):
 **注意**：update_block 和 receive_blocks 都返回迭代器对象，当有多个数据包需要发送
 的时候，使用 yield 逐个生成，当无数据包需要发送的时候，可以返回 None。
 
-　　至此，我们就完成了将数据送至网络的过程，生成好数据包后，您的数据包会被 Sync-SGD
+　　至此，我们就完成了将数据送至网络的过程，生成好数据包后，您的数据包会被 ISync-SGD
 获取并进行时效性编号，并交由 P-SGD Transfer 进行转发，P-SGD Transfer 获取并将数据包放置到
 ICommunication_Control 的发送队列，当发送连接可用时，您的数据会被序列化并发送给指
 定的节点。
@@ -148,21 +148,51 @@ ICommunication_Control 的发送队列，当发送连接可用时，您的数据
 ### 数据的接收
 
 　　当接收到其他工作节点的数据时，P-SGD Transfer 会将事件转发给对应的编码器控制层，
-由 Sync-SGD 决定是否将该事件转发给编码控制器，SSGD 会将数据保留直到下一次全局更新
+由 ISync-SGD 决定是否将该事件转发给编码控制器，SSGD 会将数据保留直到下一次全局更新
 开始时才会将数据转发给编码控制器，ASGD 则会在每次数据到达时直接将数据转发给编码控制器。
-选择合适的 Sync-SGD 类型，使得您的编码控制器能够有效的运作。  
+选择合适的 ISync-SGD 类型，使得您的编码控制器能够有效的运作。（参考 [主页](../README.md)
+了解如何从参数配置 SGD-Type）  
 　　当您完成一批数据的处理时，调用 set_result 方法来提交您的结果，当神经网络端需要
 更新权值时，会调用 get_result 方法直接获取数据，如果获取不到数据则会进行超时计数，
-超过一个 SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，Sync-SGD 会尝试调用编码器的
+超过一个 SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，ISync-SGD 会尝试调用编码器的
 do_something_to_save_yourself 方法试图恢复集群的稳定状态，当超出两个 SynchronizedSGD.INT_READ_TIMEOUT_MS 
 周期后，P-SGD Transfer 就会报告超时错误，与集群的连接就会断开。  
 　　当有消息需要处理时，P-SGD Transfer 会调用 receive_blocks 方法，实现该方法并与
 您的 update_blocks 匹配，就可以完成一次任务的转发。要注意的是，节点不一定会在接收消息的
 时候完成参数的归一，可能会有其他比较快的计算节点抢先完成计算，本节点在自己计算完成并提交
-之后才完成参数的归一，因此我们要在参数提交和参数接收两个方法中都定义平均操作。如果当前的
-节点工作的比其他节点快，那么当前节点就会在接收到其他节点发来的消息时完成梯度平均化，如果
-当前的节点工作的比其他节点慢，那么当前节点需要在完成本地更新之后完成梯度平均化。
-完整的代码如下：
+之后才完成参数的归一，因此我们要在参数提交和参数接收两个方法中都定义归一操作。利用全局
+节点总数来判断我们是否需要进行梯度平均化操作，实现如下：  
+```python
+from codec.interfaces import ICommunication_Ctrl
+from codec.essential import Block_Weight
+from codec.interfaces import netEncapsulation
+
+from profiles.settings import GlobalSettings
+
+
+class myComCtrl(ICommunication_Ctrl):
+    def __init__(self, node_id):
+        super().__init__()
+        # 保存并记录本节点编号信息，除此之外再也没有其他地方可以获取该信息
+        self.__node_id = node_id
+        # 保存并记录当前批次已经收到了多少份结果
+        self.__global_weights = 0
+        self.__current_recv = 0
+
+    def __do_grad_average(self):
+        how_much_nodes = GlobalSettings.get_default().node_count
+        if self.__current_recv == how_much_nodes:
+            # 执行梯度平均
+            self.set_result(self.__global_weights / how_much_nodes)
+            # 重设梯度值，等待下一批次的循环
+            self.__global_weights = 0
+            self.__current_recv = 0
+```
+  
+　　如果当前的节点工作的比其他节点快，那么当前节点就会在接收到其他节点发来的消息时完成梯度
+平均化，如果当前的节点工作的比其他节点慢，那么当前节点需要在完成本地更新之后完成梯度平均化。因此我们
+在 update_blocks 方法和 receive_blocks 方法中都调用了梯度平均化判断。  
+　　完整的代码如下：
 
 ```python
 from codec.interfaces import ICommunication_Ctrl
@@ -205,7 +235,7 @@ class myComCtrl(ICommunication_Ctrl):
     def receive_blocks(self, json_dict:dict):
         print('I have received an package.')
         print('It has a content with shape: {}'.format(json_dict['data'].shape))
-        # 记录梯度内容
+        # 我们使用上述定义的 'data' 字符串获取我们更新的梯度内容
         self.__global_weights += json_dict['data']
         # 记录已经接收到多少个梯度了
         self.__current_recv += 1
@@ -258,4 +288,16 @@ ASSIGNMENTS = DuplicateAssignment
 ```
 ## 其他
 　　关于分配策略（IBlockAssignment）的详情，请参阅 [分配策略](../profiles/blockassignment/README.md)
+
+## 注解
+　　文中提到了一些关键词，其对应的含义如下表：
+
+|名字|对应类（实体）|描述|
+|----|----|----|
+|P-SGD Transfer|psgd.interfaces.ITransfer|与神经网络 Optimizer 直接互操作的接口，包含 put_weights 和 get_weights 方法|
+|ISync-SGD|psgd.interfaces.IParallelSGD|P-SGD Transfer 中的子控制器，每个 ISync-SGD 掌管着一个权重参数的分布式交互策略|
+|Async-SGD|psgd.asgd.AsynchronizedSGD|ISync-SGD 的一个实现，使用异步策略执行节点之间的数据更新|
+
+　　关于 Async-SGD 的其他细节，请参考文献：  
+　　Recht, Benjamin and Re, Christopher and Wright, Stephen and Feng Niu. Hogwild: A Lock-Free Approach to Parallelizing Stochastic Gradient Descent. Advances in Neural Information Processing Systems (NIPS). Curran Associates, Inc. 2011.
 
