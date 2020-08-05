@@ -73,7 +73,7 @@ update_blocks(self, block_weight) 和 receive_blocks(self, json_dict)。
 |Adversary_ID|sequence|本参数对应的样本Block没在哪些节点上出现过|
 |Content|numpy.ndarray|参数本身|
 
-*注意*：传入的参数默认是权重梯度而不是权重，要使用参数更新机制，需要更换 P-SGD Optimizer，
+**注意**：传入的参数默认是权重梯度而不是权重，要使用参数更新机制，需要更换 P-SGD Optimizer，
 Optimizer 可在 server_util.init_model.__optimizer_map 中找到。  
 下面的代码接收了梯度平均化方法的参数提交：
 ```python
@@ -136,7 +136,7 @@ class myComCtrl(ICommunication_Ctrl):
         yield netEncapsulation(send_to, pkg)
 ```
 
-*注意*：update_block 和 receive_blocks 都返回迭代器对象，当有多个数据包需要发送
+**注意**：update_block 和 receive_blocks 都返回迭代器对象，当有多个数据包需要发送
 的时候，使用 yield 逐个生成，当无数据包需要发送的时候，可以返回 None。
 
 　　至此，我们就完成了将数据送至网络的过程，生成好数据包后，您的数据包会被 Sync-SGD
@@ -221,7 +221,7 @@ class myComCtrl(ICommunication_Ctrl):
             self.__current_recv = 0
 ```
 
-*注意*：在 Async-SGD 执行模式下，数据的产生与接收是异步的，update_blocks 与 receive_blocks
+**注意**：在 Async-SGD 执行模式下，数据的产生与接收是异步的，update_blocks 与 receive_blocks
 方法可能会同时被不同的线程调用，需要额外考虑数据的线程安全性。
 
 
