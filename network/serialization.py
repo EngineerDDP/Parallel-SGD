@@ -38,7 +38,7 @@ class TLVPack:
         tlv_package = TLVPack.TLV_Type_Normal.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
         put = 0
         while put < len(tlv_package):
-            put += io.send(tlv_package[put:])
+            put += io.send(tlv_package[put:put+TLVPack.Block_Size])
 
     @staticmethod
     def recv(io):
