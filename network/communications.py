@@ -1,3 +1,4 @@
+import queue
 import socket
 import select
 
@@ -96,7 +97,12 @@ class Communication_Controller(ICommunication_Controller):
             raise OSError('Connection has already been closed.')
         if self.__com.recv_que.empty() and not blocking:
             return None
-        return self.__com.recv_que.get()
+        while self.__com.is_alive():
+            try:
+                return self.__com.recv_que.get(timeout=1)
+            except queue.Empty:
+                continue
+        raise OSError('Connection is closed.')
 
     def send_one(self, target, dic):
         """
@@ -123,7 +129,8 @@ class Communication_Controller(ICommunication_Controller):
         :return: None
         """
         self.__com.close()
-        sleep(1)
+        while self.__com.is_alive():
+            sleep(1)
         self.__com.terminate()
 
     def is_closed(self):
@@ -131,7 +138,7 @@ class Communication_Controller(ICommunication_Controller):
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return self.__com.Exit.value is True
+        return not self.__com.is_alive() and self.__com.recv_que.empty()
 
 
 def get_repr():

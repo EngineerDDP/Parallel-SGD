@@ -9,7 +9,7 @@ class Logger:
         self.Title = title_info
         self.ToFile = log_to_file
         self.Folder = './tmp_log/'
-        self.File_Name = self.Folder + 'log_file_{}_{}.log'.format(title_info, datetime.datetime.now().strftime('%H-%M-%S'))
+        self.File_Name = self.Folder + '{}_{}.log'.format(title_info, datetime.datetime.now().strftime('%H-%M-%S'))
 
     def log_message(self, msg):
 

@@ -18,13 +18,13 @@ CLZ_COM_PROCESS = Communication_Process
 
 
 def build_tags(node_id: int):
-    tags = []
+    if not isinstance(node_id, int):
+        node_id = int(node_id)
 
-    for block in GlobalSettings.get_default().block_assignment.node_2_block[node_id]:
-        tags.append(Tag(GlobalSettings.get_default().batch,
-                        block,
-                        node_id,
-                        set(GlobalSettings.get_default().block_assignment.block_2_node[block])))
+    batch = GlobalSettings.get_default().batch
+    blocks = GlobalSettings.get_default().block_assignment.node_2_block[int(node_id)]
+    nodes = GlobalSettings.get_default().block_assignment.block_2_node
+    tags = [Tag(batch, block, node_id, set(nodes[block])) for block in blocks]
 
     return tags
 
@@ -52,6 +52,9 @@ class PSGD_Worker:
                 if self.init_PSGD(com):
                     self.do_training(com)
 
+                GlobalSettings.clear_default()
+                self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
+                time.sleep(10)
                 com.close()
 
             except Exception as e:
@@ -59,7 +62,6 @@ class PSGD_Worker:
 
             self.client_logger.log_message('Worker restarting...')
             # wait for safe closure
-            time.sleep(10)
 
     def init_PSGD(self, com: Communication_Controller) -> bool:
         self.client_logger.log_message('ACK job submission and request global settings.')
@@ -94,15 +96,6 @@ class PSGD_Worker:
 
             layers = data.restore()
 
-            self.client_logger.log_message('Request data samples.')
-            # initialize dataset
-            com.send_one(Initialization_Server, Init.Samples)
-            _, data = com.get_one()
-            # restore
-            assert isinstance(data, Reply.data_sample_package)
-
-            train_x, train_y, eval_x, eval_y = data.restore()
-
             self.client_logger.log_message('Request other stuff.')
             # others
             com.send_one(Initialization_Server, Init.MISC)
@@ -118,6 +111,16 @@ class PSGD_Worker:
             self.__training_log = Logger('Training log @ node-{}'.format(com.Node_Id), log_to_file=True)
 
             if com.Node_Id != Parameter_Server:
+
+                self.client_logger.log_message('Request data samples.')
+                # initialize dataset
+                com.send_one(Initialization_Server, Init.Samples)
+                _, data = com.get_one()
+                # restore
+                assert isinstance(data, Reply.data_sample_package)
+
+                train_x, train_y, eval_x, eval_y = data.restore()
+
                 self.__running_thread = PSGDTraining_Client(
                     model_init=layers,
                     loss=loss_t,
@@ -160,11 +163,12 @@ class PSGD_Worker:
         ready_state = {}
         self.client_logger.log_message('Synchronize timeline with cluster.')
 
-        for node_id in GlobalSettings.get_default().nodes:
+        len_ready = len(com.available_clients())
+        for node_id in com.available_clients():
             com.send_one(node_id, Ready_Type())
 
         # check ready states
-        while len(ready_state) != GlobalSettings.get_default().node_count:
+        while len(ready_state) != len_ready:
             time.sleep(0.1)
             # require
             n, d = com.get_one()
@@ -189,6 +193,7 @@ class PSGD_Worker:
                 train_csv = Binary_File_Package(self.__running_thread.Trace_Train)
                 eval_csv = Binary_File_Package(self.__running_thread.Trace_Eval)
 
+                self.client_logger.log_message('Post training log.')
                 com.send_one(Initialization_Server, train_csv)
                 com.send_one(Initialization_Server, eval_csv)
 

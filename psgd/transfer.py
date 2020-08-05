@@ -2,6 +2,7 @@ from threading import Thread
 from utils.log import Logger
 
 from psgd.interfaces import ITransfer, ReadTimeOut
+from network.interfaces import ICommunication_Controller
 
 
 class NTransfer(ITransfer):
@@ -14,7 +15,7 @@ class NTransfer(ITransfer):
     STR_W_TYPE = 'NW_Type'
     INT_RETRY_LIMIT = 5
 
-    def __init__(self, weights_ctrl, com, logger=Logger('Default Transfer')):
+    def __init__(self, weights_ctrl, com: ICommunication_Controller, logger=Logger('Default Transfer')):
         """
             build a transfer controller for transferring data between local ML process and
             remote server process.
@@ -28,8 +29,8 @@ class NTransfer(ITransfer):
         self.communication_process = com
 
         self.working_thread = Thread(name='Transfer thread for node {}.' \
-                                     .format(self.communication_process.Node_ID), target=self.__run)
-        self.Node_ID = com.Node_ID
+                                     .format(self.communication_process.Node_Id), target=self.__run)
+        self.Node_ID = com.Node_Id
         self.Log = logger
 
     def put_weights(self, content, tag, w_type='w'):

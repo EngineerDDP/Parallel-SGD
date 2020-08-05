@@ -28,6 +28,13 @@ class FCLayer_v2(ILayer):
         self.Act = act
         self.__output = units
 
+    def param(self):
+        return (self.__output,)
+
+    @property
+    def Variables(self):
+        return (self.W, self.B)
+
     @property
     def Trainable(self):
         return True
@@ -107,7 +114,7 @@ class FCLayer_v2(ILayer):
 
 class Conv2dLayer(ILayer):
 
-    def __init__(self, filter_size, channel_count, padding, strikes, act=ReLU()):
+    def __init__(self, filter_size, channel_count, padding, strikes, kernel=None, bias=None, act=ReLU()):
         """
             Initialize a 2-dimensional convolution layer.
             Input format:
@@ -132,8 +139,8 @@ class Conv2dLayer(ILayer):
         # Activation function
         self.Act = act
         # Kernels
-        self.Kernels = None
-        self.Bias = None
+        self.Kernels = kernel
+        self.Bias = bias
         self.Previous_Channels = None
 
     def __w_init_xvars(self, shape):
@@ -214,6 +221,13 @@ class Conv2dLayer(ILayer):
         """
         conv = np.sum([self.__conv2d(feature_map[:,:,i], np.rot90(kernel[i,:,:], 2)) for i in range(self.Kernel_Count)], axis=0)
         return conv
+
+    def param(self):
+        return (self.Filter_Size, self.Kernel_Count, self.Padding, self.Strikes)
+
+    @property
+    def Variables(self):
+        return (self.Kernels, self.Bias)
 
     @property
     def Trainable(self):

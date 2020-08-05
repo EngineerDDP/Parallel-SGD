@@ -1,5 +1,6 @@
 import socket
 import select
+from _queue import Empty
 
 from time import sleep
 
@@ -226,7 +227,7 @@ class Communication_Process(ICommunication_Process):
                 self.Exit.value = True
                 break
 
-            readable, writeable, excepts = select.select(active_connections, active_connections, active_connections)
+            readable, writeable, excepts = select.select(active_connections, [], active_connections, 1)
             # read
             for fd in readable:
                 try:
@@ -274,24 +275,33 @@ class Communication_Process(ICommunication_Process):
         """
         try:
             while not self.Exit.value:
-                target, data = self.send_que.get()
-                if len(target) == 0:
+                try:
+                    target, data = self.send_que.get(timeout=1)
+                except Empty:
                     continue
-                pkg = {
-                    Key.Type:       Type_Val.Normal,
-                    Key.From:       self.__connections.get_id(),
-                    Key.To:         target,
-                    Key.Content:    data
-                }
-                # write in TLV
-                package = TLVPack(Serialize.pack(pkg))
-                # send multiple
+
+                pkg = None
+
                 for id in target:
-                    id = str(id)
-                    if self.__dispatch_queue.get(id) is not None:
-                        self.__dispatch_queue[id].put(package)
+                    fd = self.__connections.find(id)
+                    if fd is not None:
+                        if pkg is None:
+                            pkg = {
+                                Key.Type:       Type_Val.Normal,
+                                Key.From:       self.__connections.get_id(),
+                                Key.To:         target,
+                                Key.Content:    data
+                            }
+                            # write in TLV
+                            pkg = TLVPack(Serialize.pack(pkg))
+                        pkg.send(fd)
+
+                del data
+                del pkg
 
         except TypeError as e:
+            pass
+        except OSError as e:
             pass
 
     def node_id(self):

@@ -90,7 +90,7 @@ class SequentialModel_v2:
 
         predictions = self.predict(x)
         eval_results = [metric.metric(predictions, y) for metric in self.Metrics]
-        self.Log.log_message('Evaluation Samples:{}, {}'.format(len(x), self.__str_format(eval_results)))
+        # self.Log.log_message('Evaluation Samples:{}, {}'.format(len(x), self.__str_format(eval_results)))
         return eval_results
 
     def predict(self, x):

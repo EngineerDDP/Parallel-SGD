@@ -16,7 +16,7 @@ class Reply:
     class global_setting_package:
 
         def __init__(self, settings: GlobalSettings):
-            self.n = settings.nodes
+            self.n = settings.node_count
             self.r = settings.redundancy
             self.b = settings.batch.batch_size
             self.ass = settings.block_assignment.__class__
@@ -27,10 +27,10 @@ class Reply:
     class weights_and_layers_package:
 
         def __init__(self, layers: list):
-            self.__storage = [(i.__class__, i.params()) for i in layers]
+            self.__storage = [(i.__class__, i.param(), i.Variables, i.Act.__class__) for i in layers]
 
         def restore(self):
-            return [i[0](*i[1]) for i in self.__storage]
+            return [i[0](*i[1], *i[2], i[3]()) for i in self.__storage]
 
     class codec_and_sgd_package:
 

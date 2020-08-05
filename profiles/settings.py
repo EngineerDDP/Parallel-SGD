@@ -50,6 +50,10 @@ class GlobalSettings:
         return GlobalSettings.__setting
 
     @staticmethod
+    def clear_default():
+        GlobalSettings.__setting = None
+
+    @staticmethod
     def set_default(n, r, b, assignment):
         """
             Set global setting, if not settled
@@ -62,5 +66,3 @@ class GlobalSettings:
         """
         if GlobalSettings.__setting is None:
             GlobalSettings.__setting = GlobalSettings(n, r, b, assignment)
-        else:
-            raise PermissionError()

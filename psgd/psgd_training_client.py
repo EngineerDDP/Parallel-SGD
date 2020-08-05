@@ -19,6 +19,7 @@ class PSGDTraining_Parameter_Server(Thread):
 
         super().__init__(name='Simulated parameter server process.')
 
+        iNodeId = int(com.Node_Id)
         self.Com = com
         self.Logger = logger
 
@@ -26,7 +27,7 @@ class PSGDTraining_Parameter_Server(Thread):
 
         for layer_id in range(len(model_init)):
             for type in w_types:
-                updater[layer_id][type] = ps_sgd_type(com.Node_Id, layer_id, ps_codec)
+                updater[layer_id][type] = ps_sgd_type(iNodeId, layer_id, ps_codec)
 
         self.Transfer = NTransfer(updater, self.Com)
         self.Logger.log_message('Init parameter server with codec {}, sync type {}.'.format(ps_codec, ps_sgd_type))
@@ -56,14 +57,14 @@ class PSGDTraining_Client(Thread):
                  target_acc=None):
 
         Thread.__init__(self, name='Simulated training process. Node: {}'.format(tags[0].Node_No))
-
+        iNodeId = int(com.Node_Id)
         # pickle
         nn = model_init
         updater = [{} for i in model_init]
 
         for layer_id in range(len(nn)):
             for type in w_types:
-                updater[layer_id][type] = sync_class(com.Node_Id, layer_id, codec_type)
+                updater[layer_id][type] = sync_class(iNodeId, layer_id, codec_type)
 
         self.Batch_Size = batch_size
         self.Epochs = epochs
@@ -93,9 +94,9 @@ class PSGDTraining_Client(Thread):
         self.Transfer.start_transfer()
         # do until reach the target accuracy
         for i in range(self.Epochs):
-            self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
             # change title
             self.Log.Title = self.Log_Header + "-Cyc{}".format(i)
+            self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
             # do tests
             evaluation = self.Model.evaluate(self.Eval_X, self.Eval_Y)
             if self.Target_acc is not None:

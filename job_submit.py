@@ -16,13 +16,13 @@ if __name__ == '__main__':
          --server_codec graddiff --workers worker.json
     """
     parse = argparse.ArgumentParser()
-    parse.add_argument("--node_count", type=int, default=3, help="initial node count")
-    parse.add_argument("--batch_size", type=int, default=192, help="initial batch size")
+    parse.add_argument("--node_count", type=int, default=1, help="initial node count")
+    parse.add_argument("--batch_size", type=int, default=64, help="initial batch size")
     parse.add_argument("--redundancy", type=int, default=1, help="initial redundancy")
-    parse.add_argument("--codec", type=str, default='sgq', help="initial communication codec and protocol {ccdc, plain, psclient}")
+    parse.add_argument("--codec", type=str, default='plain', help="initial communication codec and protocol {ccdc, plain, psclient}")
     parse.add_argument("--psgd", type=str, default='ssgd', help="parallel stochastic gradient descent synchronization type {asgd, ssgd}")
     parse.add_argument("--learn_rate", type=float, default=0.05, help="initial learining rate")
-    parse.add_argument("--epochs", type=int, default=100, help="initial train epochs")
+    parse.add_argument("--epochs", type=int, default=2, help="initial train epochs")
     parse.add_argument("--block_assignment", type=str, default='iid', help="initial block assignment strategy")
     parse.add_argument("--server_codec", type=str, default='sgq', help="server codec for parameter averaging")
     parse.add_argument("--workers", type=str, default='worker.json', help='worker list file, json type')
@@ -71,5 +71,7 @@ if __name__ == '__main__':
 
     core.set_workers(workers)
 
-    core.require_client_log()
+    # core.require_client_log()
+
+    core.resources_dispatch()
 

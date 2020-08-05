@@ -26,7 +26,7 @@ class Serialize:
 
 
 class TLVPack:
-    Block_Size = 1024 * 1024
+    Block_Size = 10 * 1024 * 1024
     TLV_Type_Normal = 1
     TLV_Type_Exit = 0
 

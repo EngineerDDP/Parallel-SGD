@@ -63,7 +63,7 @@ class Coordinator:
                             self.__model.psgd_type()
                         )
                     else:
-                        reply = Reply.codec_and_sgd_packages(
+                        reply = Reply.codec_and_sgd_package(
                             self.__model.psgd_server_codec(),
                             self.__model.psgd_server_type()
                         )
@@ -84,12 +84,17 @@ class Coordinator:
                 else:
                     reply = None
 
-                self.__log.log_message('Reply requirements ({}) to {}'.format(id_from, data.__class__.__name__))
+                self.__log.log_message('Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
                 self.__com.send_one(id_from, reply)
 
+            elif isinstance(data, Ready_Type):
+                self.__com.send_one(id_from, Ready_Type())
+
             elif isinstance(data, Binary_File_Package):
-                data.restore()
                 self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
+                data.restore()
+
+        self.__log.log_message('Dispatcher closed.')
 
 
     def require_client_log(self):
@@ -98,7 +103,7 @@ class Coordinator:
         :return: None
         """
         assert isinstance(self.__com, Communication_Controller)
-
+        # self.__log.log_message('Acquire log file from each worker.')
         # take all ACK
         for id in self.__com.available_clients():
             _, _ = self.__com.get_one()
@@ -109,6 +114,7 @@ class Coordinator:
 
         # get result
         for id in self.__com.available_clients():
+            self.__log.log_message('Acquire log file from worker({}).'.format(id))
             _, log = self.__com.get_one()
             if isinstance(log, Binary_File_Package):
                 log.restore()

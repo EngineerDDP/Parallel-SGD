@@ -54,6 +54,23 @@ class ILayer(metaclass=ABCMeta):
         # redirect function calls
         self.logit = self.logit_with_init_parameters
 
+    @abstractmethod
+    def param(self):
+        """
+            Essential parameters for reconstruction.
+        :return: tuple
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def Variables(self):
+        """
+            Get variables from this layer
+        :return: tuple that contains all the variables
+        """
+        pass
+
     @property
     @abstractmethod
     def Input(self):
