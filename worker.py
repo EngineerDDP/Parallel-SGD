@@ -68,6 +68,7 @@ class PSGD_Worker:
                 for line in exc_tb:
                     self.client_logger.log_message(line)
                 # print DEBUG message
+                time.sleep(10)
 
             self.client_logger.log_message('Worker restarting...')
             # wait for safe closure

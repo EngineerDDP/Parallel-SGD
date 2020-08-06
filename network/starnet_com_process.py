@@ -41,7 +41,20 @@ class Worker_Register_List:
         :param uuid: str
         :return: None
         """
-        self.__worker_id_to_cons[id] = uuid
+        _tmp_cons = self.__worker_id_to_cons.get(id, None)
+        # if not settled
+        if _tmp_cons is None:
+            self.__worker_id_to_cons[id] = uuid
+        # check which one is right
+        elif isinstance(_tmp_cons, list):
+            for _uuid, _con in _tmp_cons:
+                if _uuid == uuid:
+                    self.__worker_id_to_cons[id] = _con
+                # close it
+                else:
+                    Buffer.request_close(_con)
+                    _con.close()
+
 
     def check(self):
         """
@@ -60,11 +73,18 @@ class Worker_Register_List:
             identify and register a worker
         :return: bool for the result
         """
-        # connect anyway if not found
-        if uuid == self.__worker_id_to_cons.get(id, uuid):
+        _uuid = self.__worker_id_to_cons.get(id, None)
+        # stash connection
+        if uuid == _uuid:
             self.put(id, con)
-            return True
-        return False
+        elif _uuid is None:
+            self.__worker_id_to_cons[id] = [(uuid, con)]
+        elif isinstance(_uuid, list):
+            _uuid.append((uuid, con))
+        else:
+            return False
+
+        return True
 
     def put(self, id: str, con: socket.socket):
         """
@@ -136,28 +156,28 @@ class Worker_Register(IWorker_Register):
         if con_from is not None:
             self.__workers.put(Initialization_Server, con_from)
 
-        flag = False
+        self_uuid = None
 
         # for all slaves
         for id, uuid, ip_addr in content_package:
             # slaves who's id before self
-            if (not flag and id != self.__id):
+            if (self_uuid is None and id != self.__id):
                 self.__workers.occupy(id, uuid)
             # id of myself
             elif (id == self.__id):
-                flag = True
+                self_uuid = uuid
             # id behind myself
-            elif flag:
+            elif self_uuid is not None:
                 # try reach
                 worker_con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     worker_con.connect((ip_addr, STAR_NET_WORKING_PORTS))
                     # try register
                     data = {
-                        Key.Type: Type_Val.WorkerReports,
-                        Key.From: self.__id,
-                        Key.To:   id,
-                        Key.Content:uuid
+                        Key.Type:       Type_Val.WorkerReports,
+                        Key.From:       self.__id,
+                        Key.To:         id,
+                        Key.Content:    self_uuid
                     }
                     pkg = Buffer(content=data)
                     pkg.send(worker_con)
@@ -173,7 +193,6 @@ class Worker_Register(IWorker_Register):
         self.__workers.rm(id=None, con=con)
 
     def identify(self, id, content, con):
-        con.setblocking(False)
         self.__workers.identify(id, content, con)
 
     def check(self):

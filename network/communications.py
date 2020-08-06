@@ -64,8 +64,9 @@ class Worker_Communication_Constructor:
                             if data[Key.Type] == Type_Val.Submission:
                                 self.__id_register.register(data[Key.To], data[Key.Content], io_event)
                             # message from other worker
-                            if data[Key.Type] == Type_Val.WorkerReports:
+                            elif data[Key.Type] == Type_Val.WorkerReports:
                                 self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
+                                print('acc worker')
 
         return self.__id_register
 
