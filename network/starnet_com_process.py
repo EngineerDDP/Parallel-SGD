@@ -149,7 +149,7 @@ class Worker_Register(IWorker_Register):
             # id behind myself
             elif flag:
                 # try reach
-                worker_con = socket.socket(socket.AF_INET, socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
+                worker_con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     worker_con.connect((ip_addr, STAR_NET_WORKING_PORTS))
                     # try register
@@ -162,6 +162,7 @@ class Worker_Register(IWorker_Register):
                     pkg = Buffer(content=data)
                     pkg.send(worker_con)
                     self.__workers.put(id, worker_con)
+                    worker_con.setblocking(False)
                 except OSError as error:
                     raise OSError('Error: {}, address: {}'.format(error, ip_addr))
 
@@ -172,6 +173,7 @@ class Worker_Register(IWorker_Register):
         self.__workers.rm(id=None, con=con)
 
     def identify(self, id, content, con):
+        con.setblocking(False)
         self.__workers.identify(id, content, con)
 
     def check(self):

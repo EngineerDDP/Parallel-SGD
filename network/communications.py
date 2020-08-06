@@ -23,12 +23,6 @@ class Worker_Communication_Constructor:
         """
         self.Server = server
         self.Port = port
-        # setup job listener
-        self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # using Non-blocking IO
-        self.__bind_listener.setblocking(False)
-        # bind address
-        self.__bind_listener.bind((self.Server, self.Port))
         self.__id_register = worker_register
 
     def buildCom(self):
@@ -36,38 +30,43 @@ class Worker_Communication_Constructor:
             Non-blocking IO for register this slave com to a specified job.
             Connection will be established while all connections between slaves were established.
         """
-        # temporary register
-        _tmp_register_ref_table = [self.__bind_listener]
-        _tmp_buffer_recv = {self.__bind_listener: Buffer()}
-        # start listening
-        self.__bind_listener.listen(4)
+        # release while leave active area
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as __bind_listener:
+            # using Non-blocking IO
+            __bind_listener.setblocking(False)
+            # bind address
+            __bind_listener.bind((self.Server, self.Port))
+            # start listening
+            __bind_listener.listen(4)
+            # temporary register
+            _tmp_register_ref_table = [__bind_listener]
+            _tmp_buffer_recv = {__bind_listener: Buffer()}
 
-        # wait for job submission
-        while not self.__id_register.check():
-            readable, writable, exp = select.select(_tmp_register_ref_table, [], _tmp_register_ref_table)
-            for io_event in readable:
-                if io_event is self.__bind_listener:
-                    # accept connection, could be submitter or other slaves
-                    con, client_address = io_event.accept()
-                    # add to identified list
-                    _tmp_register_ref_table.append(con)
-                    con.setblocking(False)
+            # wait for job submission
+            while not self.__id_register.check():
+                readable, writable, exp = select.select(_tmp_register_ref_table, [], _tmp_register_ref_table)
+                for io_event in readable:
+                    if io_event is __bind_listener:
+                        # accept connection, could be submitter or other slaves
+                        con, client_address = io_event.accept()
+                        # add to identified list
+                        _tmp_register_ref_table.append(con)
+                        con.setblocking(False)
 
-                else:
-                    buf = _tmp_buffer_recv.get(io_event, Buffer())
-                    buf.recv(io_event)
-                    _tmp_buffer_recv[io_event] = buf
+                    else:
+                        buf = _tmp_buffer_recv.get(io_event, Buffer())
+                        buf.recv(io_event)
+                        _tmp_buffer_recv[io_event] = buf
 
-                    if buf.is_ready():
-                        data = buf.get_content()
-                        # message from submitter
-                        if data[Key.Type] == Type_Val.Submission:
-                            self.__id_register.register(data[Key.To], data[Key.Content], io_event)
-                        # message from other worker
-                        if data[Key.Type] == Type_Val.WorkerReports:
-                            self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
+                        if buf.is_ready():
+                            data = buf.get_content()
+                            # message from submitter
+                            if data[Key.Type] == Type_Val.Submission:
+                                self.__id_register.register(data[Key.To], data[Key.Content], io_event)
+                            # message from other worker
+                            if data[Key.Type] == Type_Val.WorkerReports:
+                                self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
 
-        self.__bind_listener.close()
         return self.__id_register
 
 
