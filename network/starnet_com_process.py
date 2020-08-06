@@ -1,6 +1,6 @@
 import socket
 import select
-from _queue import Empty
+from queue import Empty
 
 from time import sleep
 
