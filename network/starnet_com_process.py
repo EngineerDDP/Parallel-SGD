@@ -49,7 +49,7 @@ class Worker_Register_List:
         elif isinstance(_tmp_cons, list):
             for _uuid, _con in _tmp_cons:
                 if _uuid == uuid:
-                    self.__worker_id_to_cons[id] = _con
+                    self.put(id, _con)
                 # close it
                 else:
                     Buffer.request_close(_con)

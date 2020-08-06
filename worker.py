@@ -85,86 +85,80 @@ class PSGD_Worker:
                 com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
             return False
 
-        try:
-            data.restore()
+        data.restore()
 
-            self.client_logger.log_message('Request codec and sgd class.')
-            # initialize codec and sgd type
-            com.send_one(Initialization_Server, Init.Codec_And_SGD_Type)
+        self.client_logger.log_message('Request codec and sgd class.')
+        # initialize codec and sgd type
+        com.send_one(Initialization_Server, Init.Codec_And_SGD_Type)
+        _, data = com.get_one()
+        # restore
+        assert isinstance(data, Reply.codec_and_sgd_package)
+
+        codec, sgd = data.restore()
+
+        self.client_logger.log_message('Request weights and layer type.')
+        # initialize weights and layer
+        com.send_one(Initialization_Server, Init.Weights_And_Layers)
+        _, data = com.get_one()
+        # restore
+        assert isinstance(data, Reply.weights_and_layers_package)
+
+        layers = data.restore()
+
+        self.client_logger.log_message('Request other stuff.')
+        # others
+        com.send_one(Initialization_Server, Init.MISC)
+        _, data = com.get_one()
+        assert isinstance(data, Reply.misc_package)
+
+        loss_t = data.loss_type
+        target_acc = data.target_acc
+        epoch = data.epoch
+        learn_rate = data.learn_rate
+        w_type = data.w_types
+
+        self.__training_log = Logger('Training log @ node-{}'.format(com.Node_Id), log_to_file=True)
+
+        if com.Node_Id != Parameter_Server:
+
+            self.client_logger.log_message('Request data samples.')
+            # initialize dataset
+            com.send_one(Initialization_Server, Init.Samples)
             _, data = com.get_one()
             # restore
-            assert isinstance(data, Reply.codec_and_sgd_package)
+            assert isinstance(data, Reply.data_sample_package)
 
-            codec, sgd = data.restore()
+            train_x, train_y, eval_x, eval_y = data.restore()
 
-            self.client_logger.log_message('Request weights and layer type.')
-            # initialize weights and layer
-            com.send_one(Initialization_Server, Init.Weights_And_Layers)
-            _, data = com.get_one()
-            # restore
-            assert isinstance(data, Reply.weights_and_layers_package)
+            self.__running_thread = PSGDTraining_Client(
+                model_init=layers,
+                loss=loss_t,
+                codec_type=codec,
+                sync_class=sgd,
+                com=com,
+                w_types=w_type,
+                tags=build_tags(node_id=com.Node_Id),
+                train_x=train_x,
+                train_y=train_y,
+                eval_x=eval_x,
+                eval_y=eval_y,
+                batch_size=GlobalSettings.get_default().batch.batch_size,
+                epochs=epoch,
+                logger=self.__training_log,
+                learn_rate=learn_rate,
+                target_acc=target_acc
+            )
+        else:
+            self.__running_thread = PSGDTraining_Parameter_Server(
+                model_init=layers,
+                ps_codec=codec,
+                ps_sgd_type=sgd,
+                com=com,
+                w_types=w_type,
+                logger=self.__training_log
+            )
 
-            layers = data.restore()
-
-            self.client_logger.log_message('Request other stuff.')
-            # others
-            com.send_one(Initialization_Server, Init.MISC)
-            _, data = com.get_one()
-            assert isinstance(data, Reply.misc_package)
-
-            loss_t = data.loss_type
-            target_acc = data.target_acc
-            epoch = data.epoch
-            learn_rate = data.learn_rate
-            w_type = data.w_types
-
-            self.__training_log = Logger('Training log @ node-{}'.format(com.Node_Id), log_to_file=True)
-
-            if com.Node_Id != Parameter_Server:
-
-                self.client_logger.log_message('Request data samples.')
-                # initialize dataset
-                com.send_one(Initialization_Server, Init.Samples)
-                _, data = com.get_one()
-                # restore
-                assert isinstance(data, Reply.data_sample_package)
-
-                train_x, train_y, eval_x, eval_y = data.restore()
-
-                self.__running_thread = PSGDTraining_Client(
-                    model_init=layers,
-                    loss=loss_t,
-                    codec_type=codec,
-                    sync_class=sgd,
-                    com=com,
-                    w_types=w_type,
-                    tags=build_tags(node_id=com.Node_Id),
-                    train_x=train_x,
-                    train_y=train_y,
-                    eval_x=eval_x,
-                    eval_y=eval_y,
-                    batch_size=GlobalSettings.get_default().batch.batch_size,
-                    epochs=epoch,
-                    logger=self.__training_log,
-                    learn_rate=learn_rate,
-                    target_acc=target_acc
-                )
-            else:
-                self.__running_thread = PSGDTraining_Parameter_Server(
-                    model_init=layers,
-                    ps_codec=codec,
-                    ps_sgd_type=sgd,
-                    com=com,
-                    w_types=w_type,
-                    logger=self.__training_log
-                )
-
-            return True
-        except Exception as error:
-
-            self.client_logger.log_message('Error encountered while initializing training environment : {}.'.format(error))
-
-            return False
+        return True
 
     def do_training(self, com: Communication_Controller):
         self.client_logger.log_message('Prepare to start training process.')
