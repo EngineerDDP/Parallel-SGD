@@ -64,7 +64,9 @@ class PSGD_Worker:
                 import sys
                 import traceback
                 exc_type, exc_value, exc_tb = sys.exc_info()
-                self.client_logger.log_message(traceback.format_exception(exc_type, exc_value, exc_tb))
+                exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
+                for line in exc_tb:
+                    self.client_logger.log_message(line)
                 # print DEBUG message
 
             self.client_logger.log_message('Worker restarting...')
