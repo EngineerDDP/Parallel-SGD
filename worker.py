@@ -60,6 +60,13 @@ class PSGD_Worker:
             except Exception as e:
                 self.client_logger.log_message('Exception occurred: {}'.format(e))
 
+                # print DEBUG message
+                import sys
+                import traceback
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                self.client_logger.log_message(traceback.format_exception(exc_type, exc_value, exc_tb))
+                # print DEBUG message
+
             self.client_logger.log_message('Worker restarting...')
             # wait for safe closure
 
@@ -151,7 +158,9 @@ class PSGD_Worker:
 
             return True
         except Exception as error:
+
             self.client_logger.log_message('Error encountered while initializing training environment : {}.'.format(error))
+
             return False
 
     def do_training(self, com: Communication_Controller):

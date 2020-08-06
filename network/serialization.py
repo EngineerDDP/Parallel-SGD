@@ -1,74 +1,91 @@
 import numpy as np
 
 from tempfile import TemporaryFile
+from socket import socket
 
 
-class Serialize:
+def pack(dic:dict):
+    with TemporaryFile() as file:
+        np.save(file, dic)
+        file.seek(0, 0)
+        data = file.read()
+        # compressed = zlib.compress(data, level=3)
+    return data
 
-    @staticmethod
-    def pack(dic:dict):
-        with TemporaryFile() as file:
-            np.save(file, dic)
+def unpack(data=b''):
+    with TemporaryFile() as file:
+        # data = zlib.decompress(data)
+        file.write(data)
+        while file.tell() != 0:
             file.seek(0, 0)
-            data = file.read()
-            # compressed = zlib.compress(data, level=3)
-        return data
+        pack = np.load(file, allow_pickle=True)[()]
+    return pack
+
+
+class Buffer:
+
+    def __init__(self, content:[dict, bytes, None]=None):
+        if content is not None:
+            if isinstance(content, dict):
+                self.__content = pack(content)
+            elif isinstance(content, bytes):
+                self.__content = content
+            else:
+                raise TypeError('Buffer content must be dict or bytes.')
+            self.__length = len(self.__content)
+        else:
+            self.__content = b''
+            self.__length = 0
 
     @staticmethod
-    def unpack(data=b''):
-        with TemporaryFile() as file:
-            # data = zlib.decompress(data)
-            file.write(data)
-            while file.tell() != 0:
-                file.seek(0, 0)
-            pack = np.load(file, allow_pickle=True)[()]
-        return pack
+    def request_close(io: socket):
+        """
+            Send zeros to raise deprecated error and close the connection.
+        :param io: socket
+        :return: None
+        """
+        zero_len_mark = int(0).to_bytes(4, 'big')
+        io.send(zero_len_mark)
 
+    def send(self, io: socket):
+        """
+            Try write to fd until all the data were sent.
+        :param io:
+        :return:
+        """
+        tlv_package = self.__length.to_bytes(4, 'big') + self.__content
 
-class TLVPack:
-    Block_Size = 1024 * 1024
-    TLV_Type_Normal = 1
-    TLV_Type_Exit = 0
-
-    def __init__(self, content:bytes):
-        self.Content = content
-        self.Length = len(content)
-
-    def send(self, io):
-        tlv_package = TLVPack.TLV_Type_Normal.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
         put = 0
         while put < len(tlv_package):
-            put += io.send(tlv_package[put:put+TLVPack.Block_Size])
+            put += io.send(tlv_package[put:])
 
-    @staticmethod
-    def recv(io):
-        type_ = io.recv(1)
-        type_ = int.from_bytes(type_, 'big')
+    def recv(self, io: socket):
+        """
+            Receive once from the fd
+        :return:
+        """
+        # try get header
+        if self.__length == 0:
+            # assumption that 4 bytes can read at least
+            head = io.recv(4)
+            self.__length = int.from_bytes(head, 'big')
+            # len(head) == 0 or head == b'0000'
+            if self.__length == 0:
+                raise OSError('Connection is deprecated.')
+        # try read what's left
+        if self.__length > len(self.__content):
+            self.__content += io.recv(self.__length - len(self.__content))
 
-        if type_ == TLVPack.TLV_Type_Exit:
-            raise OSError('Connection closed by remote computer.')
+    def is_ready(self) -> bool:
+        return self.__length != 0 and (self.__length == len(self.__content))
 
-        length = b''
-        while len(length) < 4:
-            length += io.recv(4 - len(length))
+    def get_content(self) -> dict:
+        """
+            Get content and clear buffer
+        :return: bytes
+        """
+        res = unpack(self.__content)
+        self.__content = b''
+        self.__length = 0
+        return res
 
-        length = int.from_bytes(length, 'big')
-
-        content = b''
-        take = 0
-        while take < length:
-            read_len = min(length - take, TLVPack.Block_Size)
-            content += io.recv(read_len)
-            take = len(content)
-
-        return TLVPack(content)
-
-
-def request_close(io):
-    io.send(TLVPack.TLV_Type_Exit.to_bytes(1, 'big'))
-
-def unpack(io):
-    return Serialize.unpack(TLVPack.recv(io).Content)
-
-def pack(data, io):
-    TLVPack(Serialize.pack(data)).send(io)

@@ -9,7 +9,7 @@ class IWorker_Register(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def register(self, id_self, content_package):
+    def register(self, id_self, content_package, io_event):
         """
             Register all workers
         :param id_self: id of current worker
@@ -20,10 +20,6 @@ class IWorker_Register(metaclass=ABCMeta):
 
     @abstractmethod
     def check(self):
-        pass
-
-    @abstractmethod
-    def put(self, id, con):
         pass
 
     @abstractmethod

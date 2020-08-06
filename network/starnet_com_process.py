@@ -6,8 +6,9 @@ from time import sleep
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, ICommunication_Process
-from network.serialization import pack, request_close, TLVPack, Serialize
+from network.serialization import Buffer
 
+from utils.constants import Initialization_Server
 STAR_NET_WORKING_PORTS = 15387
 
 
@@ -124,7 +125,7 @@ class Worker_Register(IWorker_Register):
     def to_list(self):
         return self.__workers.to_list()
 
-    def register(self, id_self, content_package:StarNetwork_Initialization_Package):
+    def register(self, id_self, content_package:StarNetwork_Initialization_Package, con_from=None):
         """
             Register all workers
         :param id_self: id of current worker
@@ -132,6 +133,8 @@ class Worker_Register(IWorker_Register):
         :return: None
         """
         self.__id = id_self
+        if con_from is not None:
+            self.__workers.put(Initialization_Server, con_from)
 
         flag = False
 
@@ -156,13 +159,11 @@ class Worker_Register(IWorker_Register):
                         Key.To:   id,
                         Key.Content:uuid
                     }
-                    pack(data, worker_con)
+                    pkg = Buffer(content=data)
+                    pkg.send(worker_con)
                     self.__workers.put(id, worker_con)
                 except OSError as error:
                     raise OSError('Error: {}, address: {}'.format(error, ip_addr))
-
-    def put(self, id, con):
-        self.__workers.put(id, con)
 
     def find(self, id):
         return self.__workers.find(id)
@@ -201,8 +202,6 @@ class Communication_Process(ICommunication_Process):
         super().__init__(name='Communication thread address: {}'.format(id_register.get_id()))
 
         self.__connections = id_register
-        # local thread queue
-        self.__dispatch_queue = {}
 
     def __report_connection_lost(self, id, address):
         print('Connection with worker (id: {}, address: {}) has been lost.'.format(id, address))
@@ -212,10 +211,11 @@ class Communication_Process(ICommunication_Process):
             Bootstrap method
             start both sending and receiving thread on target socket object
         """
-        import queue, threading
+        import threading
 
-        for id in self.__connections.ids():
-            self.__dispatch_queue[id] = queue.Queue()
+        recv_buffer_list = {}
+        for fd in self.__connections.to_list():
+            recv_buffer_list[fd] = Buffer()
 
         __deque_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.', daemon=True)
         __deque_thread.start()
@@ -227,43 +227,46 @@ class Communication_Process(ICommunication_Process):
                 self.Exit.value = True
                 break
 
-            readable, writeable, excepts = select.select(active_connections, [], active_connections, 1)
+            readable, writeable, excepts = select.select(active_connections, [], active_connections)
             # read
             for fd in readable:
                 try:
-                    raw_pack = TLVPack.recv(fd).Content
-                    data = Serialize.unpack(raw_pack)
-                    _from = data[Key.From]
-                    self.recv_que.put((_from, data[Key.Content]))
+                    buf = recv_buffer_list[fd]
+                    buf.recv(fd)
+                    if buf.is_ready():
+                        data = buf.get_content()
+                        _from = data[Key.From]
+                        self.recv_que.put((_from, data[Key.Content]))
                 except OSError as error:
                     self.__report_connection_lost(self.__connections.find(fd), fd.getpeername())
                     self.__connections.remove(fd)
 
-            # write
-            for fd in writeable:
-                id = self.__connections.find(fd)
-                queue = self.__dispatch_queue.get(id, None)
-                if queue is not None and not queue.empty():
-                    item = queue.get_nowait()
-                    item.send(fd)
+                    # print DEBUG message
+                    import sys
+                    import traceback
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    traceback.print_exception(exc_type, exc_value, exc_tb)
+                    # print DEBUG message
+
+            # # write
+            # for fd in writeable:
+            #     id = self.__connections.find(fd)
+            #     queue = self.__dispatch_queue.get(id, None)
+            #     if queue is not None and not queue.empty():
+            #         item = queue.get_nowait()
+            #         item.send(fd)
 
             # handle exception
             for fd in excepts:
                 self.__report_connection_lost(self.__connections.find(fd), fd.raddr)
                 self.__connections.remove(fd)
-                # del queue
-                id = self.__connections.find(fd)
-                if self.__dispatch_queue.get(id, None) is not None:
-                    del self.__dispatch_queue[id]
-                    self.__dispatch_queue[id] = None
 
-            sleep(ICommunication_Process.Circle_interval)
+            # sleep(ICommunication_Process.Circle_interval)
 
         for fd in self.__connections.to_list():
-            request_close(fd)
+            Buffer.request_close(fd)
             fd.close()
 
-        self.__dispatch_queue.clear()
         self.recv_que.close()
         self.send_que.close()
 
@@ -293,7 +296,7 @@ class Communication_Process(ICommunication_Process):
                                 Key.Content:    data
                             }
                             # write in TLV
-                            pkg = TLVPack(Serialize.pack(pkg))
+                            pkg = Buffer(pkg)
 
                         pkg.send(fd)
 
@@ -313,7 +316,6 @@ class Communication_Process(ICommunication_Process):
 
 
 def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_Process:
-    from utils.constants import Initialization_Server
 
     worker_register = Worker_Register()
     # register
@@ -332,10 +334,8 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
             con.connect((address, STAR_NET_WORKING_PORTS))
             # write key
             data[Key.To] = id
-            # serialize
-            raw_pack = TLVPack(Serialize.pack(data.copy()))
-            # send
-            raw_pack.send(con)
+            # serialize and send
+            Buffer(data).send(con)
             # add
             worker_register.identify(id, uuid, con=con)
 

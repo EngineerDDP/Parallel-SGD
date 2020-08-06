@@ -7,7 +7,7 @@ from utils.constants import Initialization_Server
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, ICommunication_Process, ICommunication_Controller
-from network.serialization import unpack
+from network.serialization import Buffer
 
 
 class Worker_Communication_Constructor:
@@ -38,6 +38,7 @@ class Worker_Communication_Constructor:
         """
         # temporary register
         _tmp_register_ref_table = [self.__bind_listener]
+        _tmp_buffer_recv = {self.__bind_listener: Buffer()}
         # start listening
         self.__bind_listener.listen(4)
 
@@ -53,14 +54,18 @@ class Worker_Communication_Constructor:
                     con.setblocking(False)
 
                 else:
-                    data = unpack(io_event)
-                    # message from submitter
-                    if data[Key.Type] == Type_Val.Submission:
-                        self.__id_register.register(data[Key.To], data[Key.Content])
-                        self.__id_register.put(Initialization_Server, io_event)
-                    # message from other worker
-                    if data[Key.Type] == Type_Val.WorkerReports:
-                        self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
+                    buf = _tmp_buffer_recv.get(io_event, Buffer())
+                    buf.recv(io_event)
+                    _tmp_buffer_recv[io_event] = buf
+
+                    if buf.is_ready():
+                        data = buf.get_content()
+                        # message from submitter
+                        if data[Key.Type] == Type_Val.Submission:
+                            self.__id_register.register(data[Key.To], data[Key.Content], io_event)
+                        # message from other worker
+                        if data[Key.Type] == Type_Val.WorkerReports:
+                            self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
 
         self.__bind_listener.close()
         return self.__id_register
