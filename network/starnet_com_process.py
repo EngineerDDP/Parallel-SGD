@@ -227,7 +227,7 @@ class Communication_Process(ICommunication_Process):
                 self.Exit.value = True
                 break
 
-            readable, writeable, excepts = select.select(active_connections, [], active_connections)
+            readable, writeable, excepts = select.select(active_connections, [], active_connections, 1)
             # read
             for fd in readable:
                 try:
