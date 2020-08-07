@@ -5,6 +5,8 @@ from utils.constants import *
 from network.communications import Communication_Controller, get_repr
 from server_util.init_model import IServerModel
 
+import random
+
 # method to start up a network
 from network.starnet_com_process import start_star_net, StarNetwork_Initialization_Package
 NET = start_star_net
@@ -21,14 +23,21 @@ class Coordinator:
         """
             Set worker list.
         :param works: list of tuples
-                        like: [ (id1, uuid1, address1), (id2, uuid2, address2), ... ]
+                        like: [ (rule1, address1), (rule2, address2), ... ]
         :return: None, raise exceptions if two workers with same id are assigned.
         """
         pkg = IPA()
+        uuid_for_this_task = str(random.randint(0, 0x7fffffff))
+        current_node_id_assigned = 0
         # set all address
-        for id, uuid, addr in works:
-            pkg.put(int(id), uuid, addr)
-            self.__log.log_message('Add worker (id: {}, address: {}).'.format(id, addr))
+        for rule, addr in works:
+            if rule == "PS":
+                _id = Parameter_Server
+            else:
+                _id = current_node_id_assigned
+                current_node_id_assigned += 1
+            pkg.put(_id, uuid_for_this_task, addr)
+            self.__log.log_message('Add worker (Rule: {}, Id: {}, Address: {}).'.format(rule, _id, addr))
 
         self.__log.log_message('Try connecting to the cluster.')
         self.__com = NET(pkg)
