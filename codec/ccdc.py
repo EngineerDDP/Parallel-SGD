@@ -7,7 +7,7 @@ from itertools import combinations
 from codec.essential import Block_Weight
 
 from codec.interfaces import ICommunication_Ctrl
-from codec.interfaces import IComPack
+from codec.interfaces import IComPack, netEncapsulation
 
 from profiles.settings import GlobalSettings
 from utils.log import Logger
@@ -152,7 +152,7 @@ class CodedCommunicationCtrl(ICommunication_Ctrl):
             self.ComPack_Combs.add(comb)
             dic = compack.to_dictionary()
 
-            yield (targets, dic)
+            yield netEncapsulation(targets, dic)
 
     def decoding(self, new_block_id: int):
 
