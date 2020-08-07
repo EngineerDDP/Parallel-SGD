@@ -55,6 +55,9 @@ if __name__ == '__main__':
     train_x, train_y = load_mnist(kind='train')
     test_x, test_y = load_mnist(kind='t10k')
 
+    # Split and get codec list
+    codec = codec.split(',')
+
     # Set model parameters
     model_parameter = ModelDNN(train_x=train_x, train_y=train_y,
                                test_x=test_x, test_y=test_y,

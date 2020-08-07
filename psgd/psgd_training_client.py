@@ -64,7 +64,7 @@ class PSGDTraining_Client(Thread):
 
         for layer_id in range(len(nn)):
             for type in w_types:
-                updater[layer_id][type] = sync_class(iNodeId, layer_id, codec_type)
+                updater[layer_id][type] = sync_class(iNodeId, layer_id, codec_type[-layer_id-1])
 
         self.Batch_Size = batch_size
         self.Epochs = epochs

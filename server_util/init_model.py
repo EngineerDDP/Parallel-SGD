@@ -174,7 +174,7 @@ class ModelDNN(IServerModel):
                  output='softmax',
                  loss='xentropy_softmax',
                  learn_rate=0.05,
-                 codec='CCDC',
+                 codec=None,
                  psgd_type='ssgd',
                  optimizer_type='psgd',
                  server_type='asgd',
@@ -185,11 +185,16 @@ class ModelDNN(IServerModel):
                  ):
         if layer_units is None:
             layer_units = [784, 784, 392, 196, 128, 10]
+        if codec is None:
+            codec = ['plain', 'plain', 'plain', 'plain', 'plain', 'plain']
+        elif len(codec) == 1:
+            codec = codec * len(layer_units)
+
         self.Layer_Units = layer_units
         self.Activation = get_activation(activation)
         self.Activation_out = get_activation(output)
         self.Loss = get_loss(loss)
-        self.Codec = get_codec(codec)
+        self.Codec = [get_codec(codec) for c_str in codec]
         self.Optimizer = get_optimizer(optimizer_type)
         self.Server_Codec = get_para_server(server_codec)
         self.Server_Type = get_psgd(server_type)
@@ -263,6 +268,8 @@ class ModelDNN(IServerModel):
 
         for nn in self.Neural_Network:
             input_sample = nn.F(input_sample)
+
+        assert len(self.Neural_Network) == len(self.Codec), "{} codec required, but got {}.".format(len(self.Neural_Network), len(self.Codec))
 
         return
 
