@@ -99,7 +99,7 @@ class SynchronizedSGD(IParallelSGD):
                     or self.receive_buffer[self.current_batch].empty():
                 sleep(0.001)
                 time_out += 1
-                if time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
+                if False and time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
                     raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
 

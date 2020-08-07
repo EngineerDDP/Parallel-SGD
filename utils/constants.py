@@ -1,2 +1,2 @@
-Initialization_Server = '-1'
-Parameter_Server = '-2'
+Initialization_Server = -1
+Parameter_Server = -2

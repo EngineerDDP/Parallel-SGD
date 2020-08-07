@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from multiprocessing import Value, Process
-from multiprocessing import Queue
+from multiprocessing import Queue, Array
 
 
 class IWorker_Register(metaclass=ABCMeta):
@@ -32,20 +32,43 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
 
     def __init__(self, name: str):
         Process.__init__(self, name=name)
-        self.Exit = Value('i', 0)
-        self.recv_que = Queue()
-        self.send_que = Queue()
+        self.__exit = Value('i', 0)
+        self.__recv_que = Queue()
+        self.__send_que = Queue()
 
+    @property
+    def recv_que(self):
+        return self.__recv_que
+
+    @property
+    def send_que(self):
+        return self.__send_que
+
+    @property
+    def Exit(self):
+        return self.__exit.value
+
+    @Exit.setter
+    def Exit(self, value):
+        self.__exit.value = value
+
+    @property
+    @abstractmethod
+    def available_nodes(self):
+        pass
+
+    @property
     @abstractmethod
     def node_id(self):
         pass
 
+    @property
     @abstractmethod
     def nodes(self):
         pass
 
     def close(self):
-        self.Exit.value = True
+        self.__exit.value = True
 
 
 class ICommunication_Controller(metaclass=ABCMeta):

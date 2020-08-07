@@ -24,51 +24,56 @@ class Worker_Communication_Constructor:
         self.Server = server
         self.Port = port
         self.__id_register = worker_register
+        self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # using Non-blocking IO
+        self.__bind_listener.setblocking(False)
+        # bind address
+        self.__bind_listener.bind((self.Server, self.Port))
+        # start listening
+        self.__bind_listener.listen(4)
 
     def buildCom(self):
         """
             Non-blocking IO for register this slave com to a specified job.
             Connection will be established while all connections between slaves were established.
         """
-        # release while leave active area
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as __bind_listener:
-            # using Non-blocking IO
-            __bind_listener.setblocking(False)
-            # bind address
-            __bind_listener.bind((self.Server, self.Port))
-            # start listening
-            __bind_listener.listen(4)
-            # temporary register
-            _tmp_register_ref_table = [__bind_listener]
-            _tmp_buffer_recv = {__bind_listener: Buffer()}
+        # temporary register
+        _tmp_register_ref_table = [self.__bind_listener]
+        _tmp_buffer_recv = {self.__bind_listener: Buffer()}
 
-            # wait for job submission
-            while not self.__id_register.check():
-                readable, writable, exp = select.select(_tmp_register_ref_table, [], _tmp_register_ref_table)
-                for io_event in readable:
-                    if io_event is __bind_listener:
-                        # accept connection, could be submitter or other slaves
-                        con, client_address = io_event.accept()
-                        # add to identified list
-                        _tmp_register_ref_table.append(con)
-                        con.setblocking(False)
+        # wait for job submission
+        while not self.__id_register.check():
+            readable, writable, exp = select.select(_tmp_register_ref_table, [], _tmp_register_ref_table)
+            for io_event in readable:
+                if io_event is self.__bind_listener:
+                    # accept connection, could be submitter or other slaves
+                    con, client_address = io_event.accept()
+                    # add to identified list
+                    con.setblocking(False)
+                    _tmp_register_ref_table.append(con)
 
-                    else:
-                        buf = _tmp_buffer_recv.get(io_event, Buffer())
-                        buf.recv(io_event)
-                        _tmp_buffer_recv[io_event] = buf
+                else:
+                    buf = _tmp_buffer_recv.get(io_event, Buffer())
+                    buf.recv(io_event)
+                    _tmp_buffer_recv[io_event] = buf
 
-                        if buf.is_ready():
-                            data = buf.get_content()
-                            # message from submitter
-                            if data[Key.Type] == Type_Val.Submission:
-                                self.__id_register.register(data[Key.To], data[Key.Content], io_event)
-                            # message from other worker
-                            elif data[Key.Type] == Type_Val.WorkerReports:
-                                self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
-                                print('acc worker')
+                    if buf.is_ready():
+                        data = buf.get_content()
+                        # message from submitter
+                        if data[Key.Type] == Type_Val.Submission:
+                            self.__id_register.register(data[Key.To], data[Key.Content], io_event)
+                        # message from other worker
+                        elif data[Key.Type] == Type_Val.WorkerReports:
+                            self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
+                            print('acc worker')
+
+        for buf in _tmp_buffer_recv.values():
+            buf.close()
 
         return self.__id_register
+
+    def close(self):
+        self.__bind_listener.close()
 
 
 class Communication_Controller(ICommunication_Controller):
@@ -84,7 +89,7 @@ class Communication_Controller(ICommunication_Controller):
 
     @property
     def Node_Id(self):
-        return self.__com.node_id()
+        return self.__com.node_id
 
     def establish_communication(self):
         """
@@ -101,7 +106,7 @@ class Communication_Controller(ICommunication_Controller):
         if self.is_closed():
             raise OSError('Connection has already been closed.')
         if self.__com.recv_que.empty() and not blocking:
-            return None
+            return (None, None)
         while self.__com.is_alive():
             try:
                 return self.__com.recv_que.get(timeout=1)
@@ -126,7 +131,7 @@ class Communication_Controller(ICommunication_Controller):
         return None
 
     def available_clients(self):
-        return self.__com.nodes()
+        return self.__com.nodes
 
     def close(self):
         """
@@ -134,9 +139,11 @@ class Communication_Controller(ICommunication_Controller):
         :return: None
         """
         self.__com.close()
-        while self.__com.is_alive():
-            sleep(1)
-        self.__com.terminate()
+        try:
+            while self.__com.is_alive():
+                sleep(1)
+        finally:
+            self.__com.terminate()
 
     def is_closed(self):
         """

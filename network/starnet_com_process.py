@@ -1,5 +1,6 @@
 import socket
 import select
+from multiprocessing import Array, Value
 from queue import Empty
 
 from time import sleep
@@ -20,7 +21,7 @@ class StarNetwork_Initialization_Package:
 
     def put(self, id, uuid, address):
         if id not in self.__unique:
-            self.__content.append((str(id), uuid, address))
+            self.__content.append((id, uuid, address))
         else:
             raise LookupError('Id for new nodes were used before.')
 
@@ -34,7 +35,7 @@ class Worker_Register_List:
         self.__worker_id_to_cons = {}
         self.__fd_to_workers = {}
 
-    def occupy(self, id: str, uuid: str):
+    def occupy(self, id: int, uuid: str):
         """
             Occupy a seat for future connections
         :param id: str
@@ -68,7 +69,7 @@ class Worker_Register_List:
                 return False
         return True
 
-    def identify(self, id: str, uuid: str, con: socket.socket):
+    def identify(self, id: int, uuid: str, con: socket.socket):
         """
             identify and register a worker
         :return: bool for the result
@@ -86,17 +87,17 @@ class Worker_Register_List:
 
         return True
 
-    def put(self, id: str, con: socket.socket):
+    def put(self, id: int, con: socket.socket):
         """
             register a connection
-        :param id: worker id, str
+        :param id: worker id, int
         :param con: fd
         :return: None
         """
         self.__worker_id_to_cons[id] = con
         self.__fd_to_workers[con] = id
 
-    def rm(self, id: [str, None], con: [socket.socket, None]):
+    def rm(self, id: [int, None], con: [socket.socket, None]):
         """
             remove a connection
         :param id: worker id, None or str
@@ -113,15 +114,15 @@ class Worker_Register_List:
             del self.__fd_to_workers[con]
             del self.__worker_id_to_cons[id]
 
-    def find(self, id:[str, socket.socket]):
+    def find(self, id:[int, socket.socket]):
         """
             find a connection file descriptor
-        :param id: string id, to search for specified fd.
+        :param id: integer id, to search for specified fd.
                     socket fd, to search for specified worker id.
         :return: search result
         """
         res = None
-        if isinstance(id, str):
+        if isinstance(id, int):
             res = self.__worker_id_to_cons.get(id, None)
         if isinstance(id, socket.socket):
             res = self.__fd_to_workers.get(id, None)
@@ -183,6 +184,8 @@ class Worker_Register(IWorker_Register):
                     pkg.send(worker_con)
                     self.__workers.put(id, worker_con)
                     worker_con.setblocking(False)
+                    pkg.close()
+
                 except OSError as error:
                     raise OSError('Error: {}, address: {}'.format(error, ip_addr))
 
@@ -221,10 +224,19 @@ class Communication_Process(ICommunication_Process):
         """
 
         super().__init__(name='Communication thread address: {}'.format(id_register.get_id()))
-
         self.__connections = id_register
+        self.__available_nodes_count = Value('i', len(self.__connections.ids()))
+        self.__available_nodes = Array('i', self.__connections.ids())
 
-    def __report_connection_lost(self, id, address):
+        # do detach
+        for fd in self.__connections.to_list():
+            fd.set_inheritable(True)
+
+    def __report_connection_lost(self, fd, address):
+        self.__available_nodes_count.value -= 1
+        id = self.__connections.find(fd)
+        self.__connections.remove(fd)
+        self.__available_nodes[:self.__available_nodes_count.value] = self.__connections.ids()
         print('Connection with worker (id: {}, address: {}) has been lost.'.format(id, address))
 
     def run(self):
@@ -237,15 +249,16 @@ class Communication_Process(ICommunication_Process):
         recv_buffer_list = {}
         for fd in self.__connections.to_list():
             recv_buffer_list[fd] = Buffer()
+            fd.setblocking(False)
 
         __deque_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.', daemon=True)
         __deque_thread.start()
 
-        while not self.Exit.value:
+        while not self.Exit:
             active_connections = self.__connections.to_list()
 
             if len(active_connections) == 0:
-                self.Exit.value = True
+                self.Exit = True
                 break
 
             readable, writeable, excepts = select.select(active_connections, [], active_connections, 1)
@@ -258,16 +271,17 @@ class Communication_Process(ICommunication_Process):
                         data = buf.get_content()
                         _from = data[Key.From]
                         self.recv_que.put((_from, data[Key.Content]))
-                except OSError as error:
-                    self.__report_connection_lost(self.__connections.find(fd), fd.getpeername())
-                    self.__connections.remove(fd)
 
-                    # print DEBUG message
-                    import sys
-                    import traceback
-                    exc_type, exc_value, exc_tb = sys.exc_info()
-                    traceback.print_exception(exc_type, exc_value, exc_tb)
-                    # print DEBUG message
+                except OSError as error:
+                    recv_buffer_list[fd].close()
+                    self.__report_connection_lost(fd, fd.getpeername())
+                    #
+                    # # print DEBUG message
+                    # import sys
+                    # import traceback
+                    # exc_type, exc_value, exc_tb = sys.exc_info()
+                    # traceback.print_exception(exc_type, exc_value, exc_tb)
+                    # # print DEBUG message
 
             # # write
             # for fd in writeable:
@@ -279,8 +293,8 @@ class Communication_Process(ICommunication_Process):
 
             # handle exception
             for fd in excepts:
-                self.__report_connection_lost(self.__connections.find(fd), fd.raddr)
-                self.__connections.remove(fd)
+                recv_buffer_list[fd].close()
+                self.__report_connection_lost(fd, fd.raddr)
 
             # sleep(ICommunication_Process.Circle_interval)
 
@@ -297,8 +311,9 @@ class Communication_Process(ICommunication_Process):
         """
             Sending thread function.
         """
+        send_buf = Buffer()
         try:
-            while not self.Exit.value:
+            while not self.Exit:
                 try:
                     target, data = self.send_que.get(timeout=1)
                 except Empty:
@@ -317,9 +332,9 @@ class Communication_Process(ICommunication_Process):
                                 Key.Content:    data
                             }
                             # write in TLV
-                            pkg = Buffer(pkg)
+                            send_buf.set_content(pkg)
 
-                        pkg.send(fd)
+                        send_buf.send(fd)
 
                 del data
                 del pkg
@@ -328,12 +343,20 @@ class Communication_Process(ICommunication_Process):
             pass
         except OSError as e:
             pass
+        finally:
+            send_buf.close()
 
+    @property
     def node_id(self):
         return self.__connections.get_id()
 
+    @property
     def nodes(self):
-        return self.__connections.ids()
+        return self.__available_nodes[:self.__available_nodes_count.value]
+
+    @property
+    def available_nodes(self):
+        return self.__available_nodes_count
 
 
 def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_Process:
@@ -356,7 +379,9 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
             # write key
             data[Key.To] = id
             # serialize and send
-            Buffer(data).send(con)
+            pkg = Buffer(data)
+            pkg.send(con)
+            pkg.close()
             # add
             worker_register.identify(id, uuid, con=con)
 

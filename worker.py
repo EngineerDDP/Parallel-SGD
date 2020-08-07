@@ -39,8 +39,10 @@ class PSGD_Worker:
         self.client_logger.log_message('Working started and ready for job submission.')
 
     def slave_forever(self):
+        # set up listening port
+        constructor = Worker_Communication_Constructor('0.0.0.0', STAR_NET_WORKING_PORTS, worker_register=Worker_Register())
         while True:
-            constructor = Worker_Communication_Constructor('0.0.0.0', STAR_NET_WORKING_PORTS, worker_register=Worker_Register())
+            com = None
             try:
                 self.client_logger.log_message('Worker started, prepare for connection...')
                 register = constructor.buildCom()
@@ -54,8 +56,6 @@ class PSGD_Worker:
 
                 GlobalSettings.clear_default()
                 self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
-                time.sleep(10)
-                com.close()
 
             except Exception as e:
                 self.client_logger.log_message('Exception occurred: {}'.format(e))
@@ -68,10 +68,19 @@ class PSGD_Worker:
                 for line in exc_tb:
                     self.client_logger.log_message(line)
                 # print DEBUG message
+            except InterruptedError:
+                self.client_logger.log_message('Worker shutdown by interruption.')
+                constructor.close()
+                break
+            finally:
                 time.sleep(10)
+                if isinstance(com, Communication_Controller):
+                    com.close()
 
             self.client_logger.log_message('Worker restarting...')
             # wait for safe closure
+
+
 
     def init_PSGD(self, com: Communication_Controller) -> bool:
         self.client_logger.log_message('ACK job submission and request global settings.')
@@ -175,11 +184,13 @@ class PSGD_Worker:
 
         # check ready states
         while len(ready_state) != len_ready:
-            time.sleep(0.1)
+            time.sleep(1)
             # require
-            n, d = com.get_one()
+            n, d = com.get_one(False)
             if isinstance(d, Ready_Type):
                 ready_state[n] = True
+            elif len(com.available_clients()) < len_ready:
+                raise OSError('Minimal number of clients cannot be satisfied.')
 
         # make output file
         if not os.path.exists('./training'):

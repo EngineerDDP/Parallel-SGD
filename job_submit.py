@@ -1,3 +1,5 @@
+import time
+
 from profiles.settings import GlobalSettings
 from server_util.init_model import ModelDNN, ModelCNN
 from dataset.mnist_input import load_mnist
@@ -69,9 +71,12 @@ if __name__ == '__main__':
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
 
-    core.set_workers(workers)
+    begin = time.time()
+    for i in range(1):
+        core.set_workers(workers)
+        core.require_client_log()
+    end = time.time()
+    print('TEST:Process :', end - begin)
 
-    # core.require_client_log()
-
-    core.resources_dispatch()
+    # core.resources_dispatch()
 

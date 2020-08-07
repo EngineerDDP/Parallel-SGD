@@ -27,7 +27,7 @@ class Coordinator:
         pkg = IPA()
         # set all address
         for id, uuid, addr in works:
-            pkg.put(id, uuid, addr)
+            pkg.put(int(id), uuid, addr)
             self.__log.log_message('Add worker (id: {}, address: {}).'.format(id, addr))
 
         self.__log.log_message('Try connecting to the cluster.')
@@ -112,11 +112,18 @@ class Coordinator:
         for id in self.__com.available_clients():
             self.__com.send_one(id, Reply.I_Need_Your_Working_Log)
 
-        # get result
-        for id in self.__com.available_clients():
-            self.__log.log_message('Acquire log file from worker({}).'.format(id))
-            _, log = self.__com.get_one()
-            if isinstance(log, Binary_File_Package):
-                log.restore()
+        try:
+            # get result
+            for id in self.__com.available_clients():
+                self.__log.log_message('Acquire log file from worker({}).'.format(id))
+                _, log = self.__com.get_one()
+                if isinstance(log, Binary_File_Package):
+                    log.restore()
+                    self.__log.log_message('Save log file for worker({}).'.format(id))
+        except:
+            self.__log.log_message('Connection lost.')
+
+        self.__com.close()
+        self.__log.log_message('Done.')
 
         return
