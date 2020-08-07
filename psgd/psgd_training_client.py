@@ -74,10 +74,9 @@ class PSGDTraining_Client(Thread):
         self.Model = SequentialModel_v2(nn, logger=logger)
         self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=[CategoricalAccuracy()])
 
-        self.Trace_Name = 'Codec({})-R({})-N({})-ID({})'.format(GlobalSettings.get_default().node_count,
-                                                                codec_type.__name__,
+        self.Trace_Name = 'N({})-R({})-ID({})-CODEC({})'.format(GlobalSettings.get_default().node_count,
                                                                 GlobalSettings.get_default().redundancy,
-                                                                iNodeId)
+                                                                iNodeId, codec_type.__name__)
         self.Log = logger
         self.Log_Header = logger.Title
         self.Log.log_message(self.Model.summary())
