@@ -7,6 +7,25 @@
 自同一个神经网络层（无论这段数据是来源于本机还是其他 Worker，P-SGD Transfer
 总是保证将其转发给唯一的编码控制器）。
 
+## 注解
+
+### 关键词
+　　文中提到了一些关键词，其对应的含义如下表：
+
+|名字|对应类（实体）|描述|
+|----|----|----|
+|P-SGD Transfer|psgd.interfaces.ITransfer|与神经网络 Optimizer 直接互操作的接口，包含 put_weights 和 get_weights 方法|
+|ISync-SGD|psgd.interfaces.IParallelSGD|P-SGD Transfer 中的子控制器，每个 ISync-SGD 掌管着一个权重参数的分布式交互策略|
+|Async-SGD|psgd.asgd.AsynchronizedSGD|ISync-SGD 的一个实现，使用异步策略执行节点之间的数据更新|
+
+### 文献
+　　关于 Async-SGD 的其他细节，请参考文献：  
+　　Recht, Benjamin and Re, Christopher and Wright, Stephen and Feng Niu. Hogwild: A Lock-Free Approach to Parallelizing Stochastic Gradient Descent. Advances in Neural Information Processing Systems (NIPS). Curran Associates, Inc. 2011.
+
+### FIB Warning
+
+　　**注意**：本测试器只测试类的完整性，并不会测试编码过程的统计有效性，您需要使用数学证明来确认您的编码过程是完整有效的。
+
 ## 接口
 
 　　编码控制器继承自 codec.interfaces.ICommunication_Ctrl 抽象类，当需要创建
@@ -288,16 +307,4 @@ ASSIGNMENTS = DuplicateAssignment
 ```
 ## 其他
 　　关于分配策略（IBlockAssignment）的详情，请参阅 [分配策略](../profiles/blockassignment/README.md)。
-
-## 注解
-　　文中提到了一些关键词，其对应的含义如下表：
-
-|名字|对应类（实体）|描述|
-|----|----|----|
-|P-SGD Transfer|psgd.interfaces.ITransfer|与神经网络 Optimizer 直接互操作的接口，包含 put_weights 和 get_weights 方法|
-|ISync-SGD|psgd.interfaces.IParallelSGD|P-SGD Transfer 中的子控制器，每个 ISync-SGD 掌管着一个权重参数的分布式交互策略|
-|Async-SGD|psgd.asgd.AsynchronizedSGD|ISync-SGD 的一个实现，使用异步策略执行节点之间的数据更新|
-
-　　关于 Async-SGD 的其他细节，请参考文献：  
-　　Recht, Benjamin and Re, Christopher and Wright, Stephen and Feng Niu. Hogwild: A Lock-Free Approach to Parallelizing Stochastic Gradient Descent. Advances in Neural Information Processing Systems (NIPS). Curran Associates, Inc. 2011.
 

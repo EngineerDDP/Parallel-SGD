@@ -10,6 +10,14 @@ from utils.log import Logger
 # import network agreements
 from utils.constants import Parameter_Server
 
+
+# 本模块为参数服务器编码测试模块，导入要测试的编码模块，分为服务器（主机）模块和客户端（工作）模块。
+# 导入并定义 SLAVE_CODEC 变量为您的客户端测试编码类
+# 导入并定义 MASTER_CODEC 变量为您的服务器测试编码类
+# 运行本文件脚本，等待测试完成
+# 如果运行过程中未发生错误，则证明编写的模块可以与本项目正常组合使用。
+# 注意：本测试器只测试类的完整性，并不会测试编码过程的统计有效性，您需要使用数学证明来确认您的编码过程是完整有效的。
+
 """
     ---------------DEFINE HERE---------------
 """
@@ -67,11 +75,4 @@ print("INFO: All test input was handled without exception.")
 print("WARNING: The functionality of the codec cannot be tested here.\n"
       "WARNING: Use Mathematical analysis to make sure that your codec process didn't prevents SGD from properly convergence.")
 
-
-# 本模块为参数服务器编码测试模块，导入要测试的编码模块，分为服务器（主机）模块和客户端（工作）模块。
-# 导入并定义 SLAVE_CODEC 变量为您的客户端测试编码类
-# 导入并定义 MASTER_CODEC 变量为您的服务器测试编码类
-# 运行本文件脚本，等待测试完成
-# 如果运行过程中未发生错误，则证明编写的模块可以与本项目正常组合使用。
-# 注意：本测试器只测试类的完整性，并不会测试编码过程的统计有效性，您需要使用数学证明来确认您的编码过程是完整有效的。
 

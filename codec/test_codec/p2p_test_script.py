@@ -8,6 +8,14 @@ import numpy as np
 from utils.log import Logger
 from time import sleep
 
+
+# 本模块为P2P训练网络编码测试模块，导入要测试的编码模块以测试您的模块与系统的兼容性。
+# 导入并定义 SLAVE_CODEC 变量为您的客户端测试编码类
+# 导入并定义 ASSIGNMENTS 指定您设置的数据集分配方案
+# 运行本文件脚本，等待测试完成
+# 如果运行过程中未发生错误，则证明编写的模块可以与本项目正常组合使用。
+# 注意：本测试器只测试类的完整性，并不会测试编码过程的统计有效性，您需要使用数学证明来确认您的编码过程是完整有效的。
+
 """
     ---------------DEFINE HERE---------------
 """
@@ -93,12 +101,4 @@ for slave in slave_codec:
 print("INFO: All test input was handled without exception.")
 print("WARNING: The functionality of the codec cannot be tested here.\n"
       "WARNING: Use Mathematical analysis to make sure that your codec process didn't prevents SGD from properly convergence.")
-
-
-# 本模块为P2P训练网络编码测试模块，导入要测试的编码模块以测试您的模块与系统的兼容性。
-# 导入并定义 SLAVE_CODEC 变量为您的客户端测试编码类
-# 导入并定义 ASSIGNMENTS 指定您设置的数据集分配方案
-# 运行本文件脚本，等待测试完成
-# 如果运行过程中未发生错误，则证明编写的模块可以与本项目正常组合使用。
-# 注意：本测试器只测试类的完整性，并不会测试编码过程的统计有效性，您需要使用数学证明来确认您的编码过程是完整有效的。
 

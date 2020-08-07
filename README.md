@@ -4,7 +4,6 @@
 调度脚本去挨个节点拉取 log 文件了，所有的参数使用 job_submit 一次提交到处运（崩）行（溃）。
 此外，r0.4重构了原有的 network.agreements ，从 agreements 开刀，全面消减模块之间的互相依赖
 关系，大幅精简了调用复杂度。  
-　　本段没内容了，往下看使用说明。
 
 ## 参数说明
 
@@ -34,13 +33,13 @@ worker.json格式如下：
 python job_submit.py 
     --node_count 4  
     --batch_size 128  
-    --redundancy 2  
-    --codec ccdc  
+    --redundancy 1  
+    --codec plain,plain,plain,plain,ccdc,ps  
     --psgd ssgd  
     --learn_rate 0.05  
     --epochs 10  
     --block_assignment iid 
-    --server_codec graddiff 
+    --server_codec grad 
     --workers worker.json
 ```
 * *node_count*  
@@ -98,4 +97,4 @@ block_assignment 指定的节点上。需要划分为多少个block，以及每�
 
 ## 框架结构
 
-pass
+ To be constructed.
