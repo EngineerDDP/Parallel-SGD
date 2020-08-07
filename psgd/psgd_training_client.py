@@ -29,7 +29,7 @@ class PSGDTraining_Parameter_Server(Thread):
             for type in w_types:
                 updater[layer_id][type] = ps_sgd_type(iNodeId, layer_id, ps_codec)
 
-        self.Transfer = NTransfer(updater, self.Com)
+        self.Transfer = NTransfer(updater, self.Com, logger=logger)
         self.Logger.log_message('Init parameter server with codec {}, sync type {}.'.format(ps_codec, ps_sgd_type))
 
     def run(self):

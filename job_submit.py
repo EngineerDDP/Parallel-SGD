@@ -60,6 +60,7 @@ if __name__ == '__main__':
                                test_x=test_x, test_y=test_y,
                                codec=codec,
                                psgd_type=psgd,
+                               server_codec=server_codec,
                                learn_rate=lr,
                                epoches=epo,
                                block_assignment=assignment)

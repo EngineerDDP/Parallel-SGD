@@ -31,7 +31,7 @@ class NTransfer(ITransfer):
         self.working_thread = Thread(name='Transfer thread for node {}.' \
                                      .format(self.communication_process.Node_Id), target=self.__run)
         self.Node_ID = com.Node_Id
-        self.Log = logger
+        self.__log = logger
 
     def put_weights(self, content, tag, w_type='w'):
         """
@@ -54,7 +54,7 @@ class NTransfer(ITransfer):
         except ReadTimeOut as e:
             for sender, dic in e.retry():
                 self.__send(sender, dic, tag.Layer_No, w_type)
-                self.Log.log_error('Message retry to node {}'.format(sender))
+                self.__log.log_error('Message retry to node {}'.format(sender))
             return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
 
 
@@ -103,7 +103,14 @@ class NTransfer(ITransfer):
                         self.__send(sender, dic, layer_no, w_type)
                         # self.Log.log_message('Message back to node {}'.format(sender))
                 except KeyError as e:
-                    print(e)
+                    # print DEBUG message
+                    import sys
+                    import traceback
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
+                    for line in exc_tb:
+                        self.__log.log_message(line)
+                    # print DEBUG message
         except OSError as e:
-            self.Log.log_message('Transfer thread report an error: {}'.format(e))
-        self.Log.log_message('Transfer thread exited safely.')
+            self.__log.log_message('Transfer thread report an error: {}'.format(e))
+        self.__log.log_message('Transfer thread exited safely.')

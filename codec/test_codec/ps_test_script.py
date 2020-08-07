@@ -13,10 +13,10 @@ from utils.constants import Parameter_Server
 """
     ---------------DEFINE HERE---------------
 """
-from codec.naive_ps import PAClientCodec, GradDiffParaServerCodec
+from codec.sgq import SGQServer, SGQClient
 # Type
-SLAVE_CODEC = PAClientCodec
-MASTER_CODEC = GradDiffParaServerCodec
+SLAVE_CODEC = SGQClient
+MASTER_CODEC = SGQServer
 """
     ---------------DEFINE HERE---------------
 """
@@ -35,10 +35,12 @@ master_codec = MASTER_CODEC(node_id=MASTER_ID, logger=Logger('Test codec, master
 for i in range(TEST_ROUNDS):
     # starting consensus stage
     for slave in slave_codec:
+        # set node
+        node_id = 0
         # get random
         arr = np.random.random(size=WEIGHTS_SHAPE)
         # build BlockWeight
-        blockweight = Block_Weight(LAYER, i, slave.Node_id, {slave.Node_id}, content=arr)
+        blockweight = Block_Weight(LAYER, i, node_id, {node_id}, content=arr)
         # send consensus package
         for package in slave.update_blocks(blockweight):
             # check the package that will be sent to parameter server
@@ -50,6 +52,8 @@ for i in range(TEST_ROUNDS):
                 # receive each reply
                 slave.receive_blocks(reply.content())
         arr_res = slave.get_result()
+        # inc
+        node_id += 1
 
     print("INFO: -----------Test complete {}/{} -----------".format(i, TEST_ROUNDS))
 
