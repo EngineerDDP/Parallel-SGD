@@ -280,7 +280,12 @@ class Communication_Process(ICommunication_Process):
 
                 except OSError as error:
                     recv_buffer_list[fd].close()
-                    self.__report_connection_lost(fd, fd.getpeername())
+                    addr = 'Unknown'
+                    try:
+                        addr = fd.getpeername()
+                    except Exception:
+                        pass
+                    self.__report_connection_lost(fd, addr)
                     #
                     # # print DEBUG message
                     # import sys
@@ -310,6 +315,8 @@ class Communication_Process(ICommunication_Process):
 
         self.recv_que.close()
         self.send_que.close()
+
+        self.__connections.reset()
 
         print('Communication process exited.')
 

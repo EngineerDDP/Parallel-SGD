@@ -87,7 +87,9 @@ class NTransfer(ITransfer):
         try:
             while not self.communication_process.is_closed():
                 sender, dic = self.communication_process.get_one()
-                # self.Log.log_message('Recv from node {}'.format(dic[General.From]))
+                # blocking other format
+                if not isinstance(dic, dict):
+                    continue
                 # quit processing if the object is not sent by the class instance like NTransfer
                 try:
                     layer_no = dic[NTransfer.STR_LAYER_NO]
@@ -103,5 +105,5 @@ class NTransfer(ITransfer):
                 except KeyError as e:
                     print(e)
         except OSError as e:
-            print(e)
+            self.Log.log_message('Transfer thread report an error: {}'.format(e))
         self.Log.log_message('Transfer thread exited safely.')

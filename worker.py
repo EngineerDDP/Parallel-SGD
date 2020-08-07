@@ -68,7 +68,7 @@ class PSGD_Worker:
                 for line in exc_tb:
                     self.client_logger.log_message(line)
                 # print DEBUG message
-            except InterruptedError:
+            except KeyboardInterrupt:
                 self.client_logger.log_message('Worker shutdown by interruption.')
                 constructor.close()
                 break
@@ -80,13 +80,18 @@ class PSGD_Worker:
             self.client_logger.log_message('Worker restarting...')
             # wait for safe closure
 
-
-
     def init_PSGD(self, com: Communication_Controller) -> bool:
         self.client_logger.log_message('ACK job submission and request global settings.')
+        # ignore other data
+        def acquire(com):
+            id_from, data = com.get_one()
+            while id_from != Initialization_Server:
+                id_from, data = com.get_one()
+            return data
         # initialize global settings
         com.send_one(Initialization_Server, Init.GlobalSettings)
-        _, data = com.get_one()
+        # get data
+        data = acquire(com)
         # restore global settings
         if not isinstance(data, Reply.global_setting_package):
             if data == Reply.I_Need_Your_Working_Log:
@@ -99,8 +104,8 @@ class PSGD_Worker:
         self.client_logger.log_message('Request codec and sgd class.')
         # initialize codec and sgd type
         com.send_one(Initialization_Server, Init.Codec_And_SGD_Type)
-        _, data = com.get_one()
-        # restore
+
+        data = acquire(com)
         assert isinstance(data, Reply.codec_and_sgd_package)
 
         codec, sgd = data.restore()
@@ -108,8 +113,7 @@ class PSGD_Worker:
         self.client_logger.log_message('Request weights and layer type.')
         # initialize weights and layer
         com.send_one(Initialization_Server, Init.Weights_And_Layers)
-        _, data = com.get_one()
-        # restore
+        data = acquire(com)
         assert isinstance(data, Reply.weights_and_layers_package)
 
         layers = data.restore()
@@ -117,7 +121,7 @@ class PSGD_Worker:
         self.client_logger.log_message('Request other stuff.')
         # others
         com.send_one(Initialization_Server, Init.MISC)
-        _, data = com.get_one()
+        data = acquire(com)
         assert isinstance(data, Reply.misc_package)
 
         loss_t = data.loss_type
@@ -133,7 +137,7 @@ class PSGD_Worker:
             self.client_logger.log_message('Request data samples.')
             # initialize dataset
             com.send_one(Initialization_Server, Init.Samples)
-            _, data = com.get_one()
+            data = acquire(com)
             # restore
             assert isinstance(data, Reply.data_sample_package)
 
@@ -179,18 +183,19 @@ class PSGD_Worker:
         self.client_logger.log_message('Synchronize timeline with cluster.')
 
         len_ready = len(com.available_clients())
-        for node_id in com.available_clients():
-            com.send_one(node_id, Ready_Type())
 
         # check ready states
         while len(ready_state) != len_ready:
-            time.sleep(1)
             # require
             n, d = com.get_one(False)
             if isinstance(d, Ready_Type):
                 ready_state[n] = True
             elif len(com.available_clients()) < len_ready:
                 raise OSError('Minimal number of clients cannot be satisfied.')
+            else:
+                for node_id in com.available_clients():
+                    com.send_one(node_id, Ready_Type())
+                time.sleep(1)
 
         # make output file
         if not os.path.exists('./training'):

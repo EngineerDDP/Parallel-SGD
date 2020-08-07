@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from multiprocessing import Value, Process
-from multiprocessing import Queue, Array
+from multiprocessing import Queue
 
 
 class IWorker_Register(metaclass=ABCMeta):
@@ -37,8 +37,8 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
     def __init__(self, name: str):
         Process.__init__(self, name=name)
         self.__exit = Value('i', 0)
-        self.__recv_que = Queue()
-        self.__send_que = Queue()
+        self.__recv_que = Queue(maxsize=24)
+        self.__send_que = Queue(maxsize=24)
 
     @property
     def recv_que(self):
@@ -94,7 +94,7 @@ class ICommunication_Controller(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_one(self, blocking):
+    def get_one(self, blocking=True):
         """
             Get one json like object from target nodes.
         :return: a tuple, which first element is the sender id, second element is the json object.

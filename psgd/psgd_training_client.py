@@ -34,7 +34,7 @@ class PSGDTraining_Parameter_Server(Thread):
 
     def run(self):
         self.Transfer.start_transfer()
-        while len(self.Com.available_clients()) != 1:
+        while len(self.Com.available_clients()) != 1 and not self.Com.is_closed():
             sleep(1)
 
 

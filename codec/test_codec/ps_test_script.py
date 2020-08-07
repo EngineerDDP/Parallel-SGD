@@ -8,7 +8,7 @@ import numpy as np
 from utils.log import Logger
 
 # import network agreements
-from network.agreements import DefaultNodes
+from utils.constants import Parameter_Server
 
 """
     ---------------DEFINE HERE---------------
@@ -42,7 +42,7 @@ for i in range(TEST_ROUNDS):
         # send consensus package
         for package in slave.update_blocks(blockweight):
             # check the package that will be sent to parameter server
-            assert DefaultNodes.Parameter_Server in package.target()
+            assert Parameter_Server in package.target()
             # reply each package
             for reply in master_codec.receive_blocks(package.content()):
                 # check the package header

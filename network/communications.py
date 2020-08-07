@@ -67,7 +67,6 @@ class Worker_Communication_Constructor:
                         # message from other worker
                         elif data[Key.Type] == Type_Val.WorkerReports:
                             self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
-                            print('acc worker')
 
         for buf in _tmp_buffer_recv.values():
             buf.close()
@@ -88,6 +87,7 @@ class Communication_Controller(ICommunication_Controller):
         """
         super().__init__()
         self.__com = com
+        self.__get_queue_buffer = {}
 
     @property
     def Node_Id(self):
@@ -141,11 +141,14 @@ class Communication_Controller(ICommunication_Controller):
         :return: None
         """
         self.__com.close()
+        wait_limit = 20
         try:
-            while self.__com.is_alive():
+            while self.__com.is_alive() and wait_limit > 0:
                 sleep(1)
+                wait_limit -= 1
         finally:
             self.__com.terminate()
+            print('Terminate communication process.')
 
     def is_closed(self):
         """

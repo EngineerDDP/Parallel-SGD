@@ -71,12 +71,16 @@ if __name__ == '__main__':
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
 
-    begin = time.time()
-    for i in range(1):
-        core.set_workers(workers)
-        core.require_client_log()
-    end = time.time()
-    print('TEST:Process :', end - begin)
+    core.set_workers(workers)
 
-    # core.resources_dispatch()
+    # begin = time.time()
+    # for i in range(1):
+    #     core.require_client_log()
+    # end = time.time()
+    # print('TEST:Process :', end - begin)
+
+    try:
+        core.resources_dispatch()
+    except OSError:
+        print('All Done.')
 

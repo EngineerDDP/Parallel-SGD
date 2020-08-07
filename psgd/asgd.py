@@ -42,15 +42,17 @@ class AsynchronizedSGD(SynchronizedSGD):
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
             # get package iterable
-            pack_to_sends = self.batch_updater.receive_blocks(obj)
+            pack_to_sends = self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA])
             # iterate package
             for pack_to_send in pack_to_sends:
                 target = pack_to_send.target()
                 pack = pack_to_send.content()
                 # tag this layer
-                pack[SynchronizedSGD.STR_BATCH_NO] = sender_batch
-                yield target, pack
+                pkg = {
+                    SynchronizedSGD.STR_BATCH_NO: sender_batch,
+                    SynchronizedSGD.DATA: pack
+                }
+                yield target, pkg
 
     def require_weights(self, tag):
-
         return self.batch_updater.get_result()

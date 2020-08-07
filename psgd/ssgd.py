@@ -79,7 +79,7 @@ class SynchronizedSGD(IParallelSGD):
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch >= self.current_batch:
             self.receive_buffer[sender_batch] = self.receive_buffer.get(sender_batch, Queue())
-            self.receive_buffer[sender_batch].put(obj)
+            self.receive_buffer[sender_batch].put(obj[SynchronizedSGD.DATA])
         else:
             raise OutdatedUpdates()
 
@@ -99,13 +99,13 @@ class SynchronizedSGD(IParallelSGD):
                     or self.receive_buffer[self.current_batch].empty():
                 sleep(0.001)
                 time_out += 1
-                if False and time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
+                if time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
                     raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
 
             else:
                 pkg = self.receive_buffer[self.current_batch].get()
-                self.batch_updater.receive_blocks(pkg[SynchronizedSGD.DATA])
+                self.batch_updater.receive_blocks(pkg)
 
         if self.batch_updater.is_done():
             return self.batch_updater.get_result()
