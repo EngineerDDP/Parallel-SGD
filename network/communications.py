@@ -37,6 +37,8 @@ class Worker_Communication_Constructor:
             Non-blocking IO for register this slave com to a specified job.
             Connection will be established while all connections between slaves were established.
         """
+        # reset register
+        self.__id_register.reset()
         # temporary register
         _tmp_register_ref_table = [self.__bind_listener]
         _tmp_buffer_recv = {self.__bind_listener: Buffer()}

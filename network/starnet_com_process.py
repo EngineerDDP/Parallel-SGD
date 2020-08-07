@@ -137,6 +137,7 @@ class Worker_Register_List:
 class Worker_Register(IWorker_Register):
 
     def __init__(self):
+        super().__init__()
         self.__id = None
         self.__workers = Worker_Register_List()
 
@@ -210,6 +211,10 @@ class Worker_Register(IWorker_Register):
     def ids(self):
         return self.__workers.keys()
 
+    def reset(self):
+        del self.__workers
+        self.__workers = Worker_Register_List()
+
 
 class Communication_Process(ICommunication_Process):
     """
@@ -236,6 +241,7 @@ class Communication_Process(ICommunication_Process):
         self.__available_nodes_count.value -= 1
         id = self.__connections.find(fd)
         self.__connections.remove(fd)
+        fd.close()
         self.__available_nodes[:self.__available_nodes_count.value] = self.__connections.ids()
         print('Connection with worker (id: {}, address: {}) has been lost.'.format(id, address))
 

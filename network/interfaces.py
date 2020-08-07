@@ -26,6 +26,10 @@ class IWorker_Register(metaclass=ABCMeta):
     def identify(self, id, uuid, con):
         pass
 
+    @abstractmethod
+    def reset(self):
+        pass
+
 
 class ICommunication_Process(Process, metaclass=ABCMeta):
     Circle_interval = 0.001
