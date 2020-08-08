@@ -137,7 +137,44 @@ INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
 INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
 ```
 **注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。  
-**注意**：参数服务器只有Worker工作记录和简要的Training日志，没有详细的训练过程报表。
+**注意**：参数服务器只有Worker工作记录和简要的Training日志，没有详细的训练过程报表。  
+**注意**：在Sync-SGD强一致性约束下，集群可以保证每个Worker给出的Evaluation报表是一致的。  
+**注意**：在ASync-SGD弱一致性约束下，每个Worker给出一个有限的感知范围下最优的Evaluation报表。  
+
+### 提交流程
+
+　　训练任务的提交过程遵循分布式系统的三阶段提交规范。包含canCommit、preCommit和doCommit三个阶段。
+* canCommit阶段：Coordinator会逐个访问worker.json中的每个Worker，检查Worker是否处于可提交阶段。  
+    - 当所有的Worker都接收了本次连接并回复ACK之后，进入preCommit阶段。
+    - 当存在一个Worker处于Busy状态，或存在一个Worker连接超时，取消提交。
+* preCommit阶段：Coordinator会向每个Worker提交本次训练所需的超参数、初始化权重、网络结构和样本集等数据。
+    - Worker逐个接收并确认每个Package，当所有的Worker都完成确认之后，进入doCommit阶段。
+    - 当存在一个Worker未确认，或超时未确认之后，Coordinator就会放弃提交，断开当前连接。
+* doCommit阶段：第一个完成preCommit的Worker会向集群中广播Ready标志。
+    - 每个完成preCommit阶段的Worker都会在收到Ready标志后回复Ready_Type，当所有Worker都进入Ready状态后，提交完成。
+    - 当超时未收到指定数目的Ready回复后，所有的Worker回退到初始状态并重置连接状态，Coordinator检查连接断开后报告任务提交失败。
+    
+### 一致性约束
+
+　　在 Sync-SGD Type 约束下，网络权重参数满足一致性（Consistency）和分区容错性（Partition Tolerance），不满足可用性（Availability）。
+详细的资源CAP状况如下表。
+ 
+|资源|Consistency|Availability|Partition Tolerance|
+|----|----|----|----|
+|初始化资源|√|√|×|
+|训练日志|×|√|√|
+|评估日志|√|×|√|
+|网络权重|√|×|√|
+
+　　在 ASync-SGD Type 约束下，网络权重参数满足分区容错性（Partition Tolerance）和可用性（Availability），不满足一致性（Consistency）。
+详细的资源CAP状况如下表。
+
+|资源|Consistency|Availability|Partition Tolerance|
+|----|----|----|----|
+|初始化资源|√|√|×|
+|训练日志|×|√|√|
+|评估日志|×|√|√|
+|网络权重|×|√|√|
 
 ## 框架结构
 
