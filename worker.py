@@ -199,10 +199,9 @@ class PSGD_Worker:
                 ready_state[n] = True
             elif len(com.available_clients()) < len_ready:
                 raise OSError('Minimal number of clients cannot be satisfied.')
-            else:
-                for node_id in com.available_clients():
-                    com.send_one(node_id, Ready_Type())
-                time.sleep(1)
+            for node_id in com.available_clients():
+                com.send_one(node_id, Ready_Type())
+            time.sleep(1)
 
         # make output file
         if not os.path.exists('./training'):
