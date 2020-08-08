@@ -1,272 +1,165 @@
-import socket as sc
-
-from threading import Thread
-
-from multiprocessing import Process
-from multiprocessing import Queue, Value
+import queue
+import socket
+import select
 
 from time import sleep
-from network.serialization import Serialize
-from network.agreements import General, Initialize
+from utils.constants import Initialization_Server
+
+from network.agreements import *
+from network.interfaces import IWorker_Register, ICommunication_Process, ICommunication_Controller
+from network.serialization import Buffer
 
 
-class TLVPack:
-    Block_Size = 1024 * 1024
-    TLV_Type_Normal = 1
-    TLV_Type_Exit = 0
-
-    def __init__(self, content):
-        self.Content = content
-        self.Length = len(content)
-
-    def send(self, io):
-        tlv_package = TLVPack.TLV_Type_Normal.to_bytes(1, 'big') + self.Length.to_bytes(4, 'big') + self.Content
-        io.sendall(tlv_package)
-
-    @staticmethod
-    def flush_garbage(io):
-        b = int(0).to_bytes(4, 'big')
-        io.sendall(b)
-
-    @staticmethod
-    def recv(io):
-        type_ = io.recv(1)
-        length = io.recv(4)
-        type_ = int.from_bytes(type_, 'big')
-        length = int.from_bytes(length, 'big')
-
-        if type_ == TLVPack.TLV_Type_Exit:
-            raise OSError('Connection closed by remote computer.')
-
-        content = b''
-        take = 0
-        while take < length:
-            read_len = min(length - take, TLVPack.Block_Size)
-            content += io.recv(read_len)
-            take = len(content)
-
-        return TLVPack(content)
-
-    @staticmethod
-    def request_close(io):
-        io.send(TLVPack.TLV_Type_Exit.to_bytes(1, 'big'))
-        TLVPack.flush_garbage(io)
-
-
-class Com(Process):
-    """
-        Operated with dictionary, serialized using numpy save
-    """
-
-    Circle_interval = 0.001
-
-    def __init__(self, socketcon, nodeid=-1):
-        """
-            Initialize a communication control process.
-        :param socketcon: socket connection object to remote device.
-        :param nodeid: node id that has been assigned to this node.
-        """
-
-        Process.__init__(self, name='Communication thread address: {}'.format(socketcon.getsockname()))
-
-        self.Connection = socketcon
-        self.Node_ID = nodeid
-
-        self.send_que = Queue()
-        self.recv_que = Queue()
-
-        self.send_thread = None
-        self.recv_thread = None
-
-        self.Exit = Value('i', 0)
-
-    def run(self):
-        """
-            Bootstrap method
-            start both sending and receiving thread on target socket object
-        """
-        self.send_thread = Thread(name='communication send.', target=self.run_send)
-        self.recv_thread = Thread(name='communication recv.', target=self.run_recv)
-
-        self.send_thread.start()
-        self.recv_thread.start()
-
-        self.Connection.settimeout(1)
-
-        while not self.Exit.value:
-            sleep(1)
-
-        self.send_que.put(None)
-
-        TLVPack.request_close(self.Connection)
-        self.Connection.close()
-
-        self.send_thread.join()
-        self.recv_thread.join()
-
-        self.send_que.close()
-        self.recv_que.close()
-
-        print('Communication process exited.')
-
-    def run_send(self):
-        """
-            Sending thread function.
-        """
-        try:
-            while not self.Exit.value:
-                target, dic = self.send_que.get()
-
-                if len(target) == 0:
-                    continue
-                # write sender info
-                dic[General.From] = self.Node_ID
-                # write target info
-                dic[General.To] = target
-                # write in TLV
-                data = Serialize.pack(dic)
-                pack = TLVPack(data)
-                pack.send(self.Connection)
-        except TypeError as e:
-            pass
-
-    def run_recv(self):
-        """
-            Receiving thread function.
-        """
-        try:
-            while not self.Exit.value:
-                try:
-                    pack = TLVPack.recv(self.Connection)
-                except sc.timeout:
-                    continue
-                if len(pack.Content) != 0:
-                    # decode data
-                    dic = Serialize.unpack(pack.Content)
-                    # retrieve sender info
-                    sender = dic[General.From]
-                    # invoke listener
-                    self.recv_que.put_nowait((sender, dic))
-                pack.Content = None
-
-        except OSError as e:
-            pass
-        finally:
-            self.recv_que.put(None)
-
-    def close(self):
-        self.Exit.value = True
-
-
-class ComConstructor:
+class Worker_Communication_Constructor:
     """
         Communication constructor
         Factory class for build class Com
     """
 
-    def __init__(self, server, port):
+    def __init__(self, server, port, worker_register: IWorker_Register):
         """
             Typo server address
         :param server:
         """
         self.Server = server
         self.Port = port
+        self.__id_register = worker_register
+        self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # using Non-blocking IO
+        self.__bind_listener.setblocking(False)
+        # bind address
+        self.__bind_listener.bind((self.Server, self.Port))
+        # start listening
+        self.__bind_listener.listen(4)
 
     def buildCom(self):
         """
-            Ask the server to get a valid node id, and return a available communication
-        :return: class Com, that can be bind with a specified computation node
+            Non-blocking IO for register this slave com to a specified job.
+            Connection will be established while all connections between slaves were established.
         """
-        ss = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
-        ss.connect((self.Server, self.Port))
-        # build and init communication module
-        # init dictionary
-        init_dic = {General.Type: Initialize.Type}
-        # pack the data
-        data = Serialize.pack(init_dic)
-        # pack with TLV
-        pack = TLVPack(data)
-        pack.send(ss)
-        # retrieve data from server
-        pack_return = TLVPack.recv(ss)
-        dic = Serialize.unpack(pack_return.Content)
+        # reset register
+        self.__id_register.reset()
+        # temporary register
+        _tmp_register_ref_table = [self.__bind_listener]
+        _tmp_buffer_recv = {self.__bind_listener: Buffer()}
 
-        # get node id
-        node_id = dic[Initialize.Node_ID]
-        # construct communication module
-        com = Com(ss, node_id)
-        return com
+        # wait for job submission
+        while not self.__id_register.check():
+            readable, writable, exp = select.select(_tmp_register_ref_table, [], _tmp_register_ref_table)
+            for io_event in readable:
+                if io_event is self.__bind_listener:
+                    # accept connection, could be submitter or other slaves
+                    con, client_address = io_event.accept()
+                    # add to identified list
+                    con.setblocking(False)
+                    _tmp_register_ref_table.append(con)
+
+                else:
+                    buf = _tmp_buffer_recv.get(io_event, Buffer())
+                    buf.recv(io_event)
+                    _tmp_buffer_recv[io_event] = buf
+
+                    if buf.is_ready():
+                        data = buf.get_content()
+                        # message from submitter
+                        if data[Key.Type] == Type_Val.Submission:
+                            self.__id_register.register(data[Key.To], data[Key.Content], io_event)
+                        # message from other worker
+                        elif data[Key.Type] == Type_Val.WorkerReports:
+                            self.__id_register.identify(data[Key.From], data[Key.Content], io_event)
+
+        for buf in _tmp_buffer_recv.values():
+            buf.close()
+
+        return self.__id_register
+
+    def close(self):
+        self.__bind_listener.close()
 
 
-class CommunicationController:
-    static_server_address = '192.168.1.140'
-    static_server_port = 15387
+class Communication_Controller(ICommunication_Controller):
 
-    def __init__(self):
+    def __init__(self, com: ICommunication_Process):
         """
             Prepare communication module for connection.
             Change CommunicationController.static_server_address and CommunicationController.static_server_port
             before initializing this class.
         """
-        self.com_builder = ComConstructor(server=CommunicationController.static_server_address,
-                                          port=CommunicationController.static_server_port)
-        self.com = None
-        self.Node_ID = -1
+        super().__init__()
+        self.__com = com
+        self.__get_queue_buffer = {}
+
+    @property
+    def Node_Id(self):
+        return self.__com.node_id
 
     def establish_communication(self):
         """
             Establish connection.
         :return: None
         """
-        self.com = self.com_builder.buildCom()
-        self.Node_ID = self.com.Node_ID
-        self.com.start()
+        self.__com.start()
 
-    def get_one(self):
+    def get_one(self, blocking=True):
         """
             Get one json like object from target nodes.
         :return: a tuple, which first element is the sender id, second element is the json object.
         """
-        return self.com.recv_que.get()
+        if self.is_closed():
+            raise OSError('Connection has already been closed.')
+        if self.__com.recv_que.empty() and not blocking:
+            return (None, None)
+        while self.__com.is_alive():
+            try:
+                return self.__com.recv_que.get(timeout=1)
+            except queue.Empty:
+                continue
+        raise OSError('Connection is closed.')
 
     def send_one(self, target, dic):
         """
             send one json like object to target nodes
         :param target: target node list, must be a list : list[int]
-        :param dic: json like object : dict
+        :param dic: json like object : encode
         :return: None
         """
-        self.com.send_que.put((target, dic))
+        if self.is_closed():
+            raise OSError('Connection has already been closed.')
+        if isinstance(target, list):
+            self.__com.send_que.put((target, dic))
+        else:
+            self.__com.send_que.put(([target], dic))
 
         return None
+
+    def available_clients(self):
+        return self.__com.nodes
 
     def close(self):
         """
             Stop communicating with remote nodes.
         :return: None
         """
-        self.com.close()
-        sleep(1)
-        self.com.terminate()
+        self.__com.close()
+        wait_limit = 20
+        try:
+            while self.__com.is_alive() and wait_limit > 0:
+                sleep(1)
+                wait_limit -= 1
+        finally:
+            self.__com.terminate()
+            print('Terminate communication process.')
 
     def is_closed(self):
         """
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return self.com.Exit.value is True
+        return not self.__com.is_alive() and self.__com.recv_que.empty()
 
+
+def get_repr():
+    return socket.gethostbyname(socket.gethostname())
 
 if __name__ == "__main__":
-    con = CommunicationController()
-    con.establish_communication()
-
-    print(con.Node_ID)
-
-    con.send_one([-1], {General.Type: Initialize.Init_Weight})
-    sleep(1)
-    r = con.get_one()
-    print(r[1])
-
-    sleep(1)
-    con.close()
+    pass

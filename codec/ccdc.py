@@ -4,13 +4,13 @@ import numpy as np
 from threading import Lock
 from itertools import combinations
 
-from codec.essential import BlockWeight
+from codec.essential import Block_Weight
 
-from codec.interfaces import ICommunicationCtrl
-from codec.interfaces import IComPack
+from codec.interfaces import ICommunication_Ctrl
+from codec.interfaces import IComPack, netEncapsulation
 
 from profiles.settings import GlobalSettings
-from log import Logger
+from utils.log import Logger
 
 
 Qunatization = 'int32'
@@ -30,12 +30,12 @@ class PartialBlockWeight:
         self.Content = content
 
 
-class CodedBlockWeight(BlockWeight):
+class CodedBlockWeight(Block_Weight):
 
     SPLIT_AXIS = 0
 
     def __init__(self, layer_id, batch_id, block_id, company_id, content):
-        BlockWeight.__init__(self, layer_id, batch_id, block_id, company_id, content)
+        Block_Weight.__init__(self, layer_id, batch_id, block_id, company_id, content)
 
     @classmethod
     def from_block_weight(cls, blockweight):
@@ -64,14 +64,14 @@ class CodedBlockWeight(BlockWeight):
         return PartialBlockWeight(self.Layer_ID, self.Batch_ID, self.Block_ID, pos, parts)
 
 
-class CodedCommunicationCtrl(ICommunicationCtrl):
+class CodedCommunicationCtrl(ICommunication_Ctrl):
     """
         Control communication between nodes within a specified batch and layer.
 
     """
 
     def __init__(self, node_id, logger=Logger('None')):
-        ICommunicationCtrl.__init__(self)
+        ICommunication_Ctrl.__init__(self)
 
         self.Node_ID = node_id
 
@@ -104,7 +104,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         self.Parts_BlockWeight_Buffers.clear()
         self.ComPack_Combs.clear()
 
-    def update_blocks(self, blockweight):
+    def update_blocks(self, blockweight: Block_Weight):
         """
             Update a block weights to the cluster
         """
@@ -117,7 +117,7 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
         # check if any of those blocks were ready to broadcast
         return self.coding()
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, json_dict: dict):
         """
             Received a communication package from other node
         """
@@ -152,9 +152,9 @@ class CodedCommunicationCtrl(ICommunicationCtrl):
             self.ComPack_Combs.add(comb)
             dic = compack.to_dictionary()
 
-            yield (targets, dic)
+            yield netEncapsulation(targets, dic)
 
-    def decoding(self, new_block_id):
+    def decoding(self, new_block_id: int):
 
         if len(self.Parts_BlockWeight_Buffers) < GlobalSettings.get_default().redundancy:
             return
@@ -308,6 +308,6 @@ class ComPack(IComPack):
 
 
 if __name__ == '__main__':
-    bw = BlockWeight(0, 0, 0, {0, 1}, [1, 2, 3])
+    bw = Block_Weight(0, 0, 0, {0, 1}, [1, 2, 3])
     cbw = CodedBlockWeight.from_block_weight(bw)
     print(cbw)

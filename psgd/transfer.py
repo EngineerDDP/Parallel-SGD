@@ -1,10 +1,8 @@
 from threading import Thread
-from log import Logger
-
-from network.agreements import General
-from network.agreements import Transfer as TransferAgreements
+from utils.log import Logger
 
 from psgd.interfaces import ITransfer, ReadTimeOut
+from network.interfaces import ICommunication_Controller
 
 
 class NTransfer(ITransfer):
@@ -17,7 +15,7 @@ class NTransfer(ITransfer):
     STR_W_TYPE = 'NW_Type'
     INT_RETRY_LIMIT = 5
 
-    def __init__(self, weights_ctrl, com, logger=Logger('Default Transfer')):
+    def __init__(self, weights_ctrl, com: ICommunication_Controller, logger=Logger('Default Transfer')):
         """
             build a transfer controller for transferring data between local ML process and
             remote server process.
@@ -31,9 +29,9 @@ class NTransfer(ITransfer):
         self.communication_process = com
 
         self.working_thread = Thread(name='Transfer thread for node {}.' \
-                                     .format(self.communication_process.Node_ID), target=self.__run)
-        self.Node_ID = com.Node_ID
-        self.Log = logger
+                                     .format(self.communication_process.Node_Id), target=self.__run)
+        self.Node_ID = com.Node_Id
+        self.__log = logger
 
     def put_weights(self, content, tag, w_type='w'):
         """
@@ -56,7 +54,7 @@ class NTransfer(ITransfer):
         except ReadTimeOut as e:
             for sender, dic in e.retry():
                 self.__send(sender, dic, tag.Layer_No, w_type)
-                self.Log.log_error('Message retry to node {}'.format(sender))
+                self.__log.log_error('Message retry to node {}'.format(sender))
             return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
 
 
@@ -78,7 +76,6 @@ class NTransfer(ITransfer):
         # write tag
         dic[NTransfer.STR_LAYER_NO] = layer_no
         dic[NTransfer.STR_W_TYPE] = w_type
-        dic[General.Type] = TransferAgreements.Type
         self.communication_process.send_one(target, dic)
 
     def __run(self):
@@ -90,7 +87,9 @@ class NTransfer(ITransfer):
         try:
             while not self.communication_process.is_closed():
                 sender, dic = self.communication_process.get_one()
-                # self.Log.log_message('Recv from node {}'.format(dic[General.From]))
+                # blocking other format
+                if not isinstance(dic, dict):
+                    continue
                 # quit processing if the object is not sent by the class instance like NTransfer
                 try:
                     layer_no = dic[NTransfer.STR_LAYER_NO]
@@ -104,7 +103,14 @@ class NTransfer(ITransfer):
                         self.__send(sender, dic, layer_no, w_type)
                         # self.Log.log_message('Message back to node {}'.format(sender))
                 except KeyError as e:
-                    print(e)
+                    # print DEBUG message
+                    import sys
+                    import traceback
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
+                    for line in exc_tb:
+                        self.__log.log_message(line)
+                    # print DEBUG message
         except OSError as e:
-            print(e)
-        self.Log.log_message('Transfer thread exited safely.')
+            self.__log.log_message('Transfer thread report an error: {}'.format(e))
+        self.__log.log_message('Transfer thread exited safely.')
