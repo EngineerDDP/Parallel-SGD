@@ -22,7 +22,7 @@
 　　关于 Async-SGD 的其他细节，请参考文献：  
 　　Recht, Benjamin and Re, Christopher and Wright, Stephen and Feng Niu. Hogwild: A Lock-Free Approach to Parallelizing Stochastic Gradient Descent. Advances in Neural Information Processing Systems (NIPS). Curran Associates, Inc. 2011.
 
-### FIB Warning
+### Warning
 
 　　**注意**：本测试器只测试类的完整性，并不会测试编码过程的统计有效性，您需要使用数学证明来确认您的编码过程是完整有效的。
 
