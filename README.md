@@ -81,8 +81,8 @@ block_assignment 指定的节点上。需要划分为多少个block，以及每�
 注册，即可在此处传入对应参数，启动对应的参数服务器编码器。
 
 * *workers*  
-工作节点目录，参数内容为文件名，默认为 worker.json。
-　　在提交任务到集群上之前，需要设置worker.json，标明当前集群的节点列表。
+工作节点目录，参数内容为文件名，默认为 worker.json。  
+在提交任务到集群上之前，需要设置worker.json，标明当前集群的节点列表。
 worker.json格式如下：
 ```json
 [
