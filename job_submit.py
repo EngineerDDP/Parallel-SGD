@@ -18,6 +18,7 @@ if __name__ == '__main__':
          --server_codec graddiff --workers worker.json
     """
     parse = argparse.ArgumentParser()
+    parse.add_argument("--retrieve_data", action="store_true", dest="do_retrieve_only", default=False, help="retrieve data from cluster and exit.")
     parse.add_argument("--node_count", type=int, default=1, help="initial node count")
     parse.add_argument("--batch_size", type=int, default=64, help="initial batch size")
     parse.add_argument("--redundancy", type=int, default=1, help="initial redundancy")
@@ -82,9 +83,11 @@ if __name__ == '__main__':
     #     core.require_client_log()
     # end = time.time()
     # print('TEST:Process :', end - begin)
-
     try:
-        core.resources_dispatch()
+        if not arg.do_retrieve_only:
+            core.resources_dispatch()
+        else:
+            core.require_client_log()
     except OSError:
         print('All Done.')
 

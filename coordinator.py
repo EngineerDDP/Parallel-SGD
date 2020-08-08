@@ -55,54 +55,73 @@ class Coordinator:
         assert isinstance(self.__com, Communication_Controller)
         assert isinstance(self.__model, IServerModel)
 
+        total_node_count = len(self.__com.available_clients())
+        node_ready = set()
+        key_interrupted_before = False
+
         while not self.__com.is_closed():
-            id_from, data = self.__com.get_one()
+            try:
+                id_from, data = self.__com.get_one()
 
-            if isinstance(data, Init):
-                if data == Init.GlobalSettings:
-                    reply = Reply.global_setting_package(GlobalSettings.get_default())
+                if isinstance(data, Init):
+                    if data == Init.GlobalSettings:
+                        reply = Reply.global_setting_package(GlobalSettings.get_default())
 
-                elif data == Init.Weights_And_Layers:
-                    reply = Reply.weights_and_layers_package(self.__model.getWeightsInit())
+                    elif data == Init.Weights_And_Layers:
+                        reply = Reply.weights_and_layers_package(self.__model.getWeightsInit())
 
-                elif data == Init.Codec_And_SGD_Type:
-                    if id_from != Parameter_Server:
-                        reply = Reply.codec_and_sgd_package(
-                            self.__model.codec_ctrl(),
-                            self.__model.psgd_type()
+                    elif data == Init.Codec_And_SGD_Type:
+                        if id_from != Parameter_Server:
+                            reply = Reply.codec_and_sgd_package(
+                                self.__model.codec_ctrl(),
+                                self.__model.psgd_type()
+                            )
+                        else:
+                            reply = Reply.codec_and_sgd_package(
+                                self.__model.psgd_server_codec(),
+                                self.__model.psgd_server_type()
+                            )
+
+                    elif data == Init.Samples:
+                        reply = Reply.data_sample_package(*self.__model.train_data(), *self.__model.eval_data())
+
+                    elif data == Init.MISC:
+                        reply = Reply.misc_package(
+                            self.__model.epoches(),
+                            self.__model.loss_type(),
+                            self.__model.learn_rate(),
+                            self.__model.target_acc(),
+                            self.__model.weights_types(),
+                            self.__model.optimizer_type()
                         )
+
                     else:
-                        reply = Reply.codec_and_sgd_package(
-                            self.__model.psgd_server_codec(),
-                            self.__model.psgd_server_type()
-                        )
+                        reply = None
 
-                elif data == Init.Samples:
-                    reply = Reply.data_sample_package(*self.__model.train_data(), *self.__model.eval_data())
+                    self.__log.log_message('Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
+                    self.__com.send_one(id_from, reply)
 
-                elif data == Init.MISC:
-                    reply = Reply.misc_package(
-                        self.__model.epoches(),
-                        self.__model.loss_type(),
-                        self.__model.learn_rate(),
-                        self.__model.target_acc(),
-                        self.__model.weights_types(),
-                        self.__model.optimizer_type()
-                    )
+                elif isinstance(data, Ready_Type):
+                    self.__com.send_one(id_from, Ready_Type())
+                    if id_from in node_ready:
+                        continue
+                    node_ready.add(id_from)
+                    self.__log.log_message('Node({}) is ready, {} nodes in total, {} is ready.'.format(id_from, total_node_count, node_ready))
 
-                else:
-                    reply = None
+                elif isinstance(data, Binary_File_Package):
+                    self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
+                    data.restore()
 
-                self.__log.log_message('Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
-                self.__com.send_one(id_from, reply)
+            except KeyboardInterrupt:
+                if len(node_ready) < total_node_count:
+                    self.__log.log_message('Some of workers is not ready, close anyway?')
+                    self.__log.log_message('Press Ctrl+C again to shutdown immediately.')
+                    key_interrupted_before = True
+                if key_interrupted_before or len(node_ready) >= total_node_count:
+                    self.__log.log_message('Coordinator closed by user.')
+                    break
 
-            elif isinstance(data, Ready_Type):
-                self.__com.send_one(id_from, Ready_Type())
-
-            elif isinstance(data, Binary_File_Package):
-                self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
-                data.restore()
-
+        self.__com.close()
         self.__log.log_message('Dispatcher closed.')
 
 
