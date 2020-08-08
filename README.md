@@ -108,13 +108,13 @@ INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(glo
 INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(codec_and_sgd_package).
 INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(weights_and_layers_package).
 INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(misc_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Node(-2) is ready, 2 nodes in total, {-2} is ready.
+INFO Coordinator-192.168.1.1@10:49:57 : Node(-2) is ready, 2 nodes total, {-2} is ready.
 INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(global_setting_package).
 INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(codec_and_sgd_package).
 INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(weights_and_layers_package).
 INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(misc_package).
 INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(data_sample_package).
-INFO Coordinator-192.168.1.1@10:50:44 : Node(0) is ready, 2 nodes in total, {-2, 0} is ready.
+INFO Coordinator-192.168.1.1@10:50:44 : Node(0) is ready, 2 nodes total, {-2, 0} is ready.
 ```
 　　此时您可以选择通过按下 Ctrl+C 键手动退出 job_submit，也可以选择等待所有Worker返回数据集给您。当您选择提前退出job_submit
 时，您需要在任务运行完成之后通过以下命令从每个节点上回收上次执行的训练数据。
