@@ -97,7 +97,31 @@ worker.json格式如下：
 
 ### 工作与等待
 
-
+　　根据控制台的输出，您可以确定已经成功提交任务至多少个节点，当所有节点都准备就绪时，您提交的任务就在集群上正常运行。
+当一个Worker已经初始化完成后，会输出相应的信息，以及总共需要初始化的Worker数目，输入如下。
+```shell script
+INFO Coordinator-192.168.1.1@10:49:55 : Add worker (Rule: PS, Id: -2, Address: 192.168.1.2).
+INFO Coordinator-192.168.1.1@10:58:38 : Add worker (Rule: Worker, Id: 0, Address: 192.168.1.3).
+INFO Coordinator-192.168.1.1@10:49:55 : Try connecting to the cluster.
+INFO Coordinator-192.168.1.1@10:49:55 : Connection with cluster established.
+INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(global_setting_package).
+INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(codec_and_sgd_package).
+INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(weights_and_layers_package).
+INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(misc_package).
+INFO Coordinator-192.168.1.1@10:49:57 : Node(-2) is ready, 2 nodes in total, {-2} is ready.
+INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(global_setting_package).
+INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(codec_and_sgd_package).
+INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(weights_and_layers_package).
+INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(misc_package).
+INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(data_sample_package).
+INFO Coordinator-192.168.1.1@10:50:44 : Node(0) is ready, 2 nodes in total, {-2, 0} is ready.
+```
+　　此时您可以选择通过按下 Ctrl+C 键手动退出 job_submit，也可以选择等待所有Worker返回数据集给您。当您选择提前退出job_submit
+时，您需要在任务运行完成之后通过以下命令从每个节点上回收上次执行的训练数据。
+```shell script
+python job_submit.py --retrieve_data --worker ./worker.json
+```
+**注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。
 
 ## 框架结构
 

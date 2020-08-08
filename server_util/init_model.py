@@ -194,7 +194,7 @@ class ModelDNN(IServerModel):
         self.Activation = get_activation(activation)
         self.Activation_out = get_activation(output)
         self.Loss = get_loss(loss)
-        self.Codec = [get_codec(codec) for c_str in codec]
+        self.Codec = [get_codec(c_str) for c_str in codec]
         self.Optimizer = get_optimizer(optimizer_type)
         self.Server_Codec = get_para_server(server_codec)
         self.Server_Type = get_psgd(server_type)

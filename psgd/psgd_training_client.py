@@ -77,9 +77,9 @@ class PSGDTraining_Client(Thread):
         self.Model = SequentialModel_v2(nn, logger=logger)
         self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=[CategoricalAccuracy()])
 
-        self.Trace_Name = 'N({})-R({})-ID({})-CODEC({})'.format(GlobalSettings.get_default().node_count,
+        self.Trace_Name = 'N({})-R({})-ID({})-CODEC[{}]'.format(GlobalSettings.get_default().node_count,
                                                                 GlobalSettings.get_default().redundancy,
-                                                                iNodeId, codec_type.__name__)
+                                                                iNodeId, ','.join([cc.__name__ for cc in codec_type]))
         self.Log = logger
         self.Log_Header = logger.Title
         self.Log.log_message(self.Model.summary())
@@ -90,8 +90,8 @@ class PSGDTraining_Client(Thread):
         self.Eval_Y = eval_y
 
         self.Target_acc = target_acc
-        self.Trace_Train = "training-{}.csv".format(self.Trace_Name)
-        self.Trace_Eval = "eval-{}.csv".format(self.Trace_Name)
+        self.Trace_Train = "T-{}.csv".format(self.Trace_Name)
+        self.Trace_Eval = "E-{}.csv".format(self.Trace_Name)
 
     def run(self):
 
