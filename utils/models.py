@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 
 from profiles.settings import GlobalSettings
@@ -67,14 +68,20 @@ class Ready_Type:
     def __init__(self):
         pass
 
+class Done_Type:
+
+    def __init__(self):
+        pass
+
 class Binary_File_Package:
 
     def __init__(self, filename):
 
         self.filename = filename
         self.content = b''
-        with open(filename, 'rb') as f:
-            self.content = f.read()
+        if os.path.exists(filename):
+            with open(filename, 'rb') as f:
+                self.content = f.read()
 
     def restore(self):
         with open(self.filename, 'wb') as f:

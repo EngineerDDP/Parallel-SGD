@@ -9,8 +9,8 @@ class Batch:
         # get default division
         self.Splitters = np.floor(np.linspace(0, batch_size, block_count + 1))
 
-        # save total batch size
-        self.batch_size = batch_size
+        # save make sure each block has same batch size
+        self.batch_size = batch_size * block_count
 
     def update_block_with_ratio(self, block_size_ratio):
         # update block size with occupation ratio

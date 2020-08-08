@@ -11,6 +11,7 @@ from psgd.transfer import NTransfer
 from utils.log import Logger
 
 from network.interfaces import ICommunication_Controller
+from utils.constants import Initialization_Server
 
 
 class PSGDTraining_Parameter_Server(Thread):
@@ -34,8 +35,10 @@ class PSGDTraining_Parameter_Server(Thread):
 
     def run(self):
         self.Transfer.start_transfer()
-        while len(self.Com.available_clients()) != 1 and not self.Com.is_closed():
-            sleep(1)
+        while (not self.Com.is_closed()) and \
+                (Initialization_Server in self.Com.available_clients() and len(self.Com.available_clients()) > 1) or \
+                (Initialization_Server not in self.Com.available_clients() and len(self.Com.available_clients()) > 0) :
+            sleep(10)
 
 
 class PSGDTraining_Client(Thread):

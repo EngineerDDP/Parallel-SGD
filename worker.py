@@ -98,6 +98,12 @@ class PSGD_Worker:
             if data == Reply.I_Need_Your_Working_Log:
                 self.client_logger.log_message('Nothing needs to be done, send back logfile and exit process.')
                 com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
+                if isinstance(self.__training_log, Logger):
+                    com.send_one(Initialization_Server, Binary_File_Package(self.__training_log.File_Name))
+                if isinstance(self.__running_thread, PSGDTraining_Client):
+                    com.send_one(Initialization_Server, Binary_File_Package(self.__running_thread.Trace_Eval))
+                    com.send_one(Initialization_Server, Binary_File_Package(self.__running_thread.Trace_Train))
+                com.send_one(Initialization_Server, Done_Type())
             return False
 
         data.restore()
