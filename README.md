@@ -136,7 +136,7 @@ INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
 INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
 INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
 ```
-**注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。
+**注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。  
 **注意**：参数服务器只有Worker工作记录和简要的Training日志，没有详细的训练过程报表。
 
 ## 框架结构
