@@ -58,7 +58,7 @@ class PSGD_Worker:
                 self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
 
             except Exception as e:
-                self.client_logger.log_message('Exception occurred: {}'.format(e))
+                self.client_logger.log_error('Exception occurred: {}'.format(e))
 
                 # print DEBUG message
                 import sys
@@ -70,7 +70,7 @@ class PSGD_Worker:
                 # print DEBUG message
 
             except KeyboardInterrupt:
-                self.client_logger.log_message('Worker shutdown by interruption.')
+                self.client_logger.log_error('Worker shutdown by interruption.')
                 constructor.close()
                 break
             finally:
@@ -227,8 +227,8 @@ class PSGD_Worker:
                 com.send_one(Initialization_Server, eval_csv)
 
         except Exception as error:
-            self.client_logger.log_message('Error encountered while executing : {}'.format(error))
-            self.__training_log.log_message('Error encountered while executing : {}'.format(error))
+            self.client_logger.log_error('Error encountered while executing : {}'.format(error))
+            self.__training_log.log_error('Error encountered while executing : {}'.format(error))
 
         self.client_logger.log_message('Training process exited.')
         log_file = Binary_File_Package(self.__training_log.File_Name)

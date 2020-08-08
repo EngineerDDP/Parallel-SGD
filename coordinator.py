@@ -114,11 +114,11 @@ class Coordinator:
 
             except KeyboardInterrupt:
                 if len(node_ready) < total_node_count:
-                    self.__log.log_message('Some of workers is not ready, close anyway?')
+                    self.__log.log_error('Some of workers is not ready, close anyway?')
                     self.__log.log_message('Press Ctrl+C again to shutdown immediately.')
                     key_interrupted_before = True
                 if key_interrupted_before or len(node_ready) >= total_node_count:
-                    self.__log.log_message('Coordinator closed by user.')
+                    self.__log.log_error('Coordinator closed by user.')
                     break
 
         self.__com.close()
@@ -151,7 +151,7 @@ class Coordinator:
                         log.restore()
                         self.__log.log_message('Save log file for worker({}).'.format(id))
         except:
-            self.__log.log_message('Connection lost.')
+            self.__log.log_error('Connection lost.')
 
         self.__com.close()
         self.__log.log_message('Done.')
