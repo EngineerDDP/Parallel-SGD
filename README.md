@@ -86,8 +86,8 @@ block_assignment 指定的节点上。需要划分为多少个block，以及每�
 worker.json格式如下：
 ```json
 [
-    ["PS", "192.168.1.1"], 
-    ["Worker", "192.168.1.2"]
+    ["PS", "192.168.1.2"], 
+    ["Worker", "192.168.1.3"]
 ]
 ```
 　　主体为一个数组，每行包含两个信息，分别是该节点的工作角色和IP地址，您要保证这些IP地址均可以互相访问。
@@ -121,8 +121,24 @@ INFO Coordinator-192.168.1.1@10:50:44 : Node(0) is ready, 2 nodes in total, {-2,
 ```shell script
 python job_submit.py --retrieve_data --worker ./worker.json
 ```
+　　连接无误的话，输出应当如下所示：
+```shell script
+INFO Coordinator-192.168.1.1@11:12:26 : Add worker (Rule: Worker, Id: 0, Address: 192.168.1.3).
+INFO Coordinator-192.168.1.1@11:12:26 : Add worker (Rule: PS, Id: -2, Address: 192.168.1.2).
+INFO Coordinator-192.168.1.1@11:12:26 : Try connecting to the cluster.
+INFO Coordinator-192.168.1.1@11:12:26 : Connection with cluster established.
+INFO Coordinator-192.168.1.1@11:12:27 : Acquire log file from worker(0).
+INFO Coordinator-192.168.1.1@11:12:27 : Acquire log file from worker(-2).
+INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
+INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
+INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
+INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
+INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
+INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
+```
 **注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。
+**注意**：参数服务器只有Worker工作记录和简要的Training日志，没有详细的训练过程报表。
 
 ## 框架结构
 
- To be constructed.
+　　To be constructed.
