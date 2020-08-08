@@ -106,7 +106,7 @@ class Coordinator:
                     if id_from in node_ready:
                         continue
                     node_ready.add(id_from)
-                    self.__log.log_message('Node({}) is ready, {} nodes in total, {} is ready.'.format(id_from, total_node_count, node_ready))
+                    self.__log.log_message('Node({}) is ready, {} nodes total, {} is ready.'.format(id_from, total_node_count, node_ready))
 
                 elif isinstance(data, Binary_File_Package):
                     self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
