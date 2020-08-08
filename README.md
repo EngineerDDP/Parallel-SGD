@@ -162,7 +162,7 @@ INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
 |资源|Consistency|Availability|Partition Tolerance|
 |----|----|----|----|
 |初始化资源|√|√|×|
-|训练日志|×|√|√|
+|训练日志|√|√|×|
 |评估日志|√|×|√|
 |网络权重|√|×|√|
 
@@ -172,7 +172,7 @@ INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
 |资源|Consistency|Availability|Partition Tolerance|
 |----|----|----|----|
 |初始化资源|√|√|×|
-|训练日志|×|√|√|
+|训练日志|√|√|×|
 |评估日志|×|√|√|
 |网络权重|×|√|√|
 
