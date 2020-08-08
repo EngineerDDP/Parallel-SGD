@@ -13,7 +13,7 @@ from utils.models import *
 from network.starnet_com_process import Worker_Register, Communication_Process, STAR_NET_WORKING_PORTS
 
 
-CLZ_WORKREGISTER = Worker_Register
+CLZ_WORKER_REGISTER = Worker_Register
 CLZ_COM_PROCESS = Communication_Process
 
 
@@ -40,13 +40,13 @@ class PSGD_Worker:
 
     def slave_forever(self):
         # set up listening port
-        constructor = Worker_Communication_Constructor('0.0.0.0', STAR_NET_WORKING_PORTS, worker_register=Worker_Register())
+        constructor = Worker_Communication_Constructor('0.0.0.0', STAR_NET_WORKING_PORTS, worker_register=CLZ_WORKER_REGISTER())
         while True:
             com = None
             try:
                 self.client_logger.log_message('Worker started, prepare for connection...')
                 register = constructor.buildCom()
-                com = Communication_Controller(Communication_Process(register))
+                com = Communication_Controller(CLZ_COM_PROCESS(register))
                 com.establish_communication()
 
                 self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
