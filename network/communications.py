@@ -7,7 +7,7 @@ from utils.constants import Initialization_Server
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, ICommunication_Process, ICommunication_Controller
-from network.serialization import Buffer
+from network.serialization import BufferReader
 
 
 class Worker_Communication_Constructor:
@@ -41,7 +41,7 @@ class Worker_Communication_Constructor:
         self.__id_register.reset()
         # temporary register
         _tmp_register_ref_table = [self.__bind_listener]
-        _tmp_buffer_recv = {self.__bind_listener: Buffer()}
+        _tmp_buffer_recv = {self.__bind_listener: BufferReader()}
 
         # wait for job submission
         while not self.__id_register.check():
@@ -55,11 +55,11 @@ class Worker_Communication_Constructor:
                     _tmp_register_ref_table.append(con)
 
                 else:
-                    buf = _tmp_buffer_recv.get(io_event, Buffer())
+                    buf = _tmp_buffer_recv.get(io_event, BufferReader())
                     buf.recv(io_event)
                     _tmp_buffer_recv[io_event] = buf
 
-                    if buf.is_ready():
+                    if buf.is_done():
                         data = buf.get_content()
                         # message from submitter
                         if data[Key.Type] == Type_Val.Submission:

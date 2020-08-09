@@ -7,7 +7,7 @@ from time import sleep
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, ICommunication_Process
-from network.serialization import Buffer
+from network.serialization import BufferReader, BufferWriter
 
 from utils.constants import Initialization_Server
 STAR_NET_WORKING_PORTS = 15387
@@ -53,7 +53,7 @@ class Worker_Register_List:
                     self.put(id, _con)
                 # close it
                 else:
-                    Buffer.request_close(_con)
+                    BufferReader.request_close(_con)
                     _con.close()
 
 
@@ -159,6 +159,7 @@ class Worker_Register(IWorker_Register):
             self.__workers.put(Initialization_Server, con_from)
 
         self_uuid = None
+        writer = BufferWriter()
 
         # for all slaves
         for id, uuid, ip_addr in content_package:
@@ -181,14 +182,15 @@ class Worker_Register(IWorker_Register):
                         Key.To:         id,
                         Key.Content:    self_uuid
                     }
-                    pkg = Buffer(content=data)
-                    pkg.send(worker_con)
+                    writer.set_content(data)
+                    writer.send(worker_con)
                     self.__workers.put(id, worker_con)
                     worker_con.setblocking(False)
-                    pkg.close()
 
                 except OSError as error:
                     raise OSError('Error: {}, address: {}'.format(error, ip_addr))
+
+        writer.close()
 
     def find(self, id):
         return self.__workers.find(id)
@@ -254,12 +256,14 @@ class Communication_Process(ICommunication_Process):
 
         recv_buffer_list = {}
         for fd in self.__connections.to_list():
-            recv_buffer_list[fd] = Buffer()
+            recv_buffer_list[fd] = BufferReader()
             fd.setblocking(False)
 
-        __deque_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.', daemon=True)
-        __deque_thread.start()
+        # handle writeable event here
+        __write_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.', daemon=True)
+        __write_thread.start()
 
+        # handle readable event here
         while not self.Exit:
             active_connections = self.__connections.to_list()
 
@@ -267,13 +271,13 @@ class Communication_Process(ICommunication_Process):
                 self.Exit = True
                 break
 
-            readable, writeable, excepts = select.select(active_connections, [], active_connections, 1)
+            readable, _, excepts = select.select(active_connections, [], active_connections, 1)
             # read
             for fd in readable:
                 try:
                     buf = recv_buffer_list[fd]
                     buf.recv(fd)
-                    if buf.is_ready():
+                    if buf.is_done():
                         data = buf.get_content()
                         _from = data[Key.From]
                         self.recv_que.put((_from, data[Key.Content]))
@@ -294,14 +298,6 @@ class Communication_Process(ICommunication_Process):
                     # traceback.print_exception(exc_type, exc_value, exc_tb)
                     # # print DEBUG message
 
-            # # write
-            # for fd in writeable:
-            #     id = self.__connections.find(fd)
-            #     queue = self.__dispatch_queue.get(id, None)
-            #     if queue is not None and not queue.empty():
-            #         item = queue.get_nowait()
-            #         item.send(fd)
-
             # handle exception
             for fd in excepts:
                 recv_buffer_list[fd].close()
@@ -310,7 +306,7 @@ class Communication_Process(ICommunication_Process):
             # sleep(ICommunication_Process.Circle_interval)
 
         for fd in self.__connections.to_list():
-            Buffer.request_close(fd)
+            BufferWriter.request_close(fd)
             fd.close()
 
         self.recv_que.close()
@@ -324,40 +320,49 @@ class Communication_Process(ICommunication_Process):
         """
             Sending thread function.
         """
-        send_buf = Buffer()
-        try:
-            while not self.Exit:
+        writing_list = {}
+        active_connections = []
+        while not self.Exit:
+            if len(active_connections) == 0 or self.send_que.qsize() > 0:
                 try:
                     target, data = self.send_que.get(timeout=1)
+                    for send_to in target:
+                        fd = self.__connections.find(send_to)
+                        if fd is not None:
+                            buffer = writing_list.get(fd, BufferWriter())
+                            writing_list[fd] = buffer
+                            # if can send
+                            if buffer.is_done():
+                                pkg = {
+                                    Key.Type: Type_Val.Normal,
+                                    Key.From: self.__connections.get_id(),
+                                    Key.To: target,
+                                    Key.Content: data
+                                }
+                                buffer.set_content(pkg)
+                                active_connections.append(fd)
+                            # put it back
+                            else:
+                                self.send_que.put(([send_to], data))
                 except Empty:
                     continue
 
-                pkg = None
+            # do send jobs
+            if len(active_connections) > 0:
+                _, writable, _ = select.select([], active_connections, [], 1)
 
-                for id in target:
-                    fd = self.__connections.find(id)
-                    if fd is not None:
-                        if pkg is None:
-                            pkg = {
-                                Key.Type:       Type_Val.Normal,
-                                Key.From:       self.__connections.get_id(),
-                                Key.To:         target,
-                                Key.Content:    data
-                            }
-                            # write in TLV
-                            send_buf.set_content(pkg)
+                for fd in writable:
+                    try:
+                        buf = writing_list[fd]
+                        buf.send(fd)
+                        if buf.is_done():
+                            active_connections.remove(fd)
+                    # ignore exceptions and left it for main thread to handle.
+                    except OSError:
+                        active_connections.remove(fd)
 
-                        send_buf.send(fd)
-
-                del data
-                del pkg
-
-        except TypeError as e:
-            pass
-        except OSError as e:
-            pass
-        finally:
-            send_buf.close()
+        for _, buf in writing_list:
+            buf.close()
 
     @property
     def node_id(self):
@@ -384,6 +389,7 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
         Key.Content: nodes
     }
 
+    writer = BufferWriter()
     try:
         for id, uuid, address in nodes:
             con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -392,9 +398,8 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
             # write key
             data[Key.To] = id
             # serialize and send
-            pkg = Buffer(data)
-            pkg.send(con)
-            pkg.close()
+            writer.set_content(data)
+            writer.send(con)
             # add
             worker_register.identify(id, uuid, con=con)
 
@@ -403,6 +408,8 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
             if isinstance(con, socket.socket):
                 con.close()
         raise OSError('Error: {}.'.format(error))
+    finally:
+        writer.close()
 
     if worker_register.check():
         com = Communication_Process(worker_register)
@@ -412,3 +419,6 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
 
 
 
+# 解释一下 337 行代码。能够满足 len(active_connections) == 0 or self.send_que.qsize() > 0 条件的，
+# 要么是无数据可发，要么是有数据可从队列中取。当出现 Empty Exception 时，一定是无数据可发，即前一项满足
+# 因此这时可以直接调用 continue 进入下一轮循环
