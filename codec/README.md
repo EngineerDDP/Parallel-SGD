@@ -288,7 +288,7 @@ class myComCtrl(ICommunication_Ctrl):
 ```
 
 **注意**：在 Async-SGD 执行模式下，数据的产生与接收是异步的，update_blocks 与 receive_blocks
-方法可能会同时被不同的线程调用，需要额外考虑数据的线程安全性。
+方法可能会同时被不同的线程调用，需要额外考虑数据的线程安全性。  
 **注意**：receive_blocks 方法中同样可以使用 yield netEncapsulation() 来发送数据，您可以借助这种
 形式实现数据包的二次加工和转发。
 
