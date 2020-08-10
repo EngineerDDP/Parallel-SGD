@@ -141,11 +141,8 @@ from profiles.settings import GlobalSettings
 
 print('Workers in current job: {}'.format(GlobalSettings.get_default().nodes))
 ```
-
-　　其次，您需要知道在 P-SGD Transfer 中允许传输的数据类型是什么。P-SGD Transfer 对象
-之间允许交互的类型是 dict ，您需要将您的数据封装至 dict 中，编码控制器是第一个产生 dict 
-对象的类，因此，您需要新建一个 dict 对象。  
-　　要将其返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。
+ 
+　　要将您的数据返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。
 依照梯度平均化编码控制器的任务提交逻辑，应当将本节点计算所得的梯度传输给参数服
 务器或其他没有该数据的执行节点，我们先实现一个无参数服务器的简单模型，代码如下：
 ```python
@@ -292,6 +289,8 @@ class myComCtrl(ICommunication_Ctrl):
 
 **注意**：在 Async-SGD 执行模式下，数据的产生与接收是异步的，update_blocks 与 receive_blocks
 方法可能会同时被不同的线程调用，需要额外考虑数据的线程安全性。
+**注意**：receive_blocks 方法中同样可以使用 yield netEncapsulation() 来发送数据，您可以借助这种
+形式实现数据包的二次加工和转发。
 
 
 ## 调试
