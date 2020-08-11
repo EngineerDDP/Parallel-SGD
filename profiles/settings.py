@@ -6,11 +6,10 @@ from profiles.blockassignment.idependent import IIDBlockAssignment
 class Batch:
 
     def __init__(self, batch_size, block_count):
-        # get default division
-        self.Splitters = np.floor(np.linspace(0, batch_size, block_count + 1))
-
         # save make sure each block has same batch size
         self.batch_size = batch_size * block_count
+        # get default division
+        self.Splitters = np.floor(np.linspace(0, self.batch_size, block_count + 1))
 
     def update_block_with_ratio(self, block_size_ratio):
         # update block size with occupation ratio
