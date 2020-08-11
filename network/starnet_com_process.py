@@ -369,7 +369,7 @@ class Communication_Process(ICommunication_Process):
                     except OSError:
                         active_connections.remove(fd)
 
-        for _, buf in writing_list:
+        for buf in writing_list.values():
             buf.close()
 
     @property
