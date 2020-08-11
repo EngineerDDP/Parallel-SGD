@@ -17,6 +17,9 @@ class BufferReader:
         self.__content = b''
         self.__length = 0
 
+    def __len__(self):
+        return self.__length
+
     def __clear(self):
         self.__length = 0
         self.__content = b''
@@ -83,6 +86,9 @@ class BufferWriter:
 
         self.__length = 0
         self.__content = b''
+
+    def __len__(self):
+        return self.__length
 
     def set_content(self, content:[dict, bytes]):
         if self.__length != 0:

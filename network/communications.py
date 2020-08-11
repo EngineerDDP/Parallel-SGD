@@ -90,6 +90,10 @@ class Communication_Controller(ICommunication_Controller):
         self.__get_queue_buffer = {}
 
     @property
+    def Com(self):
+        return self.__com
+
+    @property
     def Node_Id(self):
         return self.__com.node_id
 

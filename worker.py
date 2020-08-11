@@ -178,6 +178,8 @@ class PSGD_Worker:
                 logger=self.__training_log
             )
 
+        self.client_logger.log_message('Submit stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
+        self.client_logger.log_message('Submit stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
         return True
 
     def do_training(self, com: Communication_Controller):
@@ -208,14 +210,20 @@ class PSGD_Worker:
             os.mkdir('./training')
         try:
             self.client_logger.log_message('Execution process started.')
-
+            data_sent_mark = com.Com.bytes_sent
+            data_recv_mark = com.Com.bytes_read
             begin = time.time()
             self.__running_thread.start()
             self.__running_thread.join()
             end = time.time()
 
             self.__training_log.log_message('Execution complete, time:{}'.format(end - begin))
+            self.__training_log.log_message('Bytes sent: {}'.format(com.Com.bytes_sent - data_sent_mark))
+            self.__training_log.log_message('Bytes read: {}'.format(com.Com.bytes_read - data_recv_mark))
+
             self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))
+            self.client_logger.log_message('Training stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
+            self.client_logger.log_message('Training stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
 
             if isinstance(self.__running_thread, PSGDTraining_Client):
                 train_csv = Binary_File_Package(self.__running_thread.Trace_Train)

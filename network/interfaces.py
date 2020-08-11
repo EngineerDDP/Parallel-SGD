@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod
 from multiprocessing import Value, Process
 from multiprocessing import Queue
 
+from ctypes import c_int64, c_bool
+
 
 class IWorker_Register(metaclass=ABCMeta):
     @abstractmethod
@@ -36,9 +38,19 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
 
     def __init__(self, name: str):
         Process.__init__(self, name=name)
-        self.__exit = Value('i', 0)
+        self.__exit = Value(c_bool, 0)
         self.__recv_que = Queue(maxsize=24)
         self.__send_que = Queue(maxsize=24)
+
+    @property
+    @abstractmethod
+    def bytes_sent(self):
+        pass
+
+    @property
+    @abstractmethod
+    def bytes_read(self):
+        pass
 
     @property
     def recv_que(self):
@@ -78,6 +90,11 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
 class ICommunication_Controller(metaclass=ABCMeta):
 
     def __init__(self):
+        pass
+
+    @property
+    @abstractmethod
+    def Com(self):
         pass
 
     @property

@@ -1,5 +1,6 @@
 import socket
 import select
+from ctypes import c_int64
 from multiprocessing import Array, Value
 from queue import Empty
 
@@ -234,7 +235,8 @@ class Communication_Process(ICommunication_Process):
         self.__connections = id_register
         self.__available_nodes_count = Value('i', len(self.__connections.ids()))
         self.__available_nodes = Array('i', self.__connections.ids())
-
+        self.__data_bytes_sent = Value(c_int64, 0)
+        self.__data_bytes_received = Value(c_int64, 0)
         # do detach
         for fd in self.__connections.to_list():
             fd.set_inheritable(True)
@@ -278,6 +280,9 @@ class Communication_Process(ICommunication_Process):
                     buf = recv_buffer_list[fd]
                     buf.recv(fd)
                     if buf.is_done():
+                        # record length
+                        self.__data_bytes_received.value += len(buf)
+                        # do decode
                         data = buf.get_content()
                         _from = data[Key.From]
                         self.recv_que.put((_from, data[Key.Content]))
@@ -339,8 +344,11 @@ class Communication_Process(ICommunication_Process):
                                     Key.To: target,
                                     Key.Content: data
                                 }
+                                # do encode
                                 buffer.set_content(pkg)
                                 active_connections.append(fd)
+                                # record length
+                                self.__data_bytes_sent.value += len(buffer)
                             # put it back
                             else:
                                 self.send_que.put(([send_to], data))
@@ -375,6 +383,14 @@ class Communication_Process(ICommunication_Process):
     @property
     def available_nodes(self):
         return self.__available_nodes_count
+
+    @property
+    def bytes_read(self):
+        return self.__data_bytes_received.value
+
+    @property
+    def bytes_sent(self):
+        return self.__data_bytes_sent.value
 
 
 def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_Process:
