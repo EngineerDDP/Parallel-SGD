@@ -22,7 +22,8 @@ if __name__ == '__main__':
     parse.add_argument("-n", "--node_count", type=int, default=1, help="initial node count")
     parse.add_argument("-b", "--batch_size", type=int, default=64, help="initial batch size")
     parse.add_argument("-r", "--redundancy", type=int, default=1, help="initial redundancy")
-    parse.add_argument("-c", "--codec", type=str, default='plain', help="initial communication codec and protocol {ccdc, plain, psclient}")
+    parse.add_argument("-c", "--codec", type=str, default='plain', help="initial communication codec and protocol {ccdc, plain, ps}")
+    parse.add_argument("--optimizer", type=str, default='psgd', help="Optimizer used for model training.")
     parse.add_argument("--psgd", type=str, default='ssgd', help="parallel stochastic gradient descent synchronization type {asgd, ssgd}")
     parse.add_argument("--learn_rate", type=float, default=0.05, help="initial learining rate")
     parse.add_argument("--epochs", type=int, default=2, help="initial train epochs")
@@ -41,12 +42,13 @@ if __name__ == '__main__':
     epo = arg.epochs
     assignment = arg.block_assignment
     server_codec = arg.server_codec
-
+    op = arg.optimizer
 
     print('\t --node_count <node count {}>'.format(node_count))
     print('\t --batch_size <batch size {}>'.format(batch_size))
     print('\t --redundancy <r {}>'.format(redundancy))
     print('\t --codec <communication codec and protocol {}>'.format(codec))
+    print('\t --optimizer <optimizer for model training {}>'.format(op))
     print('\t --psgd <parallel stochastic gradient descent synchronization type {}>'.format(psgd))
     print('\t --learn_rate <learn rate for GD algorithm {}>'.format(lr))
     print('\t --epochs <training epochs {}>'.format(epo))
@@ -67,6 +69,7 @@ if __name__ == '__main__':
                                server_codec=server_codec,
                                learn_rate=lr,
                                epoches=epo,
+                               optimizer_type=op,
                                block_assignment=assignment)
 
     assignment = model_parameter.get_assignment()(node_count, redundancy)

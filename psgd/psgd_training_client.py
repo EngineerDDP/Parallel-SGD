@@ -51,6 +51,7 @@ class PSGDTraining_Client(Thread):
                  com: ICommunication_Controller,
                  w_types,
                  tags,
+                 optimizer,
                  train_x, train_y,
                  eval_x, eval_y,
                  batch_size,
@@ -73,7 +74,7 @@ class PSGDTraining_Client(Thread):
         self.Epochs = epochs
 
         self.Transfer = NTransfer(updater, com, logger)
-        self.Optimizer = ParallelSGDOptimizer(tags=tags, batch_size=self.Batch_Size, com=self.Transfer, learn_rate=learn_rate)
+        self.Optimizer = optimizer(tags=tags, batch_size=self.Batch_Size, com=self.Transfer, learn_rate=learn_rate)
         self.Model = SequentialModel_v2(nn, logger=logger)
         self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=[CategoricalAccuracy()])
 

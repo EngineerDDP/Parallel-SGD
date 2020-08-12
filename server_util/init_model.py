@@ -50,11 +50,12 @@ __codec_map = {
 def get_codec(x: str):
     return __codec_map[x]
 
-from nn.optimizer import ParallelSGDOptimizer, ParallelSGDWithPSOptimizer
+from nn.optimizer import ParallelSGDOptimizer, ParallelSGDWithPSOptimizer, FastParallelSGDOptimizer
 
 __optimizer_map = {
     'psgd': ParallelSGDOptimizer,
-    'pa': ParallelSGDWithPSOptimizer
+    'pa': ParallelSGDWithPSOptimizer,
+    'fast': FastParallelSGDOptimizer
 }
 
 def get_optimizer(x: str):
@@ -82,9 +83,6 @@ __assignment_map = {
 def get_assignment(x: str):
     return __assignment_map[x]
 
-from nn.layers import FCLayer_v2
-from nn.layers import MaxPool, Conv2dLayer, Reshape
-
 from codec.naive_ps import ParaServerCodec, GradDiffParaServerCodec
 from codec.dc_asgdcodec import DCASGDServerCodec
 from codec.sgq import SGQServer
@@ -100,6 +98,9 @@ def get_para_server(x: str):
     return __para_server_map[x]
 
 # ---------------------------------------------------------------------------------------------------------------
+
+from nn.layers import FCLayer_v2
+from nn.layers import MaxPool, Conv2dLayer, Reshape
 
 
 class IServerModel(metaclass=ABCMeta):

@@ -19,6 +19,9 @@ class Tag:
     def incLayer(self):
         self.Layer_No += 1
 
+    def resetLayer(self):
+        self.Layer_No = 0
+
     def getSlice(self):
         # which batch
         offset = self.Batch_No * self.Batch.Batch_Size

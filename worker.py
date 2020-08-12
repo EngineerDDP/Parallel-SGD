@@ -136,6 +136,7 @@ class PSGD_Worker:
         epoch = data.epoch
         learn_rate = data.learn_rate
         w_type = data.w_types
+        op = data.optimizer
 
         self.__training_log = Logger('Training log @ node-{}'.format(com.Node_Id), log_to_file=True)
 
@@ -162,6 +163,7 @@ class PSGD_Worker:
                 train_y=train_y,
                 eval_x=eval_x,
                 eval_y=eval_y,
+                optimizer=op,
                 batch_size=GlobalSettings.get_default().batch.batch_size,
                 epochs=epoch,
                 logger=self.__training_log,

@@ -163,6 +163,60 @@ class ParallelSGDOptimizer(GradientDecentOptimizer_v2):
         return None
 
 
+class FastParallelSGDOptimizer(ParallelSGDOptimizer):
+
+    def __init__(self, tags, com, batch_size, learn_rate=0.01):
+        super().__init__(tags, com, batch_size, learn_rate)
+
+    def do_layer_wise_bp(self, x, layer, gradient):
+        """
+            Update weight and bias delta, but do training without update new weights.
+        :param x: input of this layer
+        :param layer: instance of ILayer
+        :param gradient: gradient to the output of this layer
+        """
+        grad_back = []
+
+        for j in range(len(self.Tags)):
+            w, b, y = layer.delta_wb(x[self.Slice_To_Take[j]], gradient[self.Slice_To_Take[j]])
+            grad_back.append(y)
+
+            self.TransferHelper.put_weights(w, self.Tags[j], 'w')
+            self.TransferHelper.put_weights(b, self.Tags[j], 'b')
+
+        gradient = layer.apply_wb(0, 0, np.concatenate(grad_back, axis=0))
+        return gradient
+
+    def backward_propagate(self, intermediate, gradient):
+        """
+            Backward propagation process.
+            Do weights update after the backward propagate stage complete.
+        """
+        for i in range(1, len(self.Layers)+1):
+            nn = self.Layers[-1*i]
+            gradient = self.do_layer_wise_bp(intermediate[-1*(i+1)], nn, gradient)
+            # increase layer
+            for tag in self.Tags:
+                tag.incLayer()
+
+        # reset layer and do it again
+        self.Tags[0].resetLayer()
+        for i in range(1, len(self.Layers)+1):
+            nn =  self.Layers[-1*i]
+            # get newest updates
+            w_new = self.TransferHelper.get_weights(self.Tags[0], 'w') / self.BatchSize
+            b_new = self.TransferHelper.get_weights(self.Tags[0], 'b') / self.BatchSize
+            # apply data
+            nn.apply_wb(w_new, b_new, np.asarray(0))
+            # inc layer
+            self.Tags[0].incLayer()
+        # increase batch
+        for tag in self.Tags:
+            tag.incBatch()
+
+        return None
+
+
 class DelayedPSGDOptimizer(ParallelSGDOptimizer):
 
     def __init__(self, tags, com, batch_size, learn_rate=0.01, delay_min=0, delay_max=2):
