@@ -69,7 +69,8 @@ if __name__ == '__main__':
                                epoches=epo,
                                block_assignment=assignment)
 
-    GlobalSettings.set_default(node_count, redundancy, batch_size, model_parameter.get_assignment())
+    assignment = model_parameter.get_assignment()(node_count, redundancy)
+    GlobalSettings.set_default(node_count, redundancy, batch_size * assignment.block_count, assignment)
 
     core = Coordinator(model_parameter)
 

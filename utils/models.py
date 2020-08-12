@@ -20,7 +20,7 @@ class Reply:
             self.n = settings.node_count
             self.r = settings.redundancy
             self.b = settings.batch.batch_size
-            self.ass = settings.block_assignment.__class__
+            self.ass = settings.block_assignment
 
         def restore(self):
             GlobalSettings.set_default(self.n, self.r, self.b, self.ass)

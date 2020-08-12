@@ -7,7 +7,7 @@ class Batch:
 
     def __init__(self, batch_size, block_count):
         # save make sure each block has same batch size
-        self.batch_size = batch_size * block_count
+        self.batch_size = batch_size
         # get default division
         self.Splitters = np.floor(np.linspace(0, self.batch_size, block_count + 1))
 
@@ -34,11 +34,11 @@ class Batch:
 class GlobalSettings:
     __setting = None
 
-    def __init__(self, n=4, r=2, batch_size=96, assignment_type=IIDBlockAssignment):
+    def __init__(self, n, r, batch_size, assignment:IIDBlockAssignment):
         self.redundancy = r
         self.node_count = n
 
-        self.block_assignment = assignment_type(n, r)
+        self.block_assignment = assignment
         self.batch = Batch(batch_size, self.block_assignment.block_count)
         self.nodes = set(range(self.node_count))
 
