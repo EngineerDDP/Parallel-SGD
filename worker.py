@@ -21,6 +21,8 @@ def build_tags(node_id: int):
     if not isinstance(node_id, int):
         node_id = int(node_id)
 
+    assert node_id < GlobalSettings.get_default().node_count, "This worker has nothing to do."
+
     batch = GlobalSettings.get_default().batch
     blocks = GlobalSettings.get_default().block_assignment.node_2_block[int(node_id)]
     nodes = GlobalSettings.get_default().block_assignment.block_2_node
