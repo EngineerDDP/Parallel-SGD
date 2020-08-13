@@ -33,6 +33,8 @@ def build_tags(node_id: int):
 
 class PSGD_Worker:
 
+    Training_TimeOut_Limit = 180
+
     def __init__(self):
         self.__running_thread = None
         self.client_logger = Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
@@ -196,7 +198,7 @@ class PSGD_Worker:
         self.client_logger.log_message('Synchronize timeline with cluster.')
 
         len_ready = len(com.available_clients())
-
+        time_count = 0
         # check ready states
         while len(ready_state) != len_ready:
             # require
@@ -205,9 +207,12 @@ class PSGD_Worker:
                 ready_state[n] = True
             elif len(com.available_clients()) < len_ready:
                 raise OSError('Minimal number of clients cannot be satisfied.')
+            elif time_count > PSGD_Worker.Training_TimeOut_Limit:
+                raise AssertionError('Maximal waiting time exceed, give up waiting and reset environment.')
             for node_id in com.available_clients():
                 com.send_one(node_id, Ready_Type())
             time.sleep(1)
+            time_count += 1
 
         # make output file
         if not os.path.exists('./training'):
