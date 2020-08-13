@@ -8,6 +8,7 @@ from coordinator import Coordinator
 import argparse
 import json
 
+from utils.log import Logger
 
 if __name__ == '__main__':
 
@@ -43,17 +44,18 @@ if __name__ == '__main__':
     assignment = arg.block_assignment
     server_codec = arg.server_codec
     op = arg.optimizer
+    logger = Logger(title_info='User Submit')
 
-    print('\t --node_count <node count {}>'.format(node_count))
-    print('\t --batch_size <batch size {}>'.format(batch_size))
-    print('\t --redundancy <r {}>'.format(redundancy))
-    print('\t --codec <communication codec and protocol {}>'.format(codec))
-    print('\t --optimizer <optimizer for model training {}>'.format(op))
-    print('\t --psgd <parallel stochastic gradient descent synchronization type {}>'.format(psgd))
-    print('\t --learn_rate <learn rate for GD algorithm {}>'.format(lr))
-    print('\t --epochs <training epochs {}>'.format(epo))
-    print('\t --block_assignment <block assignment strategy {}>'.format(assignment))
-    print('\t --server_codec <parameter server codec {}>'.format(server_codec))
+    logger.log_message('\t --node_count <node count {}>'.format(node_count))
+    logger.log_message('\t --batch_size <batch size {}>'.format(batch_size))
+    logger.log_message('\t --redundancy <r {}>'.format(redundancy))
+    logger.log_message('\t --codec <communication codec and protocol {}>'.format(codec))
+    logger.log_message('\t --optimizer <optimizer for model training {}>'.format(op))
+    logger.log_message('\t --psgd <parallel stochastic gradient descent synchronization type {}>'.format(psgd))
+    logger.log_message('\t --learn_rate <learn rate for GD algorithm {}>'.format(lr))
+    logger.log_message('\t --epochs <training epochs {}>'.format(epo))
+    logger.log_message('\t --block_assignment <block assignment strategy {}>'.format(assignment))
+    logger.log_message('\t --server_codec <parameter server codec {}>'.format(server_codec))
 
     train_x, train_y = load_mnist(kind='train')
     test_x, test_y = load_mnist(kind='t10k')
@@ -75,12 +77,12 @@ if __name__ == '__main__':
     assignment = model_parameter.get_assignment()(node_count, redundancy)
     GlobalSettings.set_default(node_count, redundancy, batch_size * assignment.block_count, assignment)
 
-    core = Coordinator(model_parameter)
+    core = Coordinator(model_parameter, logger)
 
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
 
-    core.set_workers(workers)
+    core.set_workers(workers, node_count)
 
     # begin = time.time()
     # for i in range(1):

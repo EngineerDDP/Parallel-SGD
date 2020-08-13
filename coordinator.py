@@ -14,12 +14,15 @@ IPA = StarNetwork_Initialization_Package
 
 class Coordinator:
 
-    def __init__(self, hyper_model: IServerModel):
+    def __init__(self, hyper_model: IServerModel, logger=None):
         self.__com = None
         self.__model = hyper_model
-        self.__log = Logger(title_info='Coordinator-{}'.format(get_repr()), log_to_file=True)
+        if logger is None:
+            self.__log = Logger(title_info='Coordinator-{}'.format(get_repr()), log_to_file=True)
+        else:
+            self.__log = logger
 
-    def set_workers(self, works: list) -> None:
+    def set_workers(self, works: list, nodes_required) -> None:
         """
             Set worker list.
         :param works: list of tuples
@@ -38,6 +41,10 @@ class Coordinator:
                 current_node_id_assigned += 1
             pkg.put(_id, uuid_for_this_task, addr)
             self.__log.log_message('Add worker (Rule: {}, Id: {}, Address: {}).'.format(rule, _id, addr))
+            # Stop connecting, if required nodes count were satisfied.
+            if current_node_id_assigned >= nodes_required:
+                self.__log.log_message('Number of nodes satisfied.')
+                break
 
         self.__log.log_message('Try connecting to the cluster.')
         self.__com = NET(pkg)
