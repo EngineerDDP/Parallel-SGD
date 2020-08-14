@@ -1,5 +1,9 @@
+if __name__ != '__main__':
+    raise AssertionError('This module cannot be imported.')
+
 # import test codec
 from codec.essential import Block_Weight
+from profiles.settings import GlobalSettings
 
 # import np
 import numpy as np
@@ -35,16 +39,17 @@ MASTER_ID = -2
 TEST_ROUNDS = 10
 WEIGHTS_SHAPE = np.random.randint(3, 1024, size=2)
 LAYER = 0
+GlobalSettings.set_default(len(SLAVE_IDS), 1, 1, None)
 
 # build codec
-slave_codec = [SLAVE_CODEC(node_id=i, logger=Logger('Test codec, id={}'.format(i))) for i in SLAVE_IDS]
-master_codec = MASTER_CODEC(node_id=MASTER_ID, logger=Logger('Test codec, master'))
+slave_codec = [SLAVE_CODEC(node_id=i) for i in SLAVE_IDS]
+master_codec = MASTER_CODEC(node_id=MASTER_ID)
 
 for i in range(TEST_ROUNDS):
     # starting consensus stage
+    # set node
+    node_id = 0
     for slave in slave_codec:
-        # set node
-        node_id = 0
         # get random
         arr = np.random.random(size=WEIGHTS_SHAPE)
         # build BlockWeight
@@ -56,7 +61,7 @@ for i in range(TEST_ROUNDS):
             # reply each package
             for reply in master_codec.receive_blocks(package.content()):
                 # check the package header
-                assert slave.Node_id in reply.target()
+                assert node_id in reply.target()
                 # receive each reply
                 slave.receive_blocks(reply.content())
         arr_res = slave.get_result()
@@ -69,7 +74,6 @@ for slave in slave_codec:
     slave.dispose()
 
 master_codec.dispose()
-
 
 print("INFO: All test input was handled without exception.")
 print("WARNING: The functionality of the codec cannot be tested here.\n"
