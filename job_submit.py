@@ -44,7 +44,7 @@ if __name__ == '__main__':
     assignment = arg.block_assignment
     server_codec = arg.server_codec
     op = arg.optimizer
-    logger = Logger(title_info='User Submit')
+    logger = Logger(title_info='User Submit', log_to_file=True)
 
     logger.log_message('\t --node_count <node count {}>'.format(node_count))
     logger.log_message('\t --batch_size <batch size {}>'.format(batch_size))
