@@ -205,9 +205,9 @@ class PSGD_Worker:
             n, d = com.get_one(False)
             if isinstance(d, Ready_Type):
                 ready_state[n] = True
-            elif len(com.available_clients()) < len_ready:
+            if len(com.available_clients()) < len_ready:
                 raise OSError('Minimal number of clients cannot be satisfied.')
-            elif time_count > PSGD_Worker.Training_TimeOut_Limit:
+            if time_count > PSGD_Worker.Training_TimeOut_Limit:
                 raise AssertionError('Maximal waiting time exceed, give up waiting and reset environment.')
             for node_id in com.available_clients():
                 com.send_one(node_id, Ready_Type())

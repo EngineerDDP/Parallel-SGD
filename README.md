@@ -25,6 +25,7 @@ python job_submit.py
     --batch_size 128  
     --redundancy 1  
     --codec plain,plain,plain,plain,ccdc,ps  
+    --optimizer psgd  
     --psgd ssgd  
     --learn_rate 0.05  
     --epochs 10  
@@ -47,6 +48,11 @@ python job_submit.py
 参数，当 *block_assignment* 参数提供的处理方法无法处理冗余分配时，设置的冗余级别事实上是无效的。  
 **注意**：如果编码控制器无法处理冗余分配情况，可能会导致全局死锁。
 
+* *optimizer*  
+使用的梯度下降优化器。  
+选用并行梯度下降优化器以实现并行计算，选用单机梯度下降优化器只能执行单机计算。
+（关于可用的梯度下降优化器，请参阅 [梯度下降优化器类型](./nn/LIST.md) ）
+
 * *codec*  
 worker上执行的实际编码器，当需要与参数服务器协同工作时，该编码器要能与参数服务器上执行的编码器匹配。
 当传入一个编码器参数时，默认给每层都分配相同的编码器。需要传入多个编码器时，使用逗号隔开，每个编码器
@@ -54,7 +60,8 @@ worker上执行的实际编码器，当需要与参数服务器协同工作时�
 编码器类继承自 codec.interfaces.ICommunicationCtrl 实现一个编码器类并在 server_util.init_model.__codec_map 
 中注册，即可在此处传入对应参数，启动对应的客户端编码器。   
 **注意**：第一个编码器参数对应第一个层，以此类推。  
-（关于编码器设计的详情，请参阅 [编码控制器教程](./codec/README.md) ）
+（关于编码器设计的详情，请参阅 [编码控制器教程](./codec/README.md) ）  
+（关于可用的已实现的编码器，请参阅 [编码器类型](./codec/LIST.md) ）  
 
 * *psgd*  
 worker上执行的实际SGD同步器。  
