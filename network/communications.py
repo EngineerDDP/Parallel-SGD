@@ -144,7 +144,7 @@ class Communication_Controller(ICommunication_Controller):
             Stop communicating with remote nodes.
         :return: None
         """
-        self.__com.close()
+        self.__com.closing()
         wait_limit = 20
         try:
             while self.__com.is_alive() and wait_limit > 0:
@@ -152,6 +152,7 @@ class Communication_Controller(ICommunication_Controller):
                 wait_limit -= 1
         finally:
             self.__com.terminate()
+            self.__com.close()
             print('Terminate communication process.')
 
     def is_closed(self):

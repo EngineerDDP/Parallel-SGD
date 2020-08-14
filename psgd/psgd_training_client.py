@@ -122,6 +122,12 @@ class PSGDTraining_Client(Thread):
         evaluation_trace.to_csv(self.Trace_Eval, index=None)
         self.Log.log_message('Trace file has been saved to {}'.format(self.Trace_Name))
 
+        self.Model.clear()
+        del self.Train_X
+        del self.Train_Y
+        del self.Eval_X
+        del self.Eval_Y
+
     def evaluate(self):
         result = self.Model.evaluate(self.Eval_X, self.Eval_Y)
         self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title[-len(result):], result))))

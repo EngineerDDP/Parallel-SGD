@@ -314,6 +314,7 @@ class Communication_Process(ICommunication_Process):
             BufferWriter.request_close(fd)
             fd.close()
 
+        __write_thread.join()
         self.recv_que.close()
         self.send_que.close()
 

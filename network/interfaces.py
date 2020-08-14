@@ -37,7 +37,7 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
     Circle_interval = 0.001
 
     def __init__(self, name: str):
-        Process.__init__(self, name=name)
+        Process.__init__(self, name=name, daemon=True)
         self.__exit = Value(c_bool, 0)
         self.__recv_que = Queue(maxsize=24)
         self.__send_que = Queue(maxsize=24)
@@ -83,7 +83,7 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
     def nodes(self):
         pass
 
-    def close(self):
+    def closing(self):
         self.__exit.value = True
 
 
