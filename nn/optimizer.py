@@ -232,7 +232,7 @@ class DelayedPSGDOptimizer(ParallelSGDOptimizer):
         return super().backward_propagate(intermediate, gradient)
 
 
-class ParallelSGDWithPSOptimizer(ParallelSGDOptimizer):
+class ParaAverageOptimizer(ParallelSGDOptimizer):
 
     def __init__(self, tags, com, batch_size, learn_rate=0.01):
         super().__init__(tags, com, batch_size, learn_rate)
