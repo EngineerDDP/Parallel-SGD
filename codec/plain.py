@@ -44,9 +44,9 @@ class PlainCommunicationCtrl(ICommunication_Ctrl):
 
         yield netEncapsulation(send, pack)
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, content):
 
-        block_weight = PlainComPack.from_dictionary(json_dict).decompose_compack()
+        block_weight = PlainComPack.from_dictionary(content).decompose_compack()
         self.BlockWeights[block_weight.Block_ID] = block_weight
 
         self.check_for_combine(block_weight.Block_ID)

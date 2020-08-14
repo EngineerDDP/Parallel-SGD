@@ -117,12 +117,12 @@ class CodedCommunicationCtrl(ICommunication_Ctrl):
         # check if any of those blocks were ready to broadcast
         return self.coding()
 
-    def receive_blocks(self, json_dict: dict):
+    def receive_blocks(self, content: dict):
         """
             Received a communication package from other node
         """
         # self.Log.print_log('Self have: blocks {}'.format(self.BlockWeights_Send.keys()))
-        partial_block_weight = ComPack.from_dictionary(json_dict).decompose_compack(self.block_weights_have)
+        partial_block_weight = ComPack.from_dictionary(content).decompose_compack(self.block_weights_have)
 
         self.Parts_BlockWeight_Buffers[
             (partial_block_weight.Block_ID, partial_block_weight.Position)] = partial_block_weight

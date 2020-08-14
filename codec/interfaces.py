@@ -76,13 +76,13 @@ class ICommunication_Ctrl(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def receive_blocks(self, json_dict:dict):
+    def receive_blocks(self, content:object):
         """
             Receive a json like dictionary from cluster.
             decompose the object and check if there were enough intermediate values to
             rebuild full weights.
             Available weights will be saved in self.updated_weight_buffer
-        :param json_dict: dictionary, with string as key, object as value.
+        :param content: object, anything send by update_blocks will be received here.
         :return: Generator: for iterating packages to be sent with NetEncapsulation type
                 None if nothing need to be sent.
         """

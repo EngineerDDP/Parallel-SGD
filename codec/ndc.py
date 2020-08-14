@@ -38,8 +38,8 @@ class NaiveDuplicationCodec(ICommunication_Ctrl):
         self.aggregate()
         yield netEncapsulation(send_to, dic)
 
-    def receive_blocks(self, json_dict:dict):
-        pbw = NaiveDuplicationComPack.from_dictionary(json_dict).decompose_compack()
+    def receive_blocks(self, content:dict):
+        pbw = NaiveDuplicationComPack.from_dictionary(content).decompose_compack()
         self.partial_block_weights_buffer[(pbw.Block_ID, pbw.Position)] = pbw
 
         self.decoding(pbw)

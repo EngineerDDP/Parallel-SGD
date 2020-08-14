@@ -42,19 +42,19 @@ __codec_map = {
     'ps': PAClientCodec,
     'ndc': NaiveDuplicationCodec,
     'unicast': UnicastCommunicationCtrl,
-    'qasgd1bit': Quantization1BitPSCodec,
-    'qasgd2bit': Quantization2BitPSCodec,
+    'q1': Quantization1BitPSCodec,
+    'q2': Quantization2BitPSCodec,
     'sgq': SGQClient
 }
 
 def get_codec(x: str):
     return __codec_map[x]
 
-from nn.optimizer import ParallelSGDOptimizer, ParallelSGDWithPSOptimizer, FastParallelSGDOptimizer
+from nn.optimizer import ParallelSGDOptimizer, ParaAverageOptimizer, FastParallelSGDOptimizer
 
 __optimizer_map = {
     'psgd': ParallelSGDOptimizer,
-    'pa': ParallelSGDWithPSOptimizer,
+    'pa': ParaAverageOptimizer,
     'fast': FastParallelSGDOptimizer
 }
 
@@ -86,12 +86,14 @@ def get_assignment(x: str):
 from codec.naive_ps import ParaServerCodec, GradDiffParaServerCodec
 from codec.dc_asgdcodec import DCASGDServerCodec
 from codec.sgq import SGQServer
+from codec.quantization import FPWParaServer
 
 __para_server_map = {
     'simple': ParaServerCodec,
     'grad': GradDiffParaServerCodec,
     'dc': DCASGDServerCodec,
-    'sgq': SGQServer
+    'sgq': SGQServer,
+    'qpa': FPWParaServer
 }
 
 def get_para_server(x: str):

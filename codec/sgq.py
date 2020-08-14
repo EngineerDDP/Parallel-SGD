@@ -105,13 +105,13 @@ class SGQClient(ICommunication_Ctrl):
         """
         pass
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, content):
         """
             Receive a sgq package and set it to result buffer
-        :param json_dict:
+        :param content:
         :return:
         """
-        pkg = SGQPackage.decode(json_dict)
+        pkg = SGQPackage.decode(content)
         self.set_result(pkg.content())
 
 
@@ -130,14 +130,14 @@ class SGQServer(ICommunication_Ctrl):
         for key in GlobalSettings.get_default().nodes:
             self.Weights_Last_Received[key] = 0
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, content):
         """
             SGQ receive a quantized matrix and returns the grad diff for the client
-        :param json_dict:
+        :param content:
         :return:
         """
         # decode data
-        data = SGQPackage.decode(json_dict)
+        data = SGQPackage.decode(content)
         # get working node state
         last_state = self.Weights_Last_Received[data.node_id]
         # update global state

@@ -35,11 +35,11 @@ class myComCtrl(ICommunication_Ctrl):
         # 发送梯度
         yield netEncapsulation(send_to, pkg)
 
-    def receive_blocks(self, json_dict: dict):
+    def receive_blocks(self, content: dict):
         print('I have received an package.')
-        print('It has a content with shape: {}'.format(json_dict['data'].shape))
+        print('It has a content with shape: {}'.format(content['data'].shape))
         # 记录梯度内容
-        self.__global_weights += json_dict['data']
+        self.__global_weights += content['data']
         # 记录已经接收到多少个梯度了
         self.__current_recv += 1
         # 检查是否接受完所有数据

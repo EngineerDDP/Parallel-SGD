@@ -26,9 +26,9 @@ class PAClientCodec(ICommunication_Ctrl):
         pack = PAClientComPack.to_dictionary(pack)
         yield netEncapsulation(send, pack)
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, content):
 
-        compack = PAServerCompack.from_dictionary(json_dict)
+        compack = PAServerCompack.from_dictionary(content)
         self.set_result(compack.Content)
 
         return yield_none()
@@ -60,14 +60,14 @@ class GradDiffParaServerCodec(ICommunication_Ctrl):
         """
         return yield_none()
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, content):
         """
             PA Server receive a json_dict and send back a request
-        :param json_dict:
+        :param content:
         :return:
         """
         # analyze received data
-        compack = PAClientComPack.from_dictionary(json_dict)
+        compack = PAClientComPack.from_dictionary(content)
         # get last state of working node
         last_state = self.Bak_Weights_Node[compack.Node_ID]
         # update global current state
@@ -102,14 +102,14 @@ class ParaServerCodec(ICommunication_Ctrl):
         """
         return yield_none()
 
-    def receive_blocks(self, json_dict):
+    def receive_blocks(self, content):
         """
             PA Server receive a json_dict and send back a request
-        :param json_dict:
+        :param content:
         :return:
         """
         # analyze received data
-        compack = PAClientComPack.from_dictionary(json_dict)
+        compack = PAClientComPack.from_dictionary(content)
         # update global current state
         self.Current_Weights = self.Current_Weights + compack.Content
         comback = PAServerCompack.compose_compack(self.Current_Weights.astype('double'))
