@@ -80,7 +80,7 @@ class SequentialModel_v2:
                                      .format(j+1, epochs, i+1, batches, len(self.History)+1, self.__str_format(eval_result)))
 
                 # record history data
-                history = [time_now - time_started, j+1, i+1, j*batches+i+1]
+                history = [time_now - time_started, j+1, i+1, len(self.History)+1]
                 history.extend(eval_result)
                 self.History.append(history)
 
