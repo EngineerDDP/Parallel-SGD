@@ -310,11 +310,12 @@ class Communication_Process(ICommunication_Process):
 
             # sleep(ICommunication_Process.Circle_interval)
 
+        __write_thread.join()
+
         for fd in self.__connections.to_list():
             BufferWriter.request_close(fd)
             fd.close()
 
-        __write_thread.join()
         self.recv_que.close()
         self.send_que.close()
 

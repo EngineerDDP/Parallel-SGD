@@ -1,5 +1,6 @@
 import numpy as np
 
+from profiles.blockassignment.interfaces import IBlockAssignment
 from profiles.blockassignment.idependent import IIDBlockAssignment
 
 
@@ -34,18 +35,20 @@ class Batch:
 class GlobalSettings:
     __setting = None
 
-    def __init__(self, n, r, batch_size, assignment:IIDBlockAssignment):
+    def __init__(self, n, r, batch_size, assignment:IBlockAssignment=None):
         self.redundancy = r
         self.node_count = n
 
-        self.block_assignment = assignment
+        if isinstance(assignment, IBlockAssignment):
+            self.block_assignment = assignment
+        else:
+            self.block_assignment = IIDBlockAssignment(n, r)
         self.batch = Batch(batch_size, self.block_assignment.block_count)
         self.nodes = set(range(self.node_count))
 
     @staticmethod
     def get_default():
-        if GlobalSettings.__setting is None:
-            GlobalSettings.__setting = GlobalSettings()
+        assert GlobalSettings.__setting is not None
         return GlobalSettings.__setting
 
     @staticmethod

@@ -16,7 +16,7 @@ class netEncapsulation:
         Net Encapsulation, for network transmission.
     """
 
-    def __init__(self, send_to_who:list or int, content:dict):
+    def __init__(self, send_to_who:list or int, content:object):
 
         if isinstance(send_to_who, list):
             self.__target = send_to_who
@@ -26,10 +26,10 @@ class netEncapsulation:
             self.__target = list(send_to_who)
         else:
             raise InvalidArguments("Send to an unidentified node: {}".format(send_to_who), netEncapsulation)
-        if isinstance(content, dict):
+        if isinstance(content, object):
             self.__packages = content
         else:
-            raise InvalidArguments("Package is not dict type.", netEncapsulation)
+            raise InvalidArguments("Package is not required type.", netEncapsulation)
 
 
     def target(self):
