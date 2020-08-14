@@ -214,9 +214,6 @@ class PSGD_Worker:
             time.sleep(1)
             time_count += 1
 
-        # make output file
-        if not os.path.exists('./training'):
-            os.mkdir('./training')
         try:
             self.client_logger.log_message('Execution process started.')
             data_sent_mark = com.Com.bytes_sent
