@@ -160,7 +160,7 @@ class IServerModel(metaclass=ABCMeta):
         return self.__optimizer
 
     def epoches(self):
-        pass
+        return self.__epoches
 
     def learn_rate(self):
         return self.__learning_Rate
