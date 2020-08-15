@@ -22,7 +22,7 @@ class Coordinator:
         else:
             self.__log = logger
 
-    def set_workers(self, works: list, nodes_required) -> None:
+    def set_workers(self, works: list, nodes_required) -> bool:
         """
             Set worker list.
         :param works: list of tuples
@@ -51,6 +51,8 @@ class Coordinator:
         self.__com = Communication_Controller(self.__com)
         self.__com.establish_communication()
         self.__log.log_message('Connection with cluster established.')
+
+        return True
 
     def resources_dispatch(self):
         """

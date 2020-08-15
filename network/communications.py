@@ -3,7 +3,6 @@ import socket
 import select
 
 from time import sleep
-from utils.constants import Initialization_Server
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, ICommunication_Process, ICommunication_Controller
@@ -110,7 +109,7 @@ class Communication_Controller(ICommunication_Controller):
         :return: a tuple, which first element is the sender id, second element is the json object.
         """
         if self.is_closed():
-            raise OSError('Connection has already been closed.')
+            raise ConnectionAbortedError('Connection has already been closed.')
         if self.__com.recv_que.empty() and not blocking:
             return (None, None)
         while self.__com.is_alive():
@@ -118,7 +117,7 @@ class Communication_Controller(ICommunication_Controller):
                 return self.__com.recv_que.get(timeout=1)
             except queue.Empty:
                 continue
-        raise OSError('Connection is closed.')
+        raise ConnectionAbortedError('Connection is closed.')
 
     def send_one(self, target, dic):
         """
@@ -128,7 +127,7 @@ class Communication_Controller(ICommunication_Controller):
         :return: None
         """
         if self.is_closed():
-            raise OSError('Connection has already been closed.')
+            raise ConnectionAbortedError('Connection has already been closed.')
         if isinstance(target, list):
             self.__com.send_que.put((target, dic))
         else:

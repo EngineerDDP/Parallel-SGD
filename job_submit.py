@@ -84,16 +84,11 @@ if __name__ == '__main__':
 
     core.set_workers(workers, node_count)
 
-    # begin = time.time()
-    # for i in range(1):
-    #     core.require_client_log()
-    # end = time.time()
-    # print('TEST:Process :', end - begin)
     try:
         if not arg.do_retrieve_only:
             core.resources_dispatch()
         else:
             core.require_client_log()
-    except OSError:
+    except ConnectionAbortedError:
         print('All Done.')
 
