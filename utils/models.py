@@ -4,6 +4,51 @@ from enum import Enum
 from profiles.settings import GlobalSettings
 
 
+class Ready_Type:
+
+    def __init__(self):
+        pass
+
+class Done_Type:
+
+    def __init__(self):
+        pass
+
+class Binary_File_Package:
+
+    def __init__(self, filename):
+
+        self.filename = filename
+        self.content = b''
+        if os.path.exists(filename):
+            with open(filename, 'rb') as f:
+                self.content = f.read()
+
+    def restore(self):
+        with open(self.filename, 'wb') as f:
+            f.write(self.content)
+
+
+class ClassSerializer:
+
+    def __init__(self, cls_name: type):
+        # get module filename
+        mod_name = "./" + "/".join(cls_name.__module__.split('.')) + ".py"
+
+        self.__class_name = cls_name.__name__
+        with open(mod_name, 'r') as file:
+            self.__mod_content = file.read()
+
+    def restore(self) -> type:
+        import importlib
+        spec = importlib.util.spec_from_loader('codec_module', loader=None)
+        mod = importlib.util.module_from_spec(spec)
+
+        exec(self.__mod_content, mod.__dict__)
+        cls_type = getattr(mod, self.__class_name)
+        return cls_type
+
+
 class Init(Enum):
     GlobalSettings = 'Req_GlobalSettings'
     Weights_And_Layers = 'Req_WeightsAndLayers'
@@ -35,12 +80,15 @@ class Reply:
 
     class codec_and_sgd_package:
 
-        def __init__(self, codec, sgd_t):
-            self.__codec = codec
-            self.__sgd_t = sgd_t
+        def __init__(self, codec:list, sgd_t:type):
+            if isinstance(codec, list):
+                assert isinstance(codec[0], type), "Cannot serialize non-class type."
+                self.__codec = [ClassSerializer(cls_name=i) for i in codec]
+            self.__sgd_t = ClassSerializer(sgd_t)
 
         def restore(self):
-            return self.__codec, self.__sgd_t
+            codec = [i.restore() for i in self.__codec]
+            return codec, self.__sgd_t.restore()
 
     class data_sample_package:
 
@@ -62,27 +110,3 @@ class Reply:
             self.target_acc = target_acc
             self.w_types = w_types
             self.optimizer = op
-
-class Ready_Type:
-
-    def __init__(self):
-        pass
-
-class Done_Type:
-
-    def __init__(self):
-        pass
-
-class Binary_File_Package:
-
-    def __init__(self, filename):
-
-        self.filename = filename
-        self.content = b''
-        if os.path.exists(filename):
-            with open(filename, 'rb') as f:
-                self.content = f.read()
-
-    def restore(self):
-        with open(self.filename, 'wb') as f:
-            f.write(self.content)
