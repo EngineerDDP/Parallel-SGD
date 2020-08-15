@@ -113,4 +113,7 @@ class NTransfer(ITransfer):
                     # print DEBUG message
         except OSError as e:
             self.__log.log_message('Transfer thread report an error: {}'.format(e))
-        self.__log.log_message('Transfer thread exited safely.')
+        except ValueError:
+            pass
+        finally:
+            self.__log.log_message('Transfer thread exited safely.')

@@ -27,7 +27,7 @@ class Quantization1BitPSCodec(ICommunication_Ctrl):
     def update_blocks(self, block_weight):
         weights = block_weight.Content
         std = np.std(weights)
-        weights[np.abs(weights) < self.epsilon] = 0
+        weights[np.abs(weights) < std] = 0
         weights = np.sign(weights)
 
         weights = weights.astype('int8')
@@ -58,8 +58,8 @@ class Quantization2BitPSCodec(ICommunication_Ctrl):
         weights = (weights - np.mean(weights)) / std
 
         # be aware, this will change the value of referenced object.
-        weights[weights > self.epsilon] = 1
-        weights[weights < -self.epsilon] = -1
+        weights[weights > std] = 1
+        weights[weights < -std] = -1
         weights[np.abs(weights) != 1] = 0
         weights = weights.astype('int8')
 
@@ -82,7 +82,7 @@ class FPWParaServer(ICommunication_Ctrl):
         pass
 
     def receive_blocks(self, content: QuantizedPack):
-        self.__global_weights += content.content.astype('double') * content.std
+        self.__global_weights -= content.content.astype('double') * content.std
         yield netEncapsulation(content.node_id, QuantizedPack(Parameter_Server, self.__global_weights, 1))
 
 
