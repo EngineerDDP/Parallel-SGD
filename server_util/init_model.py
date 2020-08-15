@@ -107,6 +107,27 @@ from nn.layers import MaxPool, Conv2dLayer, Reshape
 
 class IServerModel(metaclass=ABCMeta):
 
+    def __init__(self,
+                 train_x, train_y, test_x, test_y,
+                 psgd_type,
+                 optimizer_type,
+                 server_codec,
+                 epoches,
+                 block_assignment,
+                 server_type='asgd',
+                 target_acc=None,
+                 learn_rate=0.05):
+        self.__optimizer = get_optimizer(optimizer_type)
+        self.__server_Codec = get_para_server(server_codec)
+        self.__server_Type = get_psgd(server_type)
+        self.__syncType = get_psgd(psgd_type)
+        self.__learning_Rate = learn_rate
+        self.__epoches = epoches
+        self.__target_Accuracy = target_acc
+        self.__training_Data = (train_x, train_y)
+        self.__test_Data = (test_x, test_y)
+        self.__block_Assignment = get_assignment(block_assignment)
+
     @abstractmethod
     def weights_types(self):
         pass
@@ -116,100 +137,120 @@ class IServerModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def initWeights(self):
+    def loss_type(self):
         pass
 
     @abstractmethod
     def codec_ctrl(self):
         pass
 
-    @abstractmethod
     def target_acc(self):
-        pass
+        return self.__target_Accuracy
 
-    @abstractmethod
     def psgd_type(self):
-        pass
+        return self.__syncType
 
-    @abstractmethod
     def psgd_server_codec(self):
-        pass
+        return self.__server_Codec
 
-    @abstractmethod
     def psgd_server_type(self):
-        pass
+        return self.__server_Type
 
-    @abstractmethod
     def optimizer_type(self):
-        pass
+        return self.__optimizer
 
-    @abstractmethod
-    def loss_type(self):
-        pass
-
-    @abstractmethod
     def epoches(self):
         pass
 
-    @abstractmethod
     def learn_rate(self):
-        pass
+        return self.__learning_Rate
 
-    @abstractmethod
     def train_data(self):
-        pass
+        return self.__training_Data
 
-    @abstractmethod
     def eval_data(self):
-        pass
+        return self.__test_Data
 
-    @abstractmethod
     def get_assignment(self):
-        pass
+        return self.__block_Assignment
+
+
+class ModelLinear(IServerModel):
+
+    def __init__(self, train_x, train_y, test_x, test_y,
+                 psgd_type, optimizer_type, server_codec, epoches,
+                 block_assignment,
+                 codec=None):
+
+        super().__init__(train_x, train_y, test_x, test_y,
+                         psgd_type, optimizer_type, server_codec, epoches,
+                         block_assignment)
+
+        self.__nn = None
+        layer_units = [1024]
+
+        # init codec
+        if codec is None:
+            codec = ['ndc']
+        elif len(codec) != len(layer_units):
+            codec = codec[:1] * len(layer_units)
+
+        # init layer
+        self.__nn = [FCLayer_v2(layer_units[-1], act=get_activation("linear"))]
+
+        # activated layer
+        input_sample = self.train_data()[0][0].reshape([1, -1])
+
+        for nn in self.__nn:
+            input_sample = nn.F(input_sample)
+
+        self.__codec = [get_codec(c_str) for c_str in codec]
+
+    def weights_types(self):
+        return ['w', 'b']
+
+    def getWeightsInit(self):
+        return self.__nn
+
+    def loss_type(self):
+        return get_loss("mse")
+
+    def codec_ctrl(self):
+        return self.__codec
 
 
 class ModelDNN(IServerModel):
 
-    def __init__(self,
-                 train_x, train_y, test_x, test_y,
-                 layer_units=None,
-                 activation='tanh',
-                 output='softmax',
-                 loss='xentropy_softmax',
-                 learn_rate=0.05,
-                 codec=None,
-                 psgd_type='ssgd',
-                 optimizer_type='psgd',
-                 server_type='asgd',
-                 server_codec='grad',
-                 epoches=10,
-                 target_acc=None,
-                 block_assignment='iid'
-                 ):
-        if layer_units is None:
-            layer_units = [784, 784, 392, 196, 128, 10]
+    def __init__(self, train_x, train_y, test_x, test_y,
+                 psgd_type, optimizer_type, server_codec, epoches,
+                 block_assignment,
+                 codec=None):
+
+        super().__init__(train_x, train_y, test_x, test_y,
+                         psgd_type, optimizer_type, server_codec, epoches,
+                         block_assignment)
+
+        self.__nn = None
+        layer_units = [784, 784, 392, 196, 128, 10]
+
+        # init codec
         if codec is None:
             codec = ['plain', 'plain', 'plain', 'plain', 'plain', 'plain']
-        elif len(codec) == 1:
-            codec = codec * len(layer_units)
+        elif len(codec) != len(layer_units):
+            codec = codec[:1] * len(layer_units)
 
-        self.Layer_Units = layer_units
-        self.Activation = get_activation(activation)
-        self.Activation_out = get_activation(output)
-        self.Loss = get_loss(loss)
-        self.Codec = [get_codec(c_str) for c_str in codec]
-        self.Optimizer = get_optimizer(optimizer_type)
-        self.Server_Codec = get_para_server(server_codec)
-        self.Server_Type = get_psgd(server_type)
-        self.SyncType = get_psgd(psgd_type)
-        self.Learning_Rate = learn_rate
-        self.Epoches = epoches
-        self.Target_Accuracy = target_acc
-        self.Training_Data = (train_x, train_y)
-        self.Test_Data = (test_x, test_y)
-        self.Neural_Network = None
-        self.Block_Assignment = get_assignment(block_assignment)
-        self.initWeights()
+        # init layer
+        self.__nn = [FCLayer_v2(i, act=get_activation("tanh")) for i in layer_units[:-1]]
+
+        self.__nn.append(FCLayer_v2(layer_units[-1], act=get_activation("softmax")))
+
+        # activated layer
+        input_sample = self.train_data()[0][0].reshape([1, -1])
+
+        for nn in self.__nn:
+            input_sample = nn.F(input_sample)
+
+        self.__codec = [get_codec(c_str) for c_str in codec]
 
     # ---------- attributes ----------
 
@@ -217,106 +258,55 @@ class ModelDNN(IServerModel):
         return ['w', 'b']
 
     def getWeightsInit(self):
-        return self.Neural_Network
-
-    def codec_ctrl(self):
-        return self.Codec
-
-    def target_acc(self):
-        return self.Target_Accuracy
-
-    def psgd_type(self):
-        return self.SyncType
-
-    def psgd_server_codec(self):
-        return self.Server_Codec
-
-    def psgd_server_type(self):
-        return self.Server_Type
-
-    def optimizer_type(self):
-        return self.Optimizer
+        return self.__nn
 
     def loss_type(self):
-        return self.Loss
+        return get_loss("xentropy_softmax")
 
-    def epoches(self):
-        return self.Epoches
-
-    def learn_rate(self):
-        return self.Learning_Rate
-
-    def train_data(self):
-        return self.Training_Data
-
-    def eval_data(self):
-        return self.Test_Data
-
-    def get_assignment(self):
-        return self.Block_Assignment
+    def codec_ctrl(self):
+        return self.__codec
 
     # ---------- attributes ----------
-
-    def initWeights(self):
-
-        self.Neural_Network = []
-
-        for units in self.Layer_Units[:-1]:
-            self.Neural_Network.append(FCLayer_v2(units, act=self.Activation()))
-
-        self.Neural_Network.append(FCLayer_v2(self.Layer_Units[-1], act=self.Activation_out()))
-
-        # activated layer
-        input_sample = self.Training_Data[0][0].reshape([1, -1])
-
-        for nn in self.Neural_Network:
-            input_sample = nn.F(input_sample)
-
-        assert len(self.Neural_Network) == len(self.Codec), "{} codec required, but got {}.".format(len(self.Neural_Network), len(self.Codec))
-
-        return
 
 
 class ModelCNN(IServerModel):
 
+    def __init__(self, train_x, train_y, test_x, test_y,
+                 psgd_type, optimizer_type, server_codec, epoches,
+                 block_assignment,
+                 codec=None):
+
+        super().__init__(train_x, train_y, test_x, test_y,
+                         psgd_type, optimizer_type, server_codec, epoches,
+                         block_assignment)
+
+        self.__nn = []
+        self.__nn.append(Conv2dLayer([5,5], 64, 'SAME', [1,1]))
+        self.__nn.append(Conv2dLayer([5,5], 64, 'SAME', [1,1]))
+        self.__nn.append(MaxPool([2,2]))
+        self.__nn.append(Conv2dLayer([3,3], 64, 'SAME', [1,1]))
+        self.__nn.append(Conv2dLayer([3,3], 64, 'SAME', [1,1]))
+        self.__nn.append(MaxPool([2,2]))
+        self.__nn.append(Reshape([12288]))
+        self.__nn.append(FCLayer_v2(1024, act=get_activation('tanh')))
+        self.__nn.append(FCLayer_v2(784, act=get_activation('tanh')))
+        self.__nn.append(FCLayer_v2(10, act=get_activation('softmax')))
+
+        if codec is None:
+            codec = ['plain' for _ in self.__nn]
+        elif len(codec) != len(self.__nn):
+            codec = codec[:1] * len(self.__nn)
+
+        self.__codec = [get_codec(c_str) for c_str in codec]
+
     def weights_types(self):
-        pass
-
-    def psgd_server_codec(self):
-        pass
-
-    def psgd_server_type(self):
-        pass
-
-    def optimizer_type(self):
-        pass
+        return ['k', 'b']
 
     def getWeightsInit(self):
-        pass
-
-    def initWeights(self):
-        pass
-
-    def codec_ctrl(self):
-        pass
-
-    def target_acc(self):
-        pass
-
-    def psgd_type(self):
-        pass
+        return self.__nn
 
     def loss_type(self):
-        pass
+        return get_loss("xentropy_softmax")
 
-    def epoches(self):
-        pass
-
-    def learn_rate(self):
-        pass
-
-    def train_data(self):
-        pass
-
-    def eval_data(self):
-        pass
+    def codec_ctrl(self):
+        return self.__codec
