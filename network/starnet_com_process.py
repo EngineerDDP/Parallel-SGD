@@ -408,8 +408,9 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
     }
 
     writer = BufferWriter()
-    try:
-        for id, uuid, address in nodes:
+
+    for id, uuid, address in nodes:
+        try:
             con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # connect
             con.connect((address, STAR_NET_WORKING_PORTS))
@@ -421,13 +422,13 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
             # add
             worker_register.identify(id, uuid, con=con)
 
-    except OSError as error:
-        for con in worker_register.to_list():
-            if isinstance(con, socket.socket):
-                con.close()
-        raise OSError('Error: {}.'.format(error))
-    finally:
-        writer.close()
+        except OSError as error:
+            for con in worker_register.to_list():
+                if isinstance(con, socket.socket):
+                    con.close()
+            raise OSError('Error: {}, while connecting {}.'.format(error, address))
+
+    writer.close()
 
     if worker_register.check():
         com = Communication_Process(worker_register)
