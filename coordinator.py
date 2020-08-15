@@ -34,6 +34,10 @@ class Coordinator:
         current_node_id_assigned = 0
         # set all address
         for rule, addr in works:
+            # Stop connecting, if required nodes count were satisfied.
+            if current_node_id_assigned >= nodes_required and rule == "Worker":
+                self.__log.log_message('Number of nodes satisfied.')
+                break
             if rule == "PS":
                 _id = Parameter_Server
             else:
@@ -41,10 +45,7 @@ class Coordinator:
                 current_node_id_assigned += 1
             pkg.put(_id, uuid_for_this_task, addr)
             self.__log.log_message('Add worker (Rule: {}, Id: {}, Address: {}).'.format(rule, _id, addr))
-            # Stop connecting, if required nodes count were satisfied.
-            if current_node_id_assigned >= nodes_required:
-                self.__log.log_message('Number of nodes satisfied.')
-                break
+
 
         self.__log.log_message('Try connecting to the cluster.')
         self.__com = NET(pkg)
