@@ -14,7 +14,7 @@ __activation_map = {
 }
 
 def get_activation(x: str):
-    return __activation_map[x]
+    return __activation_map[x]()
 
 from nn.losses import CrossEntropyLoss, CrossEntropyLossWithSoftmax
 from nn.losses import MseLoss
@@ -177,14 +177,21 @@ class IServerModel(metaclass=ABCMeta):
 
 class ModelLinear(IServerModel):
 
-    def __init__(self, train_x, train_y, test_x, test_y,
-                 psgd_type, optimizer_type, server_codec, epoches,
+    def __init__(self,
+                 train_x, train_y, test_x, test_y,
+                 psgd_type,
+                 optimizer_type,
+                 server_codec,
+                 epoches,
                  block_assignment,
+                 server_type='asgd',
+                 target_acc=None,
+                 learn_rate=0.05,
                  codec=None):
 
         super().__init__(train_x, train_y, test_x, test_y,
                          psgd_type, optimizer_type, server_codec, epoches,
-                         block_assignment)
+                         block_assignment, server_type, target_acc, learn_rate)
 
         self.__nn = None
         layer_units = [1024]
@@ -221,14 +228,21 @@ class ModelLinear(IServerModel):
 
 class ModelDNN(IServerModel):
 
-    def __init__(self, train_x, train_y, test_x, test_y,
-                 psgd_type, optimizer_type, server_codec, epoches,
+    def __init__(self,
+                 train_x, train_y, test_x, test_y,
+                 psgd_type,
+                 optimizer_type,
+                 server_codec,
+                 epoches,
                  block_assignment,
+                 server_type='asgd',
+                 target_acc=None,
+                 learn_rate=0.05,
                  codec=None):
 
         super().__init__(train_x, train_y, test_x, test_y,
                          psgd_type, optimizer_type, server_codec, epoches,
-                         block_assignment)
+                         block_assignment, server_type, target_acc, learn_rate)
 
         self.__nn = None
         layer_units = [784, 784, 392, 196, 128, 10]
@@ -271,14 +285,21 @@ class ModelDNN(IServerModel):
 
 class ModelCNN(IServerModel):
 
-    def __init__(self, train_x, train_y, test_x, test_y,
-                 psgd_type, optimizer_type, server_codec, epoches,
+    def __init__(self,
+                 train_x, train_y, test_x, test_y,
+                 psgd_type,
+                 optimizer_type,
+                 server_codec,
+                 epoches,
                  block_assignment,
+                 server_type='asgd',
+                 target_acc=None,
+                 learn_rate=0.05,
                  codec=None):
 
         super().__init__(train_x, train_y, test_x, test_y,
                          psgd_type, optimizer_type, server_codec, epoches,
-                         block_assignment)
+                         block_assignment, server_type, target_acc, learn_rate)
 
         self.__nn = []
         self.__nn.append(Conv2dLayer([5,5], 64, 'SAME', [1,1]))
