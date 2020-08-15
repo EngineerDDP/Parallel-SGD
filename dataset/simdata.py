@@ -51,7 +51,7 @@ class LinearSimulation:
             Create samples with noise
         """
 
-        return self.Noise.predict(np.dot(x, self.W) + self.B)
+        return self.Noise.predict(np.dot(x, self.W.T) + self.B)
 
     def baseline(self, x):
         """
@@ -87,12 +87,14 @@ class SinSimulation:
 
 def load_lin_sim():
 
-    w = np.asarray([[0.2], [0.7]])
-    b = 0.4
-    x = np.random.normal(loc=1.0, scale=1.0, size=[500, 2])
-    sim = LinearSimulation(w, b, 0.2)
+    x = np.random.uniform(0, 1, size=[60000, 2048])
+    w = np.random.uniform(0, 1, size=[1024, 2048])
+    b = np.random.normal(0, 0.1, size=1024)
+    sim = LinearSimulation(w, b, normal_scale=0.3, bin_scale=1.0, bin_rate=0.1, oneside=False)
 
-    return x, sim.predict(x)
+    y = sim.predict(x)
+
+    return x[:50000], y[:50000], x[50000:], y[50000:]
 
 def load_sin_sim():
     x_1 = np.linspace(-1, 1, 1000)
@@ -105,78 +107,5 @@ def load_sin_sim():
 
     return x, y
 
-def show_fig_of_value_2d(func, sample_x, sample_y):
-
-    x, y = np.meshgrid(sample_x, sample_y)
-    val = np.zeros_like(x)
-
-    for i in len(sample_x):
-        for j in len(sample_y):
-            val[j][i] = func(sample_x[i], sample_y[j])
-
-    plt.contourf(x, y, val, levels=7)
-    c = plt.contour(x, y, val, colors='black')
-    plt.clabel(c, inline=True, fontsize=10)
-    plt.show()
-
-
 if __name__ == '__main__':
-    w_1 = np.linspace(-1, 1, 100)
-    w_2 = np.linspace(-1, 1, 100)
-
-    # x_1 = np.linspace(-1, 0.7, 100)
-    # x_2 = np.linspace(-0.6, 0.5, 100)
-    # y = 0.2*np.sin(x_1) + 0.7*np.cos(x_2)
-    # y = y + np.random.normal(scale=0.1, size=x_1.shape)
-    #
-    #
-    # def loss_sim(w_1, w_2):
-    #     w = np.asarray([w_1, w_2])
-    #     w = w.reshape([1, 2])
-    #     x = np.asarray([x_1, x_2])
-    #     # x = x.transpose()
-    #     y_l = y.reshape([1, 100])
-    #     ch = np.random.choice(100, 100)
-    #     loss_r = 0
-    #     for c in ch:
-    #         loss_r += np.mean(np.square(np.tanh(np.dot(w, x[:, c]) - y_l[:, c])))
-    #     return loss_r / len(ch)
-    #
-    #
-    # l = np.zeros([len(w_1),len(w_2)])
-    # for i in range(len(w_1)):
-    #     for j in range(len(w_2)):
-    #         l[i][j] = loss_sim(w_1[i], w_2[j])
-    #
-    # w_1_p, w_2_p = np.meshgrid(w_1, w_2)
-    # plt.contourf(w_1_p, w_2_p, l, levels=7)
-    # c = plt.contour(w_1_p, w_2_p, l, colors='black')
-    # plt.clabel(c, inline=True, fontsize=10)
-    # plt.show()
-    #
-    # from neuralnetworks.activations import Linear, Tanh
-    # from neuralnetworks.layers import FCLayer
-    # from neuralnetworks.model import Model, ModelFitWithMap
-    # from neuralnetworks.losses import MseLoss
-    # from neuralnetworks.optimizer import GradientDecentOptimizer_v2
-    #
-    # nn = [
-    #     FCLayer(units=2, act=Tanh()),
-    #     FCLayer(units=1, act=Tanh())
-    # ]
-    # loss = MseLoss()
-    # op = GradientDecentOptimizer(loss, nn, 1)
-    # model = ModelFitWithMap(nn, op, False)
-    # x = np.asarray([x_1, x_2])
-    # model.fit(x.transpose(), y.reshape([-1, 1]), 1000, 100)
-    #
-    # pred = model.predict(x.transpose())
-    # pred = pred.reshape(-1)
-    #
-    # plt.plot(x_1, y, 'b-')
-    # plt.plot(x_1, pred, 'g.')
-    # plt.show()
-    #
-    # print(nn[0].W)
-    # print(nn[0].B)
-
+    print(load_lin_sim())
