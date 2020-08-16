@@ -2,6 +2,13 @@ from abc import ABCMeta, abstractmethod
 
 # register
 # ---------------------------------------------------------------------------------------------------------------
+def codec_auto_search(abs_name: str):
+    import importlib
+    package_name, class_name = abs_name.split('.')
+    mod = importlib.import_module('codec.' + package_name)
+    cls = getattr(mod, class_name)
+    return cls
+
 from nn.activations import Sigmoid
 from nn.activations import Tanh, Linear, ReLU, SoftmaxNoGrad
 
@@ -48,7 +55,10 @@ __codec_map = {
 }
 
 def get_codec(x: str):
-    return __codec_map[x]
+    if __codec_map.get(x) is not None:
+        return __codec_map[x]
+    else:
+        return codec_auto_search(x)
 
 from nn.optimizer import ParallelSGDOptimizer, ParaAverageOptimizer, FastParallelSGDOptimizer
 
@@ -97,7 +107,10 @@ __para_server_map = {
 }
 
 def get_para_server(x: str):
-    return __para_server_map[x]
+    if __para_server_map.get(x) is not None:
+        return __para_server_map[x]
+    else:
+        return codec_auto_search(x)
 
 # ---------------------------------------------------------------------------------------------------------------
 
