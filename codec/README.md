@@ -284,7 +284,7 @@ python worker.py
 ```shell script
 python job_submit.py --codec tutorial_codec.myComCtrl --node_count 2
 ```
-　　至此，我们已经成功提交myComCtrl至集群上运行了。job_submit不会实时展示结果，要实时查看结果，可以查看worker端的控制台或worker端的log文件（在./tmp_log/目录下），当任务执行完成后，job_submit会取回log文件和训练记录csv文件，csv文件保存在根目录，log文件保存在 ./tmp_log/ 目录。
+　　至此，我们已经成功提交myComCtrl至集群上运行了。job_submit不会实时展示结果，要实时查看结果，可以查看worker端的控制台或worker端的log文件（在./tmp_log/目录下），当任务执行完成后，job_submit会取回log文件和训练记录csv文件，csv文件保存在根目录，log文件保存在 ./tmp_log/ 目录。  
 **注意**：您需要及时收集训练信息，未收集的训练信息可能会被覆盖。  
 　　执行后的输出如下所示，您也可以在 ./tmp_log/ 文件夹下找到前缀为 User Submit 的log记录。
 ```shell script
