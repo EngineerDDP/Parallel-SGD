@@ -323,6 +323,74 @@ ASSIGNMENTS = DuplicateAssignment
 
 # more codes below ......
 ```
+
+## 部署
+
+### 部署 Worker
+　　当调试完成且没有错误时，我们就可以将编码控制器部署至集群正式运行了。在可以直接互相访问的计算机上
+启动我们的Worker。执行以下语句：  
+```shell script
+python worker.py
+```
+### 配置 Cluster
+　　记录这些Worker在同一网段内的ip地址，写入一个worker.json。假设我们的ip配置如下：
+```json
+[
+  ["Worker", "192.168.1.2"],
+  ["Worker", "192.168.1.3"]
+]
+```
+　　通过上述配置，我们将ip为*192.168.1.2*和*192.168.1.3*两台计算机配置为Worker节点。
+### 提交任务
+　　将 *worker.json* 和 *job_submit.py* 放置到同一个目录，使用以下命令以默认数据集（MNIST数据集）
+和网络结构（Multi-Layer Perceptron）启动我们的训练集群。（假设我们新建的编码控制器在目录 *./codec/tutorial_codec.py*
+中）
+　　
+```shell script
+python job_submit.py --codec tutorial_codec.myComCtrl --node_count 2
+```
+　　至此，我们已经成功提交myComCtrl至集群上运行了。job_submit不会实时展示结果，要实时查看结果，可以查看worker端的控制台
+或worker端的log文件（在./tmp_log/目录下），当任务执行完成后，job_submit会取回log文件和训练记录csv文件，csv文件保存在根目录
+，log文件保存在 ./tmp_log/ 目录。
+**注意**：您需要及时收集训练信息，未收集的训练信息可能会被覆盖。  
+　　执行后的输出如下所示，您也可以在 ./tmp_log/ 文件夹下找到前缀为 User Submit 的log记录。
+```shell script
+INFO User Submit@16:53:29 : 	 --node_count <node count 2>
+INFO User Submit@16:53:29 : 	 --batch_size <batch size 64>
+INFO User Submit@16:53:29 : 	 --redundancy <r 1>
+INFO User Submit@16:53:29 : 	 --codec <communication codec and protocol tutorial_codec.myComCtrl>
+INFO User Submit@16:53:29 : 	 --optimizer <optimizer for model training psgd>
+INFO User Submit@16:53:29 : 	 --psgd <parallel stochastic gradient descent synchronization type ssgd>
+INFO User Submit@16:53:29 : 	 --learn_rate <learn rate for GD algorithm 0.05>
+INFO User Submit@16:53:29 : 	 --epochs <training epochs 1>
+INFO User Submit@16:53:29 : 	 --block_assignment <block assignment strategy iid>
+INFO User Submit@16:53:29 : 	 --server_codec <parameter server codec sgq>
+INFO User Submit@16:53:29 : Add worker (Rule: Worker, Id: 0, Address: 192.168.1.2).
+INFO User Submit@16:53:29 : Add worker (Rule: Worker, Id: 1, Address: 192.168.1.3).
+INFO User Submit@16:53:29 : Try connecting to the cluster.
+INFO User Submit@16:53:31 : Connection with cluster established.
+INFO User Submit@16:53:33 : Reply requirements to node(0), type(global_setting_package).
+INFO User Submit@16:53:33 : Reply requirements to node(1), type(global_setting_package).
+INFO User Submit@16:53:33 : Reply requirements to node(0), type(codec_and_sgd_package).
+INFO User Submit@16:53:33 : Reply requirements to node(1), type(codec_and_sgd_package).
+INFO User Submit@16:53:33 : Reply requirements to node(0), type(weights_and_layers_package).
+INFO User Submit@16:53:33 : Reply requirements to node(1), type(weights_and_layers_package).
+INFO User Submit@16:53:33 : Reply requirements to node(0), type(misc_package).
+INFO User Submit@16:53:33 : Reply requirements to node(0), type(data_sample_package).
+INFO User Submit@16:53:36 : Reply requirements to node(1), type(misc_package).
+INFO User Submit@16:53:38 : Reply requirements to node(1), type(data_sample_package).
+INFO User Submit@16:53:43 : Node(0) is ready, 2 nodes total, {0} is ready.
+INFO User Submit@16:54:15 : Node(1) is ready, 2 nodes total, {0, 1} is ready.
+INFO User Submit@16:54:48 : Restoring data (T-N(2)-R(1)-ID(0)-CODEC(mmmmmm).csv) from 0.
+INFO User Submit@16:54:48 : Restoring data (E-N(2)-R(1)-ID(0)-CODEC(mmmmmm).csv) from 0.
+INFO User Submit@16:54:48 : Restoring data (./tmp_log/Training log @ node-0_16-53-33.log) from 0.
+INFO User Submit@16:54:49 : Restoring data (T-N(2)-R(1)-ID(1)-CODEC(mmmmmm).csv) from 1.
+INFO User Submit@16:54:49 : Restoring data (E-N(2)-R(1)-ID(1)-CODEC(mmmmmm).csv) from 1.
+INFO User Submit@16:54:49 : Restoring data (./tmp_log/Training log @ node-1_16-53-37.log) from 1.
+Connection with worker (id: 0, address: ('192.168.1.2', 15387)) has been lost.
+Connection with worker (id: 1, address: ('192.168.1.3', 15387)) has been lost. 
+```
+
 ## 其他
 　　关于分配策略（IBlockAssignment）的详情，请参阅 [分配策略](../profiles/blockassignment/README.md)。
 
