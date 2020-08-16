@@ -3,30 +3,7 @@
 　　本段教您如何创建一个 P-SGD 编码传输控制器，P-SGD 编码控制器是 P-SGD 的
 核心组件，负责控制两个神经网络层（Layer）的参数同步过程。本文创建的编码控制器代码
 可在 [tutorial_codec](./tutorial_codec.py) 查看。  
-　　编码控制器仅需要控制一层网络的权重交互，P-SGD Worker 在初始化运行环境之前会为每个神经网络层的每个
-参数创建一个编码控制器，P-SGD Transfer 会保证每个编码控制器接收到的权重总是来
-自同一个神经网络层（无论这段数据是来源于本机还是其他 Worker，P-SGD Transfer
-总是保证将其转发给唯一的编码控制器）。  
-　　通过更改每个节点发送数据的目的地，可以实现改变整个P-SGD网络的通信模式。通过
-对通信过程中的数据包进行编解码操作，可以改变数据传输的编码形式。无论是在接收数据
-还是在发送数据，框架都会检查ICommunication_Ctrl是否有需要传递的数据，因此可以
-实现节点对数据的路由和转发，进而实现P-SGD下的SDN网络，进一步提高实验的灵活性。  
-　　基于编码控制器的数据管控和目标定向功能，可以实现类似通信链路协议和SDN网络
-两层功能。  
-　　在数据控制方面，可以实现：
-* 数据压缩  
-![Data Compression](../.readme/data_compress.png)
-* 数据加密  
-![Data Encryption](../.readme/data_encrypt.png)
-
-　　在SDN角度，可以实现：
-* 数据转发  
-![Data Forward](../.readme/sdn_forward.png)
-* 数据选择  
-![Selective Connection](../.readme/sdn_select.png)
-* 数据阻塞  
-![Blocking Connection](../.readme/sdn_block.png)
-
+　　
 ## 注解
 
 ### 关键词
@@ -394,4 +371,28 @@ Connection with worker (id: 1, address: ('192.168.1.3', 15387)) has been lost.
 
 ## 其他
 　　关于分配策略（IBlockAssignment）的详情，请参阅 [分配策略](../profiles/blockassignment/README.md)。
+
+　　编码控制器仅需要控制一层网络的权重交互，P-SGD Worker 在初始化运行环境之前会为每个神经网络层的每个
+参数创建一个编码控制器，P-SGD Transfer 会保证每个编码控制器接收到的权重总是来
+自同一个神经网络层（无论这段数据是来源于本机还是其他 Worker，P-SGD Transfer
+总是保证将其转发给唯一的编码控制器）。  
+　　通过更改每个节点发送数据的目的地，可以实现改变整个P-SGD网络的通信模式。通过
+对通信过程中的数据包进行编解码操作，可以改变数据传输的编码形式。无论是在接收数据
+还是在发送数据，框架都会检查ICommunication_Ctrl是否有需要传递的数据，因此可以
+实现节点对数据的路由和转发，进而实现P-SGD下的SDN网络，进一步提高实验的灵活性。  
+　　基于编码控制器的数据管控和目标定向功能，可以实现类似通信链路协议和SDN网络
+两层功能。  
+　　在数据控制方面，可以实现：
+* 数据压缩  
+![Data Compression](../.readme/data_compress.png)
+* 数据加密  
+![Data Encryption](../.readme/data_encrypt.png)
+
+　　在SDN角度，可以实现：
+* 数据转发  
+![Data Forward](../.readme/sdn_forward.png)
+* 数据选择  
+![Selective Connection](../.readme/sdn_select.png)
+* 数据阻塞  
+![Blocking Connection](../.readme/sdn_block.png)
 
