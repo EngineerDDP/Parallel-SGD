@@ -80,14 +80,21 @@ class Reply:
 
     class codec_and_sgd_package:
 
-        def __init__(self, codec:list, sgd_t:type):
+        def __init__(self, codec:[list, type], sgd_t:type):
             if isinstance(codec, list):
-                assert isinstance(codec[0], type), "Cannot serialize non-class type."
                 self.__codec = [ClassSerializer(cls_name=i) for i in codec]
+            elif isinstance(codec, type):
+                self.__codec = ClassSerializer(cls_name=codec)
+            else:
+                raise AssertionError('Cannot identify input codec class.')
+
             self.__sgd_t = ClassSerializer(sgd_t)
 
         def restore(self):
-            codec = [i.restore() for i in self.__codec]
+            if isinstance(self.__codec, list):
+                codec = [i.restore() for i in self.__codec]
+            else:
+                codec = self.__codec.restore()
             return codec, self.__sgd_t.restore()
 
     class data_sample_package:
