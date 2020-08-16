@@ -36,7 +36,7 @@ class ClassSerializer:
         mod_name = "./" + "/".join(cls_name.__module__.split('.')) + ".py"
 
         self.__class_name = cls_name.__name__
-        with open(mod_name, 'r') as file:
+        with open(mod_name, 'r', encoding='utf-8') as file:
             self.__mod_content = file.read()
 
     def restore(self) -> type:
