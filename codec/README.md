@@ -108,7 +108,8 @@ from profiles.settings import GlobalSettings
 print('Workers in current job: {}'.format(GlobalSettings.get_default().nodes))
 ```
  
-　　要将您的数据返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。依照梯度平均化编码控制器的任务提交逻辑，应当将本节点计算所得的梯度传输给参数服务器或其他没有该数据的执行节点，我们先实现一个无参数服务器的简单模型，代码如下：
+　　要将您的数据返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。依照梯度平均化编码控制器的任务提交逻辑，应当将本节点计算所得的梯度传输给参数服务器或其他没有该数据的执行节点，我们先实现一个无参数服务器的简单模型，代码如下：  
+
 ```python
 from codec.interfaces import ICommunication_Ctrl
 from codec.essential import Block_Weight
@@ -135,7 +136,7 @@ class myComCtrl(ICommunication_Ctrl):
         
         yield netEncapsulation(send_to, pkg)
 ```
-
+**注意**：在打包时应当发送可被序列化的 python 或 numpy 类型，不应当发送自定义类型，如果要发送自定义类型，请保证该类型是可序列化的，且对每个Worker都是可见的。   
 **注意**：update_block 和 receive_blocks 都返回迭代器对象，当有多个数据包需要发送的时候，使用 yield 逐个生成，当无数据包需要发送的时候，可以返回 None。
 
 　　至此，我们就完成了将数据送至网络的过程，生成好数据包后，您的数据包会被 ISync-SGD获取并进行时效性编号，并交由 P-SGD Transfer 进行转发，P-SGD Transfer 获取并将数据包放置到ICommunication_Control 的发送队列，当发送连接可用时，您的数据会被序列化并发送给指定的节点。

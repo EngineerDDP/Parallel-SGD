@@ -13,6 +13,13 @@ class QuantizedPack:
         self.content = content
         self.std = std
 
+    def pack(self):
+        return [self.node_id, self.content, self.std]
+
+    @staticmethod
+    def unpack(content):
+        return QuantizedPack(content[0], content[1], content[2])
+
 
 class Quantization1BitPSCodec(ICommunication_Ctrl):
 
@@ -32,9 +39,10 @@ class Quantization1BitPSCodec(ICommunication_Ctrl):
 
         weights = weights.astype('int8')
 
-        yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std))
+        yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
 
-    def receive_blocks(self, content: QuantizedPack):
+    def receive_blocks(self, content: list):
+        content = QuantizedPack.unpack(content)
         self.set_result(content.content)
 
 
@@ -63,9 +71,10 @@ class Quantization2BitPSCodec(ICommunication_Ctrl):
         weights[np.abs(weights) != 1] = 0
         weights = weights.astype('int8')
 
-        yield netEncapsulation(self.__node_id, QuantizedPack(self.__node_id, weights, std))
+        yield netEncapsulation(self.__node_id, QuantizedPack(self.__node_id, weights, std).pack())
 
-    def receive_blocks(self, content: QuantizedPack):
+    def receive_blocks(self, content: list):
+        content = QuantizedPack.unpack(content)
         self.set_result(content.content)
 
 
@@ -81,8 +90,9 @@ class FPWParaServer(ICommunication_Ctrl):
     def update_blocks(self, block_weight: Block_Weight):
         pass
 
-    def receive_blocks(self, content: QuantizedPack):
+    def receive_blocks(self, content: list):
+        content = QuantizedPack.unpack(content)
         self.__global_weights -= content.content.astype('double') * content.std
-        yield netEncapsulation(content.node_id, QuantizedPack(Parameter_Server, self.__global_weights, 1))
+        yield netEncapsulation(content.node_id, QuantizedPack(Parameter_Server, self.__global_weights, 1).pack())
 
 
