@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parse.add_argument("--learn_rate", type=float, default=0.05, help="initial learining rate")
     parse.add_argument("--epochs", type=int, default=2, help="initial train epochs")
     parse.add_argument("--block_assignment", type=str, default='iid', help="initial block assignment strategy")
-    parse.add_argument("--server_codec", type=str, default='sgq', help="server codec for parameter averaging")
+    parse.add_argument("--server_codec", type=str, default='grad', help="server codec for parameter averaging")
     parse.add_argument("--workers", type=str, default='worker.json', help='worker list file, json type')
     arg = parse.parse_args()
 
