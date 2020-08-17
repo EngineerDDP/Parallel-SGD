@@ -44,7 +44,6 @@ from codec.plain import PlainCommunicationCtrl
 from codec.ndc import NaiveDuplicationCodec
 from codec.unicast import UnicastCommunicationCtrl
 from codec.quantization import Quantization1BitPSCodec, Quantization2BitPSCodec
-from codec.sgq import SGQClient
 
 __codec_map = {
     'ccdc': CodedCommunicationCtrl,
@@ -53,8 +52,7 @@ __codec_map = {
     'ndc': NaiveDuplicationCodec,
     'unicast': UnicastCommunicationCtrl,
     'q1': Quantization1BitPSCodec,
-    'q2': Quantization2BitPSCodec,
-    'sgq': SGQClient
+    'q2': Quantization2BitPSCodec
 }
 
 def get_codec(x: str):
@@ -98,14 +96,12 @@ def get_assignment(x: str):
 
 from codec.naive_ps import ParaServerCodec, GradDiffParaServerCodec
 from codec.dc_asgdcodec import DCASGDServerCodec
-from codec.sgq import SGQServer
 from codec.quantization import FPWParaServer
 
 __para_server_map = {
     'simple': ParaServerCodec,
     'grad': GradDiffParaServerCodec,
     'dc': DCASGDServerCodec,
-    'sgq': SGQServer,
     'qpa': FPWParaServer
 }
 
