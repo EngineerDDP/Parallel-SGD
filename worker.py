@@ -205,6 +205,7 @@ class PSGD_Worker:
             n, d = com.get_one(False)
             if isinstance(d, Ready_Type):
                 ready_state[n] = True
+                time_count = 0
             if len(com.available_clients()) < len_ready:
                 raise OSError('Minimal number of clients cannot be satisfied.')
             if time_count > PSGD_Worker.Training_TimeOut_Limit:
