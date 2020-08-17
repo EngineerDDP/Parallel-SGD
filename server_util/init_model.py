@@ -4,9 +4,12 @@ from abc import ABCMeta, abstractmethod
 # ---------------------------------------------------------------------------------------------------------------
 def codec_auto_search(abs_name: str):
     import importlib
-    package_name, class_name = abs_name.split('.')
-    mod = importlib.import_module('codec.' + package_name)
-    cls = getattr(mod, class_name)
+    try:
+        package_name, class_name = abs_name.split('.')
+        mod = importlib.import_module('codec.' + package_name)
+        cls = getattr(mod, class_name)
+    except Exception:
+        raise AssertionError('Cannot find codec \'abs_name\'.')
     return cls
 
 from nn.activations import Sigmoid
