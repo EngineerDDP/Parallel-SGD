@@ -30,25 +30,25 @@ python job_submit.py
     --server-codec grad 
     --workers worker.json
 ```
-* *-n* *node-count*  
+* *-n* *--node-count*  
 节点数目，当前任务需要占用的节点数目。  
 该参数需要与代码适配，在 GlobalSetting 中默认的每个节点编号是连续的且从0开始。
 
-* *-b* *batch_size*  
+* *-b* *--batch_size*  
 批次大小，当前任务训练批次的大小。  
 **注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为 *batch_size* / *node_count*。
 
-* *-r* *redundancy*  
+* *-r* *--redundancy*  
 样本冗余份数，当前任务所需的样本冗余份数。  
 样本冗余份数会按要求传送给 GlobalSetting ，具体的冗余分配方案仍然依赖 *block_assignment* 参数，当 *block_assignment* 参数提供的处理方法无法处理冗余分配时，设置的冗余级别事实上是无效的。  
 **注意**：如果编码控制器无法处理冗余分配情况，可能会导致全局死锁。
 
-* *-O* *optimizer*  
+* *-O* *--optimizer*  
 使用的梯度下降优化器。  
 选用并行梯度下降优化器以实现并行计算，选用单机梯度下降优化器只能执行单机计算。  
 （关于可用的梯度下降优化器，请参阅 [梯度下降优化器类型](./nn/LIST.md) ）
 
-* *-C* *codec*  
+* *-C* *--codec*  
 worker上执行的实际编码器。  
 需要传入一个编码器参数时，默认给每层都分配相同的编码器。需要传入多个编码器时，使用逗号隔开，每个编码器对应一层，确保层数和编码器数量一致。   
 编码器类继承自 codec.interfaces.ICommunicationCtrl 。实现一个编码器类放置在 *job_submit* 可见的 *codec* 文件夹下，当任务提交时，*job_submit* 会自动解析类并发送至Worker上运行。  
@@ -59,33 +59,33 @@ worker上执行的实际编码器。
 （关于编码器设计的详情，请参阅 [编码控制器教程](./codec/README.md) ）  
 （关于可用的已实现的编码器，请参阅 [编码器类型](./codec/LIST.md) ）  
 
-* *psgd*  
+* *--psgd*  
 worker上执行的实际SGD同步器。  
 asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当超出SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法尝试补救，当两次超时并且无法挽回后，ssgd 会报告超时错误。  
 
-* *learn_rate*  
+* *--learn_rate*  
 worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。  
 
-* *-E* *epochs*  
+* *-E* *--epochs*  
 worker上执行的训练轮次。
 
-* *-D* *dataset*  
+* *-D* *--dataset*  
 训练所使用的数据集，目前内置有 **MNIST** （参数："*mnist*"）数据集，**CIFAR-10** （参数："*cifar*"）数据集。   
 
 * *--non-iid*  
 加入此选项，使用非i.i.d.数据集划分。  
 
-* *block_assignment*  
+* *--block_assignment*  
 全局训练样本分配策略。  
 继承自 profiles.blockassignment.interfaces.IBlockAssignment ，使用自定义的 block_assignment 分配样本，需要在 server_util.init_model.__assignment_map 中注册。  
 本项目的样本被划分为训练集与测试集，样本是固定的。训练集又被划分为多个batch，每个batch被均分为多个block，并发送到 block_assignment 指定的节点上。需要划分为多少个block，以及每个block复制多少份发送给多少节点由block_assignment决定。  
 （关于分配策略的详情，请参阅 [分配策略](./profiles/blockassignment/README.md) ）
 
-* *server_codec*  
+* *--server_codec*  
 参数服务器编码器。  
 继承自 codec.interfaces.ICommunicationCtrl ，实现一个编码器并在 server_util.init_model.__para_server_map 中注册，即可在此处传入对应参数，启动对应的参数服务器编码器。
 
-* *workers*  
+* *--workers*  
 工作节点目录，参数内容为文件名，默认为 worker.json。  
 在提交任务到集群上之前，需要设置worker.json，标明当前集群的节点列表。
 worker.json格式如下：
