@@ -101,17 +101,18 @@ class PSGDTraining_Client(Thread):
         # do until reach the target accuracy
         for i in range(self.Epochs):
             # change title
-            self.Log.Title = self.Log_Header + "-Cyc{}".format(i)
+            self.Log.Title = self.Log_Header + "-Cyc{}".format(i+1)
             self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
             # do tests
-            evaluation = self.Model.evaluate(self.Eval_X, self.Eval_Y)
+            r = self.Model.evaluate(self.Eval_X, self.Eval_Y)
+            self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title[-len(r):], r))))
             if self.Target_acc is not None:
                 # only one metric in model metrics list.
                 # evaluation[0] refers to loss
                 # evaluation[1] refers to accuracy.
-                if evaluation[1] > self.Target_acc:
+                if r[1] > self.Target_acc:
                     break
-            evaluation_history.append(evaluation)
+            evaluation_history.append(r)
 
         training_history = self.Model.History
         # save training history data
