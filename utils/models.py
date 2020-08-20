@@ -110,10 +110,11 @@ class Reply:
 
     class misc_package:
 
-        def __init__(self, epoch, loss_type, learn_rate, target_acc, w_types, op):
+        def __init__(self, epoch, loss_type, learn_rate, target_acc, w_types, op, metric):
             self.epoch = epoch
             self.loss_type = loss_type
             self.learn_rate = learn_rate
             self.target_acc = target_acc
             self.w_types = w_types
             self.optimizer = op
+            self.metric = metric

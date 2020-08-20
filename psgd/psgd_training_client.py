@@ -52,6 +52,7 @@ class PSGDTraining_Client(Thread):
                  w_types,
                  tags,
                  optimizer,
+                 metrics,
                  train_x, train_y,
                  eval_x, eval_y,
                  batch_size,
@@ -76,7 +77,7 @@ class PSGDTraining_Client(Thread):
         self.Transfer = NTransfer(updater, com, logger)
         self.Optimizer = optimizer(tags=tags, batch_size=self.Batch_Size, com=self.Transfer, learn_rate=learn_rate)
         self.Model = SequentialModel_v2(nn, logger=logger)
-        self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=[CategoricalAccuracy()])
+        self.Model.compile(optimizer=self.Optimizer, loss=loss(), metrics=metrics)
 
         self.Trace_Name = 'N({})-R({})-ID({})-CODEC({})'.format(GlobalSettings.get_default().node_count,
                                                                 GlobalSettings.get_default().redundancy,

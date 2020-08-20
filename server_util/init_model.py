@@ -9,7 +9,7 @@ def codec_auto_search(abs_name: str):
         mod = importlib.import_module('codec.' + package_name)
         cls = getattr(mod, class_name)
     except Exception:
-        raise AssertionError('Cannot find codec \'abs_name\'.')
+        raise AssertionError('Cannot find codec \'{}\'.'.format(abs_name))
     return cls
 
 from nn.activations import Sigmoid
@@ -116,6 +116,8 @@ def get_para_server(x: str):
 from nn.layers import FCLayer_v2
 from nn.layers import MaxPool, Conv2dLayer, Reshape
 
+from nn.metrics import CategoricalAccuracy, MeanSquareError
+
 
 class IServerModel(metaclass=ABCMeta):
 
@@ -152,6 +154,10 @@ class IServerModel(metaclass=ABCMeta):
 
     @abstractmethod
     def codec_ctrl(self):
+        pass
+
+    @abstractmethod
+    def metric(self):
         pass
 
     def target_acc(self):
@@ -231,6 +237,9 @@ class ModelLinear(IServerModel):
     def codec_ctrl(self):
         return self.__codec
 
+    def metric(self):
+        return [MeanSquareError()]
+
 
 class ModelDNN(IServerModel):
 
@@ -285,6 +294,9 @@ class ModelDNN(IServerModel):
     def codec_ctrl(self):
         return self.__codec
 
+    def metric(self):
+        return [CategoricalAccuracy()]
+
     # ---------- attributes ----------
 
 
@@ -335,3 +347,6 @@ class ModelCNN(IServerModel):
 
     def codec_ctrl(self):
         return self.__codec
+
+    def metric(self):
+        return [CategoricalAccuracy()]

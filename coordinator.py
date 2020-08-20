@@ -102,7 +102,8 @@ class Coordinator:
                             self.__model.learn_rate(),
                             self.__model.target_acc(),
                             self.__model.weights_types(),
-                            self.__model.optimizer_type()
+                            self.__model.optimizer_type(),
+                            self.__model.metric()
                         )
 
                     else:

@@ -64,7 +64,7 @@ if __name__ == '__main__':
     ass = get_assignment(arg.assignment)
     assignment = ass(arg.n, arg.r)
     # set up full batch_size
-    batch_size = arg.batch_size * assignment.block_count
+    batch_size = arg.b * assignment.block_count
     GlobalSettings.set_default(arg.n, arg.r, batch_size, assignment)
     # get dataset
     if arg.dataset == 'mnist':
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # Set model parameters
     model_parameter = ModelDNN(train_x=train_x, train_y=train_y,
                                test_x=test_x, test_y=test_y,
-                               codec=arg.codec,
+                               codec=codec,
                                psgd_type=arg.psgd,
                                server_codec=arg.server_codec,
                                learn_rate=arg.lr,

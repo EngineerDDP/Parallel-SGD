@@ -141,6 +141,7 @@ class PSGD_Worker:
         learn_rate = data.learn_rate
         w_type = data.w_types
         op = data.optimizer
+        metric = data.metric
 
         self.__training_log = Logger('Training log @ node-{}'.format(com.Node_Id), log_to_file=True)
 
@@ -172,7 +173,8 @@ class PSGD_Worker:
                 epochs=epoch,
                 logger=self.__training_log,
                 learn_rate=learn_rate,
-                target_acc=target_acc
+                target_acc=target_acc,
+                metrics=metric
             )
         else:
             self.__running_thread = PSGDTraining_Parameter_Server(
