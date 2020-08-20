@@ -21,39 +21,41 @@ python worker.py
 　　提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
 ```shell script
 python job_submit.py 
-    --node_count 4  
-    --batch_size 128  
+    --node-count 4  
+    --batch-size 128  
     --redundancy 1  
     --codec plain,plain,plain,plain,ccdc,ps  
     --optimizer psgd  
     --psgd ssgd  
-    --learn_rate 0.05  
+    --learn-rate 0.05  
     --epochs 10  
-    --block_assignment iid 
-    --server_codec grad 
+    --dataset mnist
+    --non-iid 
+    --block-assignment iid 
+    --server-codec grad 
     --workers worker.json
 ```
-* *node_count*  
+* *-n* *node-count*  
 节点数目，当前任务需要占用的节点数目。  
 该参数需要与代码适配，在 GlobalSetting 中默认的每个节点编号是连续的且从0开始。
 
-* *batch_size*  
+* *-b* *batch_size*  
 批次大小，当前任务训练批次的大小。  
 **注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为
 *batch_size* / *node_count*。
 
-* *redundancy*  
+* *-r* *redundancy*  
 样本冗余份数，当前任务所需的样本冗余份数。  
 样本冗余份数会按要求传送给 GlobalSetting ，具体的冗余分配方案仍然依赖 *block_assignment* 
 参数，当 *block_assignment* 参数提供的处理方法无法处理冗余分配时，设置的冗余级别事实上是无效的。  
 **注意**：如果编码控制器无法处理冗余分配情况，可能会导致全局死锁。
 
-* *optimizer*  
+* *-O* *optimizer*  
 使用的梯度下降优化器。  
 选用并行梯度下降优化器以实现并行计算，选用单机梯度下降优化器只能执行单机计算。  
 （关于可用的梯度下降优化器，请参阅 [梯度下降优化器类型](./nn/LIST.md) ）
 
-* *codec*  
+* *-C* *codec*  
 worker上执行的实际编码器，当需要与参数服务器协同工作时，该编码器要能与参数服务器上执行的编码器匹配。
 当传入一个编码器参数时，默认给每层都分配相同的编码器。需要传入多个编码器时，使用逗号隔开，每个编码器
 对应一层，确保层数和编码器数量一致。 
@@ -73,8 +75,14 @@ SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunica
 * *learn_rate*  
 worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。
 
-* *epochs*  
+* *-E* *epochs*  
 worker上执行的训练轮次。
+
+* *-D* *dataset*  
+训练所使用的数据集，目前内置有 **MNIST** 数据集，**CIFAR-10** 数据集。  
+
+* *--non-iid*  
+加入此选项，使用非i.i.d.数据集划分。  
 
 * *block_assignment*  
 全局训练样本分配策略。  

@@ -85,11 +85,11 @@ class SinSimulation:
         return self.A * np.sin(x * 2 * np.pi / self.W) + self.B
 
 
-def load_lin_sim():
+def load(len_x:int=1024, len_y:int=1):
 
-    x = np.random.uniform(0, 1, size=[60000, 2048])
-    w = np.random.uniform(0, 1, size=[1024, 2048])
-    b = np.random.normal(0, 0.1, size=1024)
+    x = np.random.uniform(0, 1, size=[60000, len_x])
+    w = np.random.uniform(0, 1, size=[len_y, len_x])
+    b = np.random.normal(0, 0.1, size=len_y)
     sim = LinearSimulation(w, b, normal_scale=0.3, bin_scale=1.0, bin_rate=0.1, oneside=False)
 
     y = sim.predict(x)
@@ -106,6 +106,3 @@ def load_sin_sim():
     x = np.asarray([x_1, x_2]).transpose()
 
     return x, y
-
-if __name__ == '__main__':
-    print(load_lin_sim())

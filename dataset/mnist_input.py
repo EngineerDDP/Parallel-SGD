@@ -3,7 +3,7 @@ import struct
 import numpy as np
 
 
-def load_mnist(path='./dataset/CNN/MNIST_data', kind='train'):
+def load_core(path='./dataset/CNN/MNIST_data', kind='train'):
     """Load MNIST data from `path`"""
     labels_path = os.path.join(path,
                                '%s-labels.idx1-ubyte'
@@ -23,15 +23,11 @@ def load_mnist(path='./dataset/CNN/MNIST_data', kind='train'):
         images = np.fromfile(imgpath,
                              dtype=np.uint8).reshape(len(labels), 784)
 
-    images = images / 255
-    # images = images[:, :-1]
-    # labels[labels == 9] = 8
-    labels = np.eye(10)[labels]
-
     return images, labels
 
-if __name__ == '__main__':
 
-    a = load_mnist()
-    print('')
+def load():
+    train_x, train_y = load_core(kind='train')
+    test_x, test_y = load_core(kind='t10k')
 
+    return train_x, train_y, test_x, test_y

@@ -35,9 +35,11 @@ def load_data(path='./dataset/cirfar_data/', kind='train'):
     label = np.concatenate(label, axis=0)
     data = np.concatenate(data, axis=0)
 
-    label = np.eye(10)[label]
-    data = data / 255
-
     return data, label
 
 
+def load():
+    train_x, train_y = load_data(kind='train')
+    test_x, test_y = load_data(kind='t10k')
+
+    return train_x, train_y, test_x, test_y

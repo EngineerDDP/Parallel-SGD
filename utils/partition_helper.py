@@ -18,7 +18,7 @@ def make_non_iid_distribution(x, y, batch_size):
     # get margin for each sampling point
     margin = n // batch_size
     # get batch sampling point, each batch corresponds with a column.
-    indicator = np.arange(0, n).reshape(shape=[batch_size, margin])
+    indicator = np.arange(0, n).reshape([batch_size, margin])
     # transpose and reshape indicator
     indicator = np.reshape(indicator.T, newshape=-1)
     # get sorts index
@@ -27,3 +27,10 @@ def make_non_iid_distribution(x, y, batch_size):
     idx = idx[indicator]
     # sampling read data
     return x[idx], y[idx]
+
+
+if __name__ == '__main__':
+    from dataset.simdata import load
+    x, y, _, _ = load()
+    x, y = make_non_iid_distribution(x, y, 64)
+    print(y[:128])

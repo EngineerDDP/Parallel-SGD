@@ -125,7 +125,6 @@ class IServerModel(metaclass=ABCMeta):
                  optimizer_type,
                  server_codec,
                  epoches,
-                 block_assignment,
                  server_type='asgd',
                  target_acc=None,
                  learn_rate=0.05):
@@ -138,7 +137,6 @@ class IServerModel(metaclass=ABCMeta):
         self.__target_Accuracy = target_acc
         self.__training_Data = (train_x, train_y)
         self.__test_Data = (test_x, test_y)
-        self.__block_Assignment = get_assignment(block_assignment)
 
     @abstractmethod
     def weights_types(self):
@@ -183,9 +181,6 @@ class IServerModel(metaclass=ABCMeta):
     def eval_data(self):
         return self.__test_Data
 
-    def get_assignment(self):
-        return self.__block_Assignment
-
 
 class ModelLinear(IServerModel):
 
@@ -195,7 +190,6 @@ class ModelLinear(IServerModel):
                  optimizer_type,
                  server_codec,
                  epoches,
-                 block_assignment,
                  server_type='asgd',
                  target_acc=None,
                  learn_rate=0.05,
@@ -203,7 +197,7 @@ class ModelLinear(IServerModel):
 
         super().__init__(train_x, train_y, test_x, test_y,
                          psgd_type, optimizer_type, server_codec, epoches,
-                         block_assignment, server_type, target_acc, learn_rate)
+                         server_type, target_acc, learn_rate)
 
         self.__nn = None
         layer_units = [1024]
@@ -246,7 +240,6 @@ class ModelDNN(IServerModel):
                  optimizer_type,
                  server_codec,
                  epoches,
-                 block_assignment,
                  server_type='asgd',
                  target_acc=None,
                  learn_rate=0.05,
@@ -254,7 +247,7 @@ class ModelDNN(IServerModel):
 
         super().__init__(train_x, train_y, test_x, test_y,
                          psgd_type, optimizer_type, server_codec, epoches,
-                         block_assignment, server_type, target_acc, learn_rate)
+                         server_type, target_acc, learn_rate)
 
         self.__nn = None
         layer_units = [784, 784, 392, 196, 128, 10]
@@ -303,7 +296,6 @@ class ModelCNN(IServerModel):
                  optimizer_type,
                  server_codec,
                  epoches,
-                 block_assignment,
                  server_type='asgd',
                  target_acc=None,
                  learn_rate=0.05,
@@ -311,7 +303,7 @@ class ModelCNN(IServerModel):
 
         super().__init__(train_x, train_y, test_x, test_y,
                          psgd_type, optimizer_type, server_codec, epoches,
-                         block_assignment, server_type, target_acc, learn_rate)
+                         server_type, target_acc, learn_rate)
 
         self.__nn = []
         self.__nn.append(Conv2dLayer([5,5], 64, 'SAME', [1,1]))
