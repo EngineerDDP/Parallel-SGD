@@ -1,18 +1,13 @@
 # Parallel SGD
 
-　　Parallel SGD已经更新到r0.4版本了，使用了全新的网络与调度架构重新设计，再也不需要通过复杂的
-调度脚本去挨个节点拉取 log 文件了，所有的参数使用 job_submit 一次提交到处运（崩）行（溃）。  
-　　本项目用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验框架，通过本项目暴漏出的ICommunication_Ctrl
-接口（详情参阅  [编码控制器教程](./codec/README.md) ），可以实现选择性的建立节点之间的通讯机制，并对数据网络上
-流通的数据进行加解密等操作。当您需要对网络拓扑进行改动时，仅需要修改ICommunication_Ctrl模块来改变网络通信的目的和
-方式，底层自建的TCP长连接会帮助您将数据包送达至指定目的地。
+　　Parallel SGD已经更新到r0.4版本了，使用了全新的网络与调度架构重新设计，再也不需要通过复杂的调度脚本去挨个节点拉取 log 文件了，所有的参数使用 job_submit 一次提交到处运行。  
+　　本项目用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验框架，通过本项目暴漏出的ICommunication_Ctrl接口（详情参阅  [编码控制器教程](./codec/README.md) ），可以实现选择性的建立节点之间的通讯机制，并对数据网络上流通的数据进行加解密等操作。当您需要对网络拓扑进行改动时，仅需要修改ICommunication_Ctrl模块来改变网络通信的目的和方式，底层自建的TCP长连接会帮助您将数据包送达至指定目的地。
 
 ## 参数说明
 
 ### 工作节点参数
-　　所有的参数都通过 job_submit.py 传入，worker节点无需传入任何参数。启动时，使用以下命令启动Worker，无需传入参数。
-当任务提交时，节点会自动申请并获取工作状态信息。  
-**注意**：每个worker所在的计算机都需要允许15387端口的TCP传入。
+　　所有的参数都通过 job_submit.py 传入，worker节点无需传入任何参数。启动时，使用以下命令启动Worker，无需传入参数。当任务提交时，节点会自动申请并获取工作状态信息。  
+**注意**：每个worker所在的计算机都需要允许15387端口的TCP传入。  
 ```shell script
 python worker.py 
 ```
@@ -41,13 +36,11 @@ python job_submit.py
 
 * *-b* *batch_size*  
 批次大小，当前任务训练批次的大小。  
-**注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为
-*batch_size* / *node_count*。
+**注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为 *batch_size* / *node_count*。
 
 * *-r* *redundancy*  
 样本冗余份数，当前任务所需的样本冗余份数。  
-样本冗余份数会按要求传送给 GlobalSetting ，具体的冗余分配方案仍然依赖 *block_assignment* 
-参数，当 *block_assignment* 参数提供的处理方法无法处理冗余分配时，设置的冗余级别事实上是无效的。  
+样本冗余份数会按要求传送给 GlobalSetting ，具体的冗余分配方案仍然依赖 *block_assignment* 参数，当 *block_assignment* 参数提供的处理方法无法处理冗余分配时，设置的冗余级别事实上是无效的。  
 **注意**：如果编码控制器无法处理冗余分配情况，可能会导致全局死锁。
 
 * *-O* *optimizer*  
@@ -56,46 +49,41 @@ python job_submit.py
 （关于可用的梯度下降优化器，请参阅 [梯度下降优化器类型](./nn/LIST.md) ）
 
 * *-C* *codec*  
-worker上执行的实际编码器，当需要与参数服务器协同工作时，该编码器要能与参数服务器上执行的编码器匹配。
-当传入一个编码器参数时，默认给每层都分配相同的编码器。需要传入多个编码器时，使用逗号隔开，每个编码器
-对应一层，确保层数和编码器数量一致。 
-编码器类继承自 codec.interfaces.ICommunicationCtrl 实现一个编码器类并在 server_util.init_model.__codec_map 
-中注册，即可在此处传入对应参数，启动对应的客户端编码器。   
+worker上执行的实际编码器。  
+需要传入一个编码器参数时，默认给每层都分配相同的编码器。需要传入多个编码器时，使用逗号隔开，每个编码器对应一层，确保层数和编码器数量一致。   
+编码器类继承自 codec.interfaces.ICommunicationCtrl 。实现一个编码器类放置在 *job_submit* 可见的 *codec* 文件夹下，当任务提交时，*job_submit* 会自动解析类并发送至Worker上运行。  
+**注意**：无需在每个Worker上复制一份 *codec*，*job_submit* 过程会自动将运行所需的代码发送至Worker。  
+**注意**：如果编码器引用了外部类或其他依赖，保证这些依赖对每个Worker都是可用的。  
 **注意**：第一个编码器参数对应第一个层，以此类推。  
+**注意**：当需要引入参数服务器时，确保给定的编码器能与参数服务器正常交互。  
 （关于编码器设计的详情，请参阅 [编码控制器教程](./codec/README.md) ）  
 （关于可用的已实现的编码器，请参阅 [编码器类型](./codec/LIST.md) ）  
 
 * *psgd*  
 worker上执行的实际SGD同步器。  
-asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行
-同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当超出
-SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法，
-尝试补救，当两次超时并且无法挽回后，ssgd 会报告超时错误。  
+asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当超出SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法尝试补救，当两次超时并且无法挽回后，ssgd 会报告超时错误。  
 
 * *learn_rate*  
-worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。
+worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。  
 
 * *-E* *epochs*  
 worker上执行的训练轮次。
 
 * *-D* *dataset*  
-训练所使用的数据集，目前内置有 **MNIST** 数据集，**CIFAR-10** 数据集。  
+训练所使用的数据集，目前内置有 **MNIST** （参数："*mnist*"）数据集，**CIFAR-10** （参数："*cifar*"）数据集。   
 
 * *--non-iid*  
 加入此选项，使用非i.i.d.数据集划分。  
 
 * *block_assignment*  
 全局训练样本分配策略。  
-继承自 profiles.blockassignment.interfaces.IBlockAssignment ，使用自定义的 block_assignment 分配样本，需要
-在 server_util.init_model.__assignment_map 中注册。
-本项目的样本被划分为训练集与测试集，样本是固定的。训练集又被划分为多个batch，每个batch被均分为多个block，并发送到
-block_assignment 指定的节点上。需要划分为多少个block，以及每个block复制多少份发送给多少节点由block_assignment决定。  
+继承自 profiles.blockassignment.interfaces.IBlockAssignment ，使用自定义的 block_assignment 分配样本，需要在 server_util.init_model.__assignment_map 中注册。  
+本项目的样本被划分为训练集与测试集，样本是固定的。训练集又被划分为多个batch，每个batch被均分为多个block，并发送到 block_assignment 指定的节点上。需要划分为多少个block，以及每个block复制多少份发送给多少节点由block_assignment决定。  
 （关于分配策略的详情，请参阅 [分配策略](./profiles/blockassignment/README.md) ）
 
 * *server_codec*  
 参数服务器编码器。  
-继承自 codec.interfaces.ICommunicationCtrl ，实现一个编码器并在 server_util.init_model.__para_server_map 中
-注册，即可在此处传入对应参数，启动对应的参数服务器编码器。
+继承自 codec.interfaces.ICommunicationCtrl ，实现一个编码器并在 server_util.init_model.__para_server_map 中注册，即可在此处传入对应参数，启动对应的参数服务器编码器。
 
 * *workers*  
 工作节点目录，参数内容为文件名，默认为 worker.json。  
@@ -107,9 +95,7 @@ worker.json格式如下：
     ["Worker", "192.168.1.3"]
 ]
 ```
-　　主体为一个数组，每行包含两个信息，分别是该节点的工作角色和IP地址，您要保证这些IP地址均可以互相访问。
-目前支持的角色类型只有两种，"PS"代表该节点以参数服务器的形式工作，"Worker"代表该节点以计算
-节点的形式工作。   
+　　主体为一个数组，每行包含两个信息，分别是该节点的工作角色和IP地址，您要保证这些IP地址均可以互相访问。目前支持的角色类型只有两种，"PS"代表该节点以参数服务器的形式工作，"Worker"代表该节点以计算节点的形式工作。   
 **注意**：无需在每个节点上配置worker.json，只需要在提交任务时配置了worker.json即可。  
 
 ### 工作与等待
