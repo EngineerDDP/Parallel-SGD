@@ -12,8 +12,11 @@ def make_non_iid_distribution(x, y, batch_size):
     """
     # get total sample count
     n = y.shape[0]
+    # get real n
+    n = n - n % batch_size
+
     # get margin for each sampling point
-    margin = n / batch_size
+    margin = n // batch_size
     # get batch sampling point, each batch corresponds with a column.
     indicator = np.arange(0, n).reshape(shape=[batch_size, margin])
     # transpose and reshape indicator
