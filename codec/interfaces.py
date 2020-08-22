@@ -47,7 +47,8 @@ def dummy_iterator(func):
             for i in []:
                 yield None
         elif type(rtn).__name__ == 'generator':
-            return rtn
+            for obj in rtn:
+                yield obj
         else:
             yield rtn
 
