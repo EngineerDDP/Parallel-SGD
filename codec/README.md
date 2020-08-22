@@ -172,7 +172,9 @@ class myComCtrl(ICommunication_Ctrl):
             self.__global_weights = 0
             self.__current_recv = 0
 ```
-  
+**注意**：*set_result()*方法调用时会将结果累加起来，本次调用传入的值会和上次剩余的值累加，而不是覆盖。  
+
+
 　　如果当前的节点工作的比其他节点快，那么当前节点就会在接收到其他节点发来的消息时完成梯度平均化，如果当前的节点工作的比其他节点慢，那么当前节点需要在完成本地更新之后完成梯度平均化。因此我们在 update_blocks 方法和 receive_blocks 方法中都调用了梯度平均化判断。  
 　　完整的代码如下：
 
