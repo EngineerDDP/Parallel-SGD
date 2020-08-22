@@ -24,7 +24,7 @@ class Logger:
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
-        str = 'ERROR @ {} : {}'.format(time_str, error)
+        str = 'ERROR {}@{} : {}'.format(self.Title, time_str, error)
 
         print(str)
         self.__log_to_file(str)
