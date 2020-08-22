@@ -1,10 +1,19 @@
 from queue import Queue
 from time import sleep
 
-from codec.interfaces import dummy_iterator
 from codec.essential import Block_Weight
 from psgd.interfaces import IParallelSGD
 from psgd.interfaces import ReadTimeOut, AsyncDetected, OutdatedUpdates
+
+
+def iterator_helper(iter):
+    if iter is None:
+        for i in []:
+            yield None
+    elif type(iter).__name__ == 'generator':
+        return iter
+    else:
+        yield iter
 
 
 class SynchronizedSGD(IParallelSGD):
@@ -37,10 +46,6 @@ class SynchronizedSGD(IParallelSGD):
         :return: None
         """
         self.batch_updater = self.Updater(self.Node_ID)
-        # Make compatible for old codecs
-        self.batch_updater.do_something_to_save_yourself = dummy_iterator(self.batch_updater.do_something_to_save_yourself)
-        self.batch_updater.receive_blocks = dummy_iterator(self.batch_updater.receive_blocks)
-        self.batch_updater.update_blocks = dummy_iterator(self.batch_updater.update_blocks)
 
     def release_memory(self):
         """
@@ -61,7 +66,7 @@ class SynchronizedSGD(IParallelSGD):
 
         block = Block_Weight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, content=content)
 
-        update_packs = self.batch_updater.update_blocks(block)
+        update_packs = iterator_helper(self.batch_updater.update_blocks(block))
 
         for update_pack in update_packs:
             sender = update_pack.target()

@@ -1,5 +1,5 @@
 from codec.essential import Block_Weight
-from psgd.ssgd import SynchronizedSGD
+from psgd.ssgd import SynchronizedSGD, iterator_helper
 
 
 class AsynchronizedSGD(SynchronizedSGD):
@@ -32,7 +32,7 @@ class AsynchronizedSGD(SynchronizedSGD):
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
             # get package iterable
-            pack_to_sends = self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA])
+            pack_to_sends = iterator_helper(self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA]))
 
             # iterate package
             for pack_to_send in pack_to_sends:
