@@ -7,13 +7,18 @@ from psgd.interfaces import ReadTimeOut, AsyncDetected, OutdatedUpdates
 
 
 def iterator_helper(iter):
+    """
+        Retrieve data from generator
+    :param iter:
+    :return:
+    """
+    if type(iter).__name__ == 'generator':
+        return [i for i in iter]
+
     if iter is None:
-        for i in []:
-            yield None
-    elif type(iter).__name__ == 'generator':
-        return iter
-    else:
-        yield iter
+        return []
+
+    return [iter]
 
 
 class SynchronizedSGD(IParallelSGD):
