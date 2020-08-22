@@ -73,12 +73,16 @@ for i in range(TEST_ROUNDS):
     for slave in slave_codec:
         # wait until done
         time_out = 0
+        retried = False
         while not slave.is_done():
             sleep(0.001)
             time_out += 1
-            if time_out > SYNCWAITTIMEOUT:
+            if time_out > SYNCWAITTIMEOUT and not retried:
                 print("WARNING: Timeout occurred while get the result from worker {}.".format(node_id))
-                for package in slave.do_something_to_save_yourself():
+                do_retry = slave.do_something_to_save_yourself()
+                if do_retry is None:
+                    raise TimeoutError('Timeout occurred and retry mechanism is not available.')
+                for package in do_retry:
                     # get proper receiver
                     for tgt in package.target():
                         assert tgt in range(SLAVE_CNT)
@@ -86,6 +90,10 @@ for i in range(TEST_ROUNDS):
                         # recv pkg
                         recv.receive_blocks(package.content())
                         print("INFO: ----------- Node:{} Backup to {} successful -----------".format(node_id, tgt))
+                time_out = 0
+                retried = True
+            elif time_out > SYNCWAITTIMEOUT and retried:
+                raise TimeoutError('Decode timeout.')
 
         arr_res = slave.get_result()
         print("INFO: ----------- Node:{} Decode successful -----------".format(node_id))

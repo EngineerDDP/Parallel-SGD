@@ -94,7 +94,7 @@ class ICommunication_Ctrl(metaclass=ABCMeta):
             This method were implemented intend to break the deadlock among nodes.
         :return: Generator: for iterating packages to be sent with NetEncapsulation type.
         """
-        return yield_none()
+        pass
 
     def is_done(self):
         """
