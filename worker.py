@@ -64,14 +64,14 @@ class PSGD_Worker:
             except Exception as e:
                 self.client_logger.log_error('Exception occurred: {}'.format(e))
 
-                # print DEBUG message
-                import sys
-                import traceback
-                exc_type, exc_value, exc_tb = sys.exc_info()
-                exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
-                for line in exc_tb:
-                    self.client_logger.log_message(line)
-                # print DEBUG message
+                # # print DEBUG message
+                # import sys
+                # import traceback
+                # exc_type, exc_value, exc_tb = sys.exc_info()
+                # exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
+                # for line in exc_tb:
+                #     self.client_logger.log_message(line)
+                # # print DEBUG message
 
             except KeyboardInterrupt:
                 self.client_logger.log_error('Worker shutdown by interruption.')
@@ -222,8 +222,7 @@ class PSGD_Worker:
             data_sent_mark = com.Com.bytes_sent
             data_recv_mark = com.Com.bytes_read
             begin = time.time()
-            self.__running_thread.start()
-            self.__running_thread.join()
+            self.__running_thread.run()
             end = time.time()
 
             self.__training_log.log_message('Execution complete, time:{}'.format(end - begin))
@@ -243,6 +242,16 @@ class PSGD_Worker:
                 com.send_one(Initialization_Server, eval_csv)
 
         except Exception as error:
+            # print DEBUG message
+            import sys
+            import traceback
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
+            for line in exc_tb:
+                self.__training_log.log_error(line)
+                self.client_logger.log_error(line)
+            # print DEBUG message
+            # record error in training log.
             self.client_logger.log_error('Error encountered while executing : {}'.format(error))
             self.__training_log.log_error('Error encountered while executing : {}'.format(error))
 

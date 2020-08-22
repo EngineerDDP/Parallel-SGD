@@ -52,6 +52,9 @@ class NTransfer(ITransfer):
         try:
             return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
         except ReadTimeOut as e:
+            if e.retry() is None:
+                self.__log.log_error('Time out while getting result, retry not available.')
+                raise TimeoutError('Time out while get weights.')
             for sender, dic in e.retry():
                 self.__send(sender, dic, tag.Layer_No, w_type)
                 self.__log.log_error('Message retry to node {}'.format(sender))
