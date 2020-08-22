@@ -71,7 +71,7 @@ class Quantization2BitPSCodec(ICommunication_Ctrl):
         weights[np.abs(weights) != 1] = 0
         weights = weights.astype('int8')
 
-        yield netEncapsulation(self.__node_id, QuantizedPack(self.__node_id, weights, std).pack())
+        yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
 
     def receive_blocks(self, content: list):
         content = QuantizedPack.unpack(content)
