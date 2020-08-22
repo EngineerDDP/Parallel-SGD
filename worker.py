@@ -38,7 +38,9 @@ class PSGD_Worker:
     def __init__(self):
         self.__running_thread = None
         self.client_logger = Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
+
         self.__training_log = None
+        self.__training_time_wait_ratio = 1
 
         self.client_logger.log_message('Working started and ready for job submission.')
 
@@ -156,6 +158,7 @@ class PSGD_Worker:
 
             train_x, train_y, eval_x, eval_y = data.restore()
 
+            self.__training_time_wait_ratio = 1
             self.__running_thread = PSGDTraining_Client(
                 model_init=layers,
                 loss=loss_t,
@@ -177,6 +180,7 @@ class PSGD_Worker:
                 metrics=metric
             )
         else:
+            self.__training_time_wait_ratio = 2
             self.__running_thread = PSGDTraining_Parameter_Server(
                 model_init=layers,
                 ps_codec=codec,
@@ -210,7 +214,7 @@ class PSGD_Worker:
                 time_count = 0
             if len(com.available_clients()) < len_ready:
                 raise OSError('Minimal number of clients cannot be satisfied.')
-            if time_count > PSGD_Worker.Training_TimeOut_Limit:
+            if time_count > PSGD_Worker.Training_TimeOut_Limit * self.__training_time_wait_ratio:
                 raise AssertionError('Maximal waiting time exceed, give up waiting and reset environment.')
             for node_id in com.available_clients():
                 com.send_one(node_id, Ready_Type())
