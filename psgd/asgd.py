@@ -14,16 +14,6 @@ class AsynchronizedSGD(SynchronizedSGD):
     def __init__(self, node_id, layer_id, codec):
 
         super().__init__(node_id, layer_id, codec)
-        self.init_startup_setting()
-
-    def init_startup_setting(self, params=None):
-        """
-            Currently not used.
-        :param params: None
-        :return: None
-        """
-        self.batch_updater = self.Updater(self.Node_ID)
-        pass
 
     def release_memory(self):
         """
@@ -43,6 +33,7 @@ class AsynchronizedSGD(SynchronizedSGD):
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
             # get package iterable
             pack_to_sends = self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA])
+
             # iterate package
             for pack_to_send in pack_to_sends:
                 target = pack_to_send.target()

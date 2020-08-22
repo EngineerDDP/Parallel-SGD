@@ -1,6 +1,7 @@
 from queue import Queue
 from time import sleep
 
+from codec.interfaces import dummy_iterator
 from codec.essential import Block_Weight
 from psgd.interfaces import IParallelSGD
 from psgd.interfaces import ReadTimeOut, AsyncDetected, OutdatedUpdates
@@ -27,13 +28,19 @@ class SynchronizedSGD(IParallelSGD):
         self.batch_updater = None
         self.current_batch = 0
 
+        self.init_startup_setting()
+
     def init_startup_setting(self, params=None):
         """
             Currently not used.
         :param params: None
         :return: None
         """
-        pass
+        self.batch_updater = self.Updater(self.Node_ID)
+        # Make compatible for old codecs
+        self.batch_updater.do_something_to_save_yourself = dummy_iterator(self.batch_updater.do_something_to_save_yourself)
+        self.batch_updater.receive_blocks = dummy_iterator(self.batch_updater.receive_blocks)
+        self.batch_updater.update_blocks = dummy_iterator(self.batch_updater.update_blocks)
 
     def release_memory(self):
         """
@@ -50,17 +57,11 @@ class SynchronizedSGD(IParallelSGD):
             note: only one working process on each node.
                   there can be different working progress among each nodes.
         """
-        if self.batch_updater is None:
-            self.batch_updater = self.Updater(tag.Node_No)
-
         self.current_batch = tag.Batch_No
 
         block = Block_Weight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, content=content)
 
         update_packs = self.batch_updater.update_blocks(block)
-
-        if update_packs is None:
-            update_packs = []
 
         for update_pack in update_packs:
             sender = update_pack.target()

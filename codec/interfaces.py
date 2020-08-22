@@ -39,10 +39,19 @@ class netEncapsulation:
         return self.__packages
 
 
-def yield_none():
-    # for iteration
-    for i in []:
-        yield None
+def dummy_iterator(func):
+
+    def new_func(*paras):
+        rtn = func(*paras)
+        if rtn is None:
+            for i in []:
+                yield None
+        elif type(rtn).__name__ == 'generator':
+            return rtn
+        else:
+            yield rtn
+
+    return new_func
 
 
 class ICommunication_Ctrl(metaclass=ABCMeta):
@@ -59,6 +68,7 @@ class ICommunication_Ctrl(metaclass=ABCMeta):
         """
         pass
 
+    @dummy_iterator
     @abstractmethod
     def update_blocks(self, block_weight:Block_Weight):
         """
@@ -75,6 +85,7 @@ class ICommunication_Ctrl(metaclass=ABCMeta):
         """
         pass
 
+    @dummy_iterator
     @abstractmethod
     def receive_blocks(self, content:object):
         """

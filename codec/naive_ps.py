@@ -1,4 +1,4 @@
-from codec.interfaces import ICommunication_Ctrl, IComPack, yield_none, netEncapsulation
+from codec.interfaces import ICommunication_Ctrl, IComPack, netEncapsulation
 
 from utils.constants import Parameter_Server
 from utils.log import Logger
@@ -31,7 +31,6 @@ class PAClientCodec(ICommunication_Ctrl):
         compack = PAServerCompack.from_dictionary(content)
         self.set_result(compack.Content)
 
-        return yield_none()
 
 
 class GradDiffParaServerCodec(ICommunication_Ctrl):
@@ -58,7 +57,7 @@ class GradDiffParaServerCodec(ICommunication_Ctrl):
         :param block_weight:
         :return:
         """
-        return yield_none()
+        pass
 
     def receive_blocks(self, content):
         """
@@ -100,7 +99,7 @@ class ParaServerCodec(ICommunication_Ctrl):
         :param block_weight:
         :return:
         """
-        return yield_none()
+        pass
 
     def receive_blocks(self, content):
         """

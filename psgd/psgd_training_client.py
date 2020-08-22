@@ -100,23 +100,20 @@ class PSGDTraining_Client(Thread):
         evaluation_history = []
         self.Transfer.start_transfer()
         # do until reach the target accuracy
-        try:
-            for i in range(self.Epochs):
-                # change title
-                self.Log.Title = self.Log_Header + "-Cyc{}".format(i+1)
-                self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
-                # do tests
-                r = self.Model.evaluate(self.Eval_X, self.Eval_Y)
-                self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title[-len(r):], r))))
-                if self.Target_acc is not None:
-                    # only one metric in model metrics list.
-                    # evaluation[0] refers to loss
-                    # evaluation[1] refers to accuracy.
-                    if r[1] > self.Target_acc:
-                        break
-                evaluation_history.append(r)
-        except Exception as e:
-            self.Log.log_error('Exception occurred while training: {}'.format(e))
+        for i in range(self.Epochs):
+            # change title
+            self.Log.Title = self.Log_Header + "-Cyc{}".format(i+1)
+            self.Model.fit(self.Train_X, self.Train_Y, epochs=1, batch_size=self.Batch_Size)
+            # do tests
+            r = self.Model.evaluate(self.Eval_X, self.Eval_Y)
+            self.Log.log_message('Evaluate result: {}'.format(dict(zip(self.Model.History_Title[-len(r):], r))))
+            if self.Target_acc is not None:
+                # only one metric in model metrics list.
+                # evaluation[0] refers to loss
+                # evaluation[1] refers to accuracy.
+                if r[1] > self.Target_acc:
+                    break
+            evaluation_history.append(r)
         training_history = self.Model.History
         # save training history data
         training_trace = pd.DataFrame(training_history, columns=self.Model.History_Title)
