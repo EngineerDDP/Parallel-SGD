@@ -1,5 +1,5 @@
 from profiles.settings import GlobalSettings
-from server_util.init_model import ModelDNN
+from server_util.init_model import ModelDNN, ModelCNN, ModelLinear
 from coordinator import Coordinator
 
 import argparse
@@ -73,6 +73,7 @@ if __name__ == '__main__':
         from dataset.cifar import load
     elif arg.dataset == 'simlin':
         from dataset.simdata import load
+        arg.is_img_cls = False
     else:
         logger.log_error("Input dataset type cannot find any matches.")
         exit(1)

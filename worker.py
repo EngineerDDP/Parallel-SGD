@@ -1,5 +1,4 @@
 import time
-import os
 from threading import Thread
 
 from psgd.psgd_training_client import PSGDTraining_Client, PSGDTraining_Parameter_Server
@@ -91,9 +90,12 @@ class PSGD_Worker:
         self.client_logger.log_message('ACK job submission and request global settings.')
         # ignore other data
         def acquire(com):
-            id_from, data = com.get_one()
+            id_from, data = 0, 0
             while id_from != Initialization_Server:
-                id_from, data = com.get_one()
+                id_from, data = com.get_one(blocking=False)
+                time.sleep(0.001)
+                if Initialization_Server not in com.available_clients():
+                    raise AssertionError('Initialization server exited.')
             return data
         # initialize global settings
         com.send_one(Initialization_Server, Init.GlobalSettings)
