@@ -124,13 +124,14 @@ class Coordinator:
                     data.restore()
 
             except KeyboardInterrupt:
+                if key_interrupted_before or len(node_ready) >= total_node_count:
+                    self.__log.log_error('Coordinator closed by user.')
+                    break
                 if len(node_ready) < total_node_count:
                     self.__log.log_error('Some of workers is not ready, close anyway?')
                     self.__log.log_message('Press Ctrl+C again to shutdown immediately.')
                     key_interrupted_before = True
-                if key_interrupted_before or len(node_ready) >= total_node_count:
-                    self.__log.log_error('Coordinator closed by user.')
-                    break
+
 
         self.__com.close()
         self.__log.log_message('Dispatcher closed.')
