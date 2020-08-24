@@ -110,7 +110,7 @@ class Reply:
 
     class misc_package:
 
-        def __init__(self, epoch, loss_type, learn_rate, target_acc, w_types, op, metric):
+        def __init__(self, epoch, loss_type, learn_rate, target_acc, w_types, op, metric, waiting_time):
             self.epoch = epoch
             self.loss_type = loss_type
             self.learn_rate = learn_rate
@@ -118,3 +118,4 @@ class Reply:
             self.w_types = w_types
             self.optimizer = op
             self.metric = metric
+            self.est_waiting_time = waiting_time

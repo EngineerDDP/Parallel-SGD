@@ -14,6 +14,8 @@ IPA = StarNetwork_Initialization_Package
 
 class Coordinator:
 
+    Estimate_Bandwidth = 180 #Mbps
+
     def __init__(self, hyper_model: IServerModel, logger=None):
         self.__com = None
         self.__model = hyper_model
@@ -70,6 +72,9 @@ class Coordinator:
         key_interrupted_before = False
 
         while not self.__com.is_closed():
+            dataset_ett = self.__model.train_data()[0].size / (8 * 1024 * Coordinator.Estimate_Bandwidth)
+            dataset_ett = dataset_ett * len(self.__com.available_clients())
+
             try:
                 id_from, data = self.__com.get_one()
 
@@ -103,7 +108,8 @@ class Coordinator:
                             self.__model.target_acc(),
                             self.__model.weights_types(),
                             self.__model.optimizer_type(),
-                            self.__model.metric()
+                            self.__model.metric(),
+                            dataset_ett
                         )
 
                     else:

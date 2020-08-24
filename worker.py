@@ -146,12 +146,13 @@ class PSGD_Worker:
         w_type = data.w_types
         op = data.optimizer
         metric = data.metric
+        PSGD_Worker.Training_TimeOut_Limit = data.est_waiting_time
 
         self.__training_log = Logger('Training log @ node-{}'.format(com.Node_Id), log_to_file=True)
 
         if com.Node_Id != Parameter_Server:
-
             self.client_logger.log_message('Request data samples.')
+            self.client_logger.log_message('ETA. {} sec.'.format(PSGD_Worker.Training_TimeOut_Limit))
             # initialize dataset
             com.send_one(Initialization_Server, Init.Samples)
             data = acquire(com)
@@ -202,7 +203,7 @@ class PSGD_Worker:
         assert isinstance(self.__running_thread, Thread)
         assert isinstance(self.__training_log, Logger)
 
-        ready_state = {}
+        ready_state = set()
         self.client_logger.log_message('Synchronize timeline with cluster.')
 
         len_ready = len(com.available_clients())
@@ -212,16 +213,17 @@ class PSGD_Worker:
             # require
             n, d = com.get_one(False)
             if isinstance(d, Ready_Type):
-                ready_state[n] = True
+                ready_state.add(n)
                 time_count = 0
-            if len(com.available_clients()) < len_ready:
-                raise OSError('Minimal number of clients cannot be satisfied.')
-            if time_count > PSGD_Worker.Training_TimeOut_Limit * self.__training_time_wait_ratio:
-                raise AssertionError('Maximal waiting time exceed, give up waiting and reset environment.')
-            for node_id in com.available_clients():
-                com.send_one(node_id, Ready_Type())
-            time.sleep(1)
-            time_count += 1
+            else:
+                if len(com.available_clients()) < len_ready:
+                    raise OSError('Minimal number of clients cannot be satisfied.')
+                for node_id in com.available_clients():
+                    com.send_one(node_id, Ready_Type())
+                time.sleep(1)
+                time_count += 1
+                if time_count > PSGD_Worker.Training_TimeOut_Limit * self.__training_time_wait_ratio:
+                    raise AssertionError('Maximal waiting time exceed, give up waiting and reset environment.')
 
         try:
             self.client_logger.log_message('Execution process started.')
