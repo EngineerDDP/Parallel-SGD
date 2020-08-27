@@ -1,33 +1,15 @@
-import socket
 import select
+import socket
 from ctypes import c_int64
 from multiprocessing import Array, Value
 from queue import Empty
 
-from time import sleep
-
 from network.agreements import *
-from network.interfaces import IWorker_Register, ICommunication_Process
+from network.interfaces import IWorker_Register, ICommunication_Process, IPromoter, NodeAssignment
 from network.serialization import BufferReader, BufferWriter
-
 from utils.constants import Initialization_Server
+
 STAR_NET_WORKING_PORTS = 15387
-
-
-class StarNetwork_Initialization_Package:
-
-    def __init__(self):
-        self.__content = []
-        self.__unique = set()
-
-    def put(self, id, uuid, address):
-        if id not in self.__unique:
-            self.__content.append((id, uuid, address))
-        else:
-            raise LookupError('Id for new nodes were used before.')
-
-    def __iter__(self):
-        return self.__content.__iter__()
 
 
 class Worker_Register_List:
@@ -54,9 +36,8 @@ class Worker_Register_List:
                     self.put(id, _con)
                 # close it
                 else:
-                    BufferReader.request_close(_con)
+                    BufferWriter.request_close(_con)
                     _con.close()
-
 
     def check(self):
         """
@@ -148,7 +129,11 @@ class Worker_Register(IWorker_Register):
     def to_list(self):
         return self.__workers.to_list()
 
-    def register(self, id_self, content_package:StarNetwork_Initialization_Package, con_from=None):
+    @property
+    def working_port(self):
+        return STAR_NET_WORKING_PORTS
+
+    def register(self, id_self, content_package:NodeAssignment, con_from=None):
         """
             Register all workers
         :param id_self: id of current worker
@@ -160,10 +145,11 @@ class Worker_Register(IWorker_Register):
             self.__workers.put(Initialization_Server, con_from)
 
         self_uuid = None
+        uuid = content_package.uuid
         writer = BufferWriter()
 
         # for all slaves
-        for id, uuid, ip_addr in content_package:
+        for id, ip_addr in content_package:
             # slaves who's id before self
             if (self_uuid is None and id != self.__id):
                 self.__workers.occupy(id, uuid)
@@ -232,6 +218,7 @@ class Communication_Process(ICommunication_Process):
         """
 
         super().__init__(name='Communication thread address: {}'.format(id_register.get_id()))
+
         self.__connections = id_register
         self.__available_nodes_count = Value('i', len(self.__connections.ids()))
         self.__available_nodes = Array('i', self.__connections.ids())
@@ -395,43 +382,45 @@ class Communication_Process(ICommunication_Process):
         return self.__data_bytes_sent.value
 
 
-def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_Process:
+class Promoter(IPromoter):
 
-    worker_register = Worker_Register()
-    # register
-    worker_register.register(Initialization_Server, nodes)
-    data = {
-        Key.Type: Type_Val.Submission,
-        Key.From: Initialization_Server,
-        Key.To: -1,
-        Key.Content: nodes
-    }
+    def __call__(self, nodes:NodeAssignment) -> ICommunication_Process:
+        worker_register = Worker_Register()
+        # register
+        worker_register.register(Initialization_Server, nodes)
+        data = {
+            Key.Type: Type_Val.Submission,
+            Key.From: Initialization_Server,
+            Key.To: -1,
+            Key.Content: nodes
+        }
 
-    writer = BufferWriter()
+        writer = BufferWriter()
+        uuid = nodes.uuid
 
-    for id, uuid, address in nodes:
-        try:
-            con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # connect
-            con.connect((address, STAR_NET_WORKING_PORTS))
-            # write key
-            data[Key.To] = id
-            # serialize and send
-            writer.set_content(data)
-            writer.send(con)
-            # add
-            worker_register.identify(id, uuid, con=con)
+        for id, address in nodes:
+            try:
+                con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # connect
+                con.connect((address, STAR_NET_WORKING_PORTS))
+                # write key
+                data[Key.To] = id
+                # serialize and send
+                writer.set_content(data)
+                writer.send(con)
+                # add
+                worker_register.identify(id, uuid, con=con)
 
-        except OSError as error:
-            for con in worker_register.to_list():
-                if isinstance(con, socket.socket):
-                    con.close()
-            raise OSError('Error: {}, while connecting {}.'.format(error, address))
+            except OSError as error:
+                for con in worker_register.to_list():
+                    if isinstance(con, socket.socket):
+                        con.close()
+                raise OSError('Error: {}, while connecting {}.'.format(error, address))
 
-    writer.close()
+        writer.close()
 
-    if worker_register.check():
-        com = Communication_Process(worker_register)
-        return com
-    else:
-        raise OSError('Some of workers didnt respond properly.')
+        if worker_register.check():
+            com = Communication_Process(worker_register)
+            return com
+        else:
+            raise OSError('Some of workers didnt respond properly.')

@@ -4,13 +4,15 @@ import json
 from dataset.transforms import TransformerList
 from models.local.neural_models import ModelDNN
 # method to start up a network
-from network.starnet_com_process import start_star_net, StarNetwork_Initialization_Package
+from network import NodeAssignment, get_com
+from network.starnet_com_process import Promoter
+
 from profiles import Settings
-from roles.coordinator import Coordinator, set_workers
+from roles.coordinator import Coordinator
+from utils.constants import Parameter_Server
 from utils.log import Logger
 
 NET = start_star_net
-IPA = StarNetwork_Initialization_Package
 
 
 if __name__ == '__main__':
@@ -116,20 +118,30 @@ if __name__ == '__main__':
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
 
-    if model_parameter.psgd_server_codec is None:
-        del workers["PS"]
-        logger.log_message("Parameter server is not available.")
+    pkg = NodeAssignment()
+    i = 0
 
-    com = set_workers(IPA, NET, workers, arg.n, logger)
-    core = Coordinator(com, setting, logger)
+    if model_parameter.psgd_server_codec is not None:
+        pkg.add(Parameter_Server, workers["PS"])
+        logger.log_message("Add parameter server: address: ({})".format(workers["PS"]))
+
+    for addr in workers["Worker"]:
+        pkg.add(i, addr)
+        logger.log_message("Add worker: id: ({}), address: ({})".format(i, addr))
+        i += 1
+        if i >= arg.n:
+            break
+
+    com = get_com(pkg, Promoter())
+    core = Coordinator(com, logger)
 
     try:
         if arg.do_retrieve_only:
             core.require_client_log()
         else:
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
-            core.submit_job(dataset.estimate_size(), PSGDWorkerExecutor, PSGDPSExecutor)
-            core.resources_dispatch(model_parameter, dataset, transform)
+            core.submit_job(PSGDWorkerExecutor, dataset.estimate_size(), PSGDPSExecutor)
+            core.resources_dispatch(setting, model_parameter, dataset, transform)
     except ConnectionAbortedError:
         print('All Done.')
 

@@ -1,11 +1,32 @@
 from abc import ABCMeta, abstractmethod
-from multiprocessing import Value, Process
+from ctypes import c_bool
 from multiprocessing import Queue
+from multiprocessing import Value, Process
+from uuid import uuid4
 
-from ctypes import c_int64, c_bool
+
+class NodeAssignment:
+
+    def __init__(self):
+        self.__nodes = []
+        self.__unique = set()
+        self.__uuid = uuid4()
+
+    @property
+    def uuid(self):
+        return self.__uuid
+
+    def add(self, id, addr):
+        assert id not in self.__unique, "Assigned id has been used."
+        self.__nodes.append((id, addr))
+
+    def __iter__(self):
+        for id, addr in self.__nodes:
+            yield id, addr
 
 
 class IWorker_Register(metaclass=ABCMeta):
+
     @abstractmethod
     def __iter__(self):
         pass
@@ -30,6 +51,11 @@ class IWorker_Register(metaclass=ABCMeta):
 
     @abstractmethod
     def reset(self):
+        pass
+
+    @property
+    @abstractmethod
+    def working_port(self):
         pass
 
 
@@ -103,14 +129,6 @@ class ICommunication_Controller(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def establish_communication(self):
-        """
-            Establish connection.
-        :return: None
-        """
-        pass
-
-    @abstractmethod
     def get_one(self, blocking=True):
         """
             Get one json like object from target nodes.
@@ -146,4 +164,11 @@ class ICommunication_Controller(metaclass=ABCMeta):
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
+        pass
+
+
+class IPromoter(metaclass=ABCMeta):
+
+    @abstractmethod
+    def __call__(self, para: NodeAssignment) -> ICommunication_Process:
         pass

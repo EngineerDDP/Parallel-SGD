@@ -10,21 +10,21 @@ from models.local.neural_models import IServerModel
 
 class Coordinator:
 
-    def __init__(self, com:ICommunication_Controller, settings:Settings, logger=None):
+    def __init__(self, com:ICommunication_Controller, logger=None):
         self.__com = com
-        self.__setting = settings
         if logger is None:
             self.__log = Logger(title_info='Coordinator', log_to_file=True)
         else:
             self.__log = logger
+        self.__request_before = False
 
-    def resources_dispatch(self, hyper_model: IServerModel, data_set:AbsDataset, data_trans:ITransformer):
+    def resources_dispatch(self, settings:Settings, hyper_model: IServerModel, data_set:AbsDataset, data_trans:ITransformer):
         """
             Reply to worker's requirements, prepare for the job
         :return:
         """
         total_node_count = len(self.__com.available_clients())
-        worker_node_count = self.__setting.node_count
+        worker_node_count = settings.node_count
         node_ready = set()
         node_done = set()
 
@@ -39,7 +39,7 @@ class Coordinator:
                         reply = essentials(hyper_model)
 
                     elif data == Req.GlobalSettings:
-                        reply = global_setting_package(self.__setting)
+                        reply = global_setting_package(settings)
 
                     elif data == Req.Dataset:
                         reply = data_package(data_set, data_trans)
@@ -74,18 +74,21 @@ class Coordinator:
                 self.__log.log_error('Coordinator closed by user.')
 
         self.__log.log_message('Dispatcher closed.')
+        self.__com.close()
 
-    def submit_job(self, estimate_data_size:int, worker_execution_cls:type, ps_execution_cls:type):
+    def submit_job(self, worker_execution_cls:type, estimate_data_size:int=0, ps_execution_cls:type=None):
         """
             Submit a job to cluster
         :return:
         """
+        assert self.__request_before is False, "Request can only use once."
+        self.__request_before = True
         # calculate data size
         total_nodes = len(self.__com.available_clients())
         dataset_ett = total_nodes * estimate_data_size / Estimate_Bandwidth
         # send request
         for id in self.__com.available_clients():
-            if id == Parameter_Server:
+            if id == Parameter_Server and ps_execution_cls is not None:
                 self.__com.send_one(id, SubmitJob(total_nodes, True, dataset_ett * total_nodes, ps_execution_cls))
             else:
                 self.__com.send_one(id, SubmitJob(total_nodes, False, dataset_ett, worker_execution_cls))
@@ -95,6 +98,8 @@ class Coordinator:
             Require client_log file from all workers.
         :return: None
         """
+        assert self.__request_before is False, "Request can only use once."
+        self.__request_before = True
         # send request
         for id in self.__com.available_clients():
             self.__com.send_one(id, RequestWorkingLog())
@@ -113,37 +118,4 @@ class Coordinator:
             self.__log.log_error('Connection lost.')
 
         self.__log.log_message('Done.')
-
-
-def set_workers(register:type, build_com_func, works: dict, nodes_required, log:Logger=None) -> ICommunication_Controller:
-    """
-        Set worker list.
-    :param works: list of tuples
-                    like: [ (rule1, address1), (rule2, address2), ... ]
-    :return: None, raise exceptions if two workers with same id are assigned.
-    """
-    import random
-    from network.communications import Communication_Controller
-
-    pkg = register()
-    uuid_for_this_task = str(random.randint(0, 0x7fffffff))
-    current_node_id_assigned = 0
-
-    if works.get("PS") is not None:
-        pkg.put(Parameter_Server, uuid_for_this_task, works["PS"])
-        if log is not None:
-            log.log_message("Add parameter server: address: ({})".format(works["PS"]))
-
-    for addr in works["Worker"]:
-        pkg.put(current_node_id_assigned, uuid_for_this_task, addr)
-        if log is not None:
-            log.log_message("Add worker: id: ({}), address: ({})".format(current_node_id_assigned, addr))
-        current_node_id_assigned += 1
-        if current_node_id_assigned >= nodes_required:
-            break
-
-    com = build_com_func(pkg)
-    com = Communication_Controller(com)
-    com.establish_communication()
-
-    return com
+        self.__com.close()

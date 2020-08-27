@@ -15,19 +15,16 @@ class Worker_Communication_Constructor:
         Factory class for build class Com
     """
 
-    def __init__(self, server, port, worker_register: IWorker_Register):
+    def __init__(self, worker_register: IWorker_Register, server='0.0.0.0'):
         """
             Typo server address
-        :param server:
         """
-        self.Server = server
-        self.Port = port
         self.__id_register = worker_register
         self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # using Non-blocking IO
         self.__bind_listener.setblocking(False)
         # bind address
-        self.__bind_listener.bind((self.Server, self.Port))
+        self.__bind_listener.bind((server, worker_register.working_port))
         # start listening
         self.__bind_listener.listen(4)
 
@@ -88,6 +85,13 @@ class Communication_Controller(ICommunication_Controller):
         self.__com = com
         self.__get_queue_buffer = {}
 
+    def __enter__(self) -> ICommunication_Controller:
+        self.establish_communication()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     @property
     def Com(self):
         return self.__com
@@ -145,11 +149,10 @@ class Communication_Controller(ICommunication_Controller):
         """
         self.__com.closing()
         wait_limit = 20
-        try:
-            while self.__com.is_alive() and wait_limit > 0:
-                sleep(1)
-                wait_limit -= 1
-        finally:
+        while not self.is_closed() and wait_limit > 0:
+            sleep(1)
+            wait_limit -= 1
+        if wait_limit <= 0:
             self.__com.terminate()
             import sys
             if sys.version_info >= (3,7):
@@ -161,7 +164,7 @@ class Communication_Controller(ICommunication_Controller):
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return not self.__com.is_alive() and self.__com.recv_que.empty()
+        return self.__com.Exit and self.__com.recv_que.empty()
 
 
 def get_repr():
