@@ -3,7 +3,7 @@ from codec.interfaces import ICommunication_Ctrl, IComPack, netEncapsulation
 from utils.constants import Parameter_Server
 from utils.log import Logger
 
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 
 class PAClientCodec(ICommunication_Ctrl):
 

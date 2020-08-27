@@ -2,7 +2,7 @@ import numpy as np
 
 from codec.interfaces import ICommunication_Ctrl, IComPack, netEncapsulation
 from utils.log import Logger
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 
 from codec.essential import Block_Weight
 from codec.ccdc import PartialBlockWeight, CodedBlockWeight

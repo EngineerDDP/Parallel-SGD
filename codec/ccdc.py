@@ -8,8 +8,7 @@ from codec.essential import Block_Weight
 
 from codec.interfaces import ICommunication_Ctrl
 from codec.interfaces import IComPack, netEncapsulation
-
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 from utils.log import Logger
 
 

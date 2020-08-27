@@ -1,6 +1,6 @@
 import numpy as np
 
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 from codec.naive_ps import GradDiffParaServerCodec, PAServerCompack
 from utils.log import Logger
 

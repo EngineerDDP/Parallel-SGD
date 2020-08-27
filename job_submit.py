@@ -1,11 +1,17 @@
-from profiles.settings import GlobalSettings
-from server_util.init_model import ModelDNN, ModelCNN, ModelLinear
-from coordinator import Coordinator
-
 import argparse
 import json
 
+from dataset.transforms import TransformerList
+from models.local.neural_models import ModelDNN
+# method to start up a network
+from network.starnet_com_process import start_star_net, StarNetwork_Initialization_Package
+from profiles import Settings
+from roles.coordinator import Coordinator, set_workers
 from utils.log import Logger
+
+NET = start_star_net
+IPA = StarNetwork_Initialization_Package
+
 
 if __name__ == '__main__':
 
@@ -35,8 +41,10 @@ if __name__ == '__main__':
     parse.add_argument("--psgd", type=str, default='ssgd', help="Parallel stochastic gradient descent synchronization type {asgd, ssgd}")
     parse.add_argument("--learn-rate", dest="lr", type=float, default=0.05, help="Learining rate")
     parse.add_argument("--block-assignment", dest="assignment", type=str, default='iid', help="Block assignment strategy")
-    parse.add_argument("--server-codec", dest="server_codec", type=str, default='grad', help="Server codec for parameter averaging")
+    parse.add_argument("--server-codec", dest="server_codec", type=str, default='null', help="Server codec for parameter averaging")
     parse.add_argument("--workers", type=str, default='worker.json', help='Worker list file, json type')
+
+    parse.add_argument("--network-bandwidth", dest='bandwidth', type=int, default=180, help='Network bandwidth in Mbps.')
 
     arg = parse.parse_args()
 
@@ -57,67 +65,73 @@ if __name__ == '__main__':
     logger.log_message('\t --block_assignment <block assignment strategy {}>'.format(arg.assignment))
     logger.log_message('\t --server_codec <parameter server codec {}>'.format(arg.server_codec))
 
+    # set bandwidth suggestion
+    Estimate_Bandwidth = arg.bandwidth * 1024 * 1024
+
     # Split and get codec list
     codec = arg.codec.split(',')
     # get assignment class for batch_size calculation
-    from server_util.init_model import get_assignment
+    from models.local.neural_models import get_assignment
     ass = get_assignment(arg.assignment)
     assignment = ass(arg.n, arg.r)
     # set up full batch_size
     batch_size = arg.b * assignment.block_count
-    GlobalSettings.set_default(arg.n, arg.r, batch_size, assignment)
+    setting = Settings(arg.n, arg.r, batch_size, assignment)
+    dataset = None
+
     # get dataset
-    if arg.dataset == 'mnist':
-        from dataset.mnist_input import load
-    elif arg.dataset == 'cifar':
-        from dataset.cifar import load
+    if arg.dataset == 'cifar':
+        from dataset.cifar import CIFAR
+        dataset = CIFAR()
+    elif arg.dataset == 'mnist':
+        from dataset.mnist import MNIST
+        dataset = MNIST()
     elif arg.dataset == 'simlin':
-        from dataset.simdata import load
-        arg.is_img_cls = False
+        from dataset.simdata import SimLin
+        dataset = SimLin()
     else:
         logger.log_error("Input dataset type cannot find any matches.")
         exit(1)
 
-    # load dataset
-    train_x, train_y, test_x, test_y = load()
-
-    # make iid
+    # get transform
+    transform = TransformerList()
     if arg.make_iid_dataset:
-        from utils.partition_helper import make_non_iid_distribution
-        train_x, train_y = make_non_iid_distribution(train_x, train_y, batch_size)
+        from dataset.transforms.non_iid_transform import Make_Non_IID
+        transform.add(Make_Non_IID(batch_size))
 
     # make format
     if arg.is_img_cls:
-        from dataset.utils import make_image_scale, make_onehot
-        train_x = make_image_scale(train_x)
-        test_x = make_image_scale(test_x)
-        train_y = make_onehot(train_y)
-        test_y = make_onehot(test_y)
+        from dataset.transforms.image import ImageCls
+        transform.add(ImageCls())
 
     # Set model parameters
-    model_parameter = ModelDNN(train_x=train_x, train_y=train_y,
-                               test_x=test_x, test_y=test_y,
-                               codec=codec,
+    model_parameter = ModelDNN(codec=codec,
                                psgd_type=arg.psgd,
                                server_codec=arg.server_codec,
                                learn_rate=arg.lr,
                                epoches=arg.epochs,
-                               optimizer_type=arg.op)
-
-
-
-    core = Coordinator(model_parameter, logger)
+                               optimizer_type=arg.op,
+                               input_shape=3072)
 
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
 
-    core.set_workers(workers, arg.n)
+    if model_parameter.psgd_server_codec is None:
+        del workers["PS"]
+        logger.log_message("Parameter server is not available.")
+
+    com = set_workers(IPA, NET, workers, arg.n, logger)
+    core = Coordinator(com, setting, logger)
 
     try:
-        if not arg.do_retrieve_only:
-            core.resources_dispatch()
-        else:
+        if arg.do_retrieve_only:
             core.require_client_log()
+        else:
+            from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
+            core.submit_job(dataset.estimate_size(), PSGDWorkerExecutor, PSGDPSExecutor)
+            core.resources_dispatch(model_parameter, dataset, transform)
     except ConnectionAbortedError:
         print('All Done.')
+
+    com.close()
 

@@ -329,7 +329,7 @@ class Communication_Process(ICommunication_Process):
         """
         writing_list = {}
         active_connections = []
-        while not self.Exit:
+        while not self.Exit or len(active_connections) != 0:
             if len(active_connections) == 0 or self.send_que.qsize() > 0:
                 try:
                     target, data = self.send_que.get(timeout=1)
@@ -435,9 +435,3 @@ def start_star_net(nodes: StarNetwork_Initialization_Package) -> ICommunication_
         return com
     else:
         raise OSError('Some of workers didnt respond properly.')
-
-
-
-# 解释一下 337 行代码。能够满足 len(active_connections) == 0 or self.send_que.qsize() > 0 条件的，
-# 要么是无数据可发，要么是有数据可从队列中取。当出现 Empty Exception 时，一定是无数据可发，即前一项满足
-# 因此这时可以直接调用 continue 进入下一轮循环

@@ -1,5 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from codec.essential import Block_Weight
+from profiles import Settings
+
 
 class InvalidArguments(Exception):
 
@@ -41,7 +43,10 @@ class netEncapsulation:
 
 class ICommunication_Ctrl(metaclass=ABCMeta):
 
-    def __init__(self):
+    def __init__(self, settings:Settings=None):
+        """
+        :param settings: for future usages
+        """
         self.__updated_weight_buffer = None
         self.__update_complete = False
 

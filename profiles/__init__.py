@@ -32,39 +32,35 @@ class Batch:
         return sli.stop - sli.start
 
 
-class GlobalSettings:
-    __setting = None
+class Settings:
 
     def __init__(self, n, r, batch_size, assignment:IBlockAssignment=None):
-        self.redundancy = r
-        self.node_count = n
+        self.__redundancy = r
+        self.__node_count = n
 
         if isinstance(assignment, IBlockAssignment):
-            self.block_assignment = assignment
+            self.__block_assignment = assignment
         else:
-            self.block_assignment = IIDBlockAssignment(n, r)
-        self.batch = Batch(batch_size, self.block_assignment.block_count)
-        self.nodes = set(range(self.node_count))
+            self.__block_assignment = IIDBlockAssignment(n, r)
+        self.__batch = Batch(batch_size, self.block_assignment.block_count)
+        self.__nodes = set(range(self.node_count))
 
-    @staticmethod
-    def get_default():
-        assert GlobalSettings.__setting is not None
-        return GlobalSettings.__setting
+    @property
+    def redundancy(self) -> int:
+        return self.__redundancy
 
-    @staticmethod
-    def clear_default():
-        GlobalSettings.__setting = None
+    @property
+    def node_count(self) -> int:
+        return self.__node_count
 
-    @staticmethod
-    def set_default(n, r, b, assignment):
-        """
-            Set global setting, if not settled
-        :param n: number of workers
-        :param r: redundancy
-        :param b: batch size globally,
-                  when set to 12 with 3 nodes, the the local batch size on each node is 4.
-        :param assignment: blockassignment class
-        :return:
-        """
-        if GlobalSettings.__setting is None:
-            GlobalSettings.__setting = GlobalSettings(n, r, b, assignment)
+    @property
+    def block_assignment(self) -> IBlockAssignment:
+        return self.__block_assignment
+
+    @property
+    def batch(self) -> Batch:
+        return self.__batch
+
+    @property
+    def nodes(self) -> set:
+        return self.__nodes

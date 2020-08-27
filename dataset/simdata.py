@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from dataset.interfaces import AbsDataset
+
 
 class NoiseSimulation:
 
@@ -85,24 +87,35 @@ class SinSimulation:
         return self.A * np.sin(x * 2 * np.pi / self.W) + self.B
 
 
-def load(len_x:int=1024, len_y:int=1):
+class SimLin(AbsDataset):
 
-    x = np.random.uniform(0, 1, size=[60000, len_x])
-    w = np.random.uniform(0, 1, size=[len_y, len_x])
-    b = np.random.normal(0, 0.1, size=len_y)
-    sim = LinearSimulation(w, b, normal_scale=0.3, bin_scale=1.0, bin_rate=0.1, oneside=False)
+    def __init__(self, check_sum=None):
+        super().__init__(check_sum)
+        self.__data = SimLin.__load()
 
-    y = sim.predict(x)
+    def load(self):
+        return self.__data
 
-    return x[:50000], y[:50000], x[50000:], y[50000:]
+    def check(self):
+        return True
 
-def load_sin_sim():
-    x_1 = np.linspace(-1, 1, 1000)
-    x_2 = np.linspace(-1, 1.5, 1000)
-    y = 0.2*np.sin(x_1) + 0.7*np.cos(x_2)
-    y = y + np.random.normal(scale=0.1, size=x_1.shape)
+    def check_sum(self) -> str:
+        return ''
 
-    y = np.reshape(y, newshape=[-1, 1])
-    x = np.asarray([x_1, x_2]).transpose()
+    def extract_files(self) -> list:
+        return []
 
-    return x, y
+    def estimate_size(self) -> int:
+        return 0
+
+    @staticmethod
+    def __load(len_x:int=1024, len_y:int=1):
+
+        x = np.random.uniform(0, 1, size=[60000, len_x])
+        w = np.random.uniform(0, 1, size=[len_y, len_x])
+        b = np.random.normal(0, 0.1, size=len_y)
+        sim = LinearSimulation(w, b, normal_scale=0.3, bin_scale=1.0, bin_rate=0.1, oneside=False)
+
+        y = sim.predict(x)
+
+        return x[:50000], y[:50000], x[50000:], y[50000:]

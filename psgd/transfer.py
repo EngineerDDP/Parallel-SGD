@@ -28,8 +28,7 @@ class NTransfer(ITransfer):
         self.type_weights_controller = weights_ctrl
         self.communication_process = com
 
-        self.working_thread = Thread(name='Transfer thread for node {}.' \
-                                     .format(self.communication_process.Node_Id), target=self.__run)
+        self.working_thread = Thread(name='Transfer thread for node {}.' .format(com.Node_Id), target=self.__run)
         self.Node_ID = com.Node_Id
         self.__log = logger
 
