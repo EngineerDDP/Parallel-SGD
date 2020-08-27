@@ -7,16 +7,12 @@ from models.local import IServerModel
 from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, Done_Type, Req, Ready_Type
 from models.trans.net_package import SubmitJob
 
-from network.communications import Communication_Controller, Worker_Communication_Constructor, get_repr
-from network.interfaces import ICommunication_Controller
-from network.starnet_com_process import Worker_Register, Communication_Process, STAR_NET_WORKING_PORTS
+from network.communications import get_repr
+from network import ICommunication_Controller, Serve
 from profiles import Settings
 
 from utils.constants import Initialization_Server
 from utils.log import Logger
-
-CLZ_WORKER_REGISTER = Worker_Register
-CLZ_COM_PROCESS = Communication_Process
 
 
 class PSGD_Worker:
@@ -30,15 +26,12 @@ class PSGD_Worker:
 
     def slave_forever(self):
         # set up listening port
-        constructor = Worker_Communication_Constructor('0.0.0.0', STAR_NET_WORKING_PORTS, worker_register=CLZ_WORKER_REGISTER())
+        listener = Serve(net_type='fcnet')
         com = None
         try:
             while True:
-                self.client_logger.log_message('Worker started, listening: {}.'.format(STAR_NET_WORKING_PORTS))
-
-                register = constructor.buildCom()
-                com = Communication_Controller(CLZ_COM_PROCESS(register))
-                com.establish_communication()
+                self.client_logger.log_message('Worker started with network type \'FCNet\'')
+                com = listener.acquire()
 
                 self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
@@ -51,7 +44,7 @@ class PSGD_Worker:
 
         except KeyboardInterrupt:
             self.client_logger.log_error('Worker shutdown by interruption.')
-            constructor.close()
+            listener.close()
         finally:
             if isinstance(com, ICommunication_Controller):
                 com.close()
@@ -122,10 +115,7 @@ class PSGD_Worker:
         if not job_info.am_i_ps:
             com.send_one(Initialization_Server, Req.Dataset)
 
-        from executor.psgd_training_client import PSGDWorkerExecutor
-        self.__job_executor: IExecutor = PSGDWorkerExecutor(com.Node_Id)
-
-        data_set = None
+        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id)
 
         # Set job executor to ready state
         while not self.__job_executor.ready():
@@ -137,7 +127,7 @@ class PSGD_Worker:
                 id_from, data = com.get_one(blocking=False)
                 time.sleep(0.001)
                 # Assertion, this node count as one
-                assert len(com.available_clients()) >= total_nodes - 1, "There isn\'t enough nodes for the task."
+                assert Initialization_Server in com.available_clients(), "Initialization server exited without finishing the initialization."
 
             # restoring data
             if isinstance(data, IReplyPackage):
