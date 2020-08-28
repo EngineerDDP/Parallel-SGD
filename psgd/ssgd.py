@@ -1,9 +1,24 @@
 from queue import Queue
 from time import sleep
 
-from codec.essential import BlockWeight
+from codec.essential import Block_Weight
 from psgd.interfaces import IParallelSGD
 from psgd.interfaces import ReadTimeOut, AsyncDetected, OutdatedUpdates
+
+
+def iterator_helper(iter):
+    """
+        Retrieve data from generator
+    :param iter:
+    :return:
+    """
+    if type(iter).__name__ == 'generator':
+        return [i for i in iter]
+
+    if iter is None:
+        return []
+
+    return [iter]
 
 
 class SynchronizedSGD(IParallelSGD):
@@ -12,6 +27,7 @@ class SynchronizedSGD(IParallelSGD):
     """
 
     STR_BATCH_NO = 'SSGD_BATCH_NO'
+    DATA = 'SSGD_SUB_DATA'
     INT_READ_TIMEOUT_MS = 10000
 
     def __init__(self, node_id, layer_id, codec):
@@ -26,13 +42,15 @@ class SynchronizedSGD(IParallelSGD):
         self.batch_updater = None
         self.current_batch = 0
 
+        self.init_startup_setting()
+
     def init_startup_setting(self, params=None):
         """
             Currently not used.
         :param params: None
         :return: None
         """
-        pass
+        self.batch_updater = self.Updater(self.Node_ID)
 
     def release_memory(self):
         """
@@ -49,18 +67,20 @@ class SynchronizedSGD(IParallelSGD):
             note: only one working process on each node.
                   there can be different working progress among each nodes.
         """
-        if self.batch_updater is None:
-            self.batch_updater = self.Updater(tag.Node_No)
-
         self.current_batch = tag.Batch_No
 
-        block = BlockWeight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, content=content)
+        block = Block_Weight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, tag.Adversary, content=content)
 
-        update_packs = self.batch_updater.update_blocks(block)
+        update_packs = iterator_helper(self.batch_updater.update_blocks(block))
+
         for update_pack in update_packs:
-            sender, dic = update_pack
-            dic[SynchronizedSGD.STR_BATCH_NO] = tag.Batch_No
-            yield (sender, dic)
+            sender = update_pack.target()
+            dic = update_pack.content()
+            pkg = {
+                SynchronizedSGD.STR_BATCH_NO: tag.Batch_No,
+                SynchronizedSGD.DATA: dic
+            }
+            yield (sender, pkg)
 
     def accept_data(self, obj):
         """
@@ -70,7 +90,7 @@ class SynchronizedSGD(IParallelSGD):
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch >= self.current_batch:
             self.receive_buffer[sender_batch] = self.receive_buffer.get(sender_batch, Queue())
-            self.receive_buffer[sender_batch].put(obj)
+            self.receive_buffer[sender_batch].put(obj[SynchronizedSGD.DATA])
         else:
             raise OutdatedUpdates()
 
@@ -93,8 +113,10 @@ class SynchronizedSGD(IParallelSGD):
                 if time_out == SynchronizedSGD.INT_READ_TIMEOUT_MS:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
                     raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
-            if self.receive_buffer.get(self.current_batch) is not None:
-                self.batch_updater.receive_blocks(self.receive_buffer[self.current_batch].get())
+
+            else:
+                pkg = self.receive_buffer[self.current_batch].get()
+                self.batch_updater.receive_blocks(pkg)
 
         if self.batch_updater.is_done():
             return self.batch_updater.get_result()

@@ -1,9 +1,6 @@
 from threading import Thread
-from log import Logger
 
-from network.agreements import General
-from network.agreements import Transfer as TransferAgreements
-
+from network import ICommunication_Controller
 from psgd.interfaces import ITransfer, ReadTimeOut
 
 
@@ -17,7 +14,7 @@ class NTransfer(ITransfer):
     STR_W_TYPE = 'NW_Type'
     INT_RETRY_LIMIT = 5
 
-    def __init__(self, weights_ctrl, com, logger=Logger('Default Transfer')):
+    def __init__(self, weights_ctrl, com: ICommunication_Controller, group_offset:int, logger):
         """
             build a transfer controller for transferring data between local ML process and
             remote server process.
@@ -30,10 +27,9 @@ class NTransfer(ITransfer):
         self.type_weights_controller = weights_ctrl
         self.communication_process = com
 
-        self.working_thread = Thread(name='Transfer thread for node {}.' \
-                                     .format(self.communication_process.Node_ID), target=self.__run)
-        self.Node_ID = com.Node_ID
-        self.Log = logger
+        self.working_thread = Thread(name='Transfer thread for node {}.' .format(com.Node_Id), target=self.__run)
+        self.__group_offset = group_offset
+        self.__log = logger
 
     def put_weights(self, content, tag, w_type='w'):
         """
@@ -54,9 +50,12 @@ class NTransfer(ITransfer):
         try:
             return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
         except ReadTimeOut as e:
+            if e.retry() is None:
+                self.__log.log_error('Time out while getting result, retry not available.')
+                raise TimeoutError('Time out while get weights.')
             for sender, dic in e.retry():
                 self.__send(sender, dic, tag.Layer_No, w_type)
-                self.Log.log_error('Message retry to node {}'.format(sender))
+                self.__log.log_error('Message retry to node {}'.format(sender))
             return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
 
 
@@ -75,10 +74,11 @@ class NTransfer(ITransfer):
         # skip none
         if len(target) == 0:
             return
+        # add vlan offset
+        target = [i + self.__group_offset if i >= 0 else i for i in target]
         # write tag
         dic[NTransfer.STR_LAYER_NO] = layer_no
         dic[NTransfer.STR_W_TYPE] = w_type
-        dic[General.Type] = TransferAgreements.Type
         self.communication_process.send_one(target, dic)
 
     def __run(self):
@@ -89,8 +89,10 @@ class NTransfer(ITransfer):
         """
         try:
             while not self.communication_process.is_closed():
-                sender, dic = self.communication_process.get_one()
-                # self.Log.log_message('Recv from node {}'.format(dic[General.From]))
+                _, dic = self.communication_process.get_one()
+                # blocking other format
+                if not isinstance(dic, dict):
+                    continue
                 # quit processing if the object is not sent by the class instance like NTransfer
                 try:
                     layer_no = dic[NTransfer.STR_LAYER_NO]
@@ -99,12 +101,23 @@ class NTransfer(ITransfer):
                     # self.Log.log_message('Message accepted.')
                     if update_packs is None:
                         continue
+
                     for update_pack in update_packs:
                         sender, dic = update_pack
                         self.__send(sender, dic, layer_no, w_type)
                         # self.Log.log_message('Message back to node {}'.format(sender))
                 except KeyError as e:
-                    print(e)
+                    # print DEBUG message
+                    import sys
+                    import traceback
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
+                    for line in exc_tb:
+                        self.__log.log_message(line)
+                    # print DEBUG message
         except OSError as e:
-            print(e)
-        self.Log.log_message('Transfer thread exited safely.')
+            self.__log.log_message('Transfer thread report an error: {}'.format(e))
+        except ValueError:
+            pass
+        finally:
+            self.__log.log_message('Transfer thread exited safely.')

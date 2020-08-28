@@ -22,18 +22,6 @@ class ReadTimeOut(Exception):
         return self.__retry()
 
 
-class IDispatcher(ABCMeta):
-
-    def __init__(self, sgds, com):
-        super.__init__(self)
-        self.SGDS = sgds
-        self.Com = com
-
-    @abstractmethod
-    def send_out(self, send_to, obj):
-        pass
-
-
 class IParallelSGD:
     """
         Working in one specified layer.

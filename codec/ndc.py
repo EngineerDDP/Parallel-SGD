@@ -1,14 +1,14 @@
 import numpy as np
 
-from codec.interfaces import ICommunicationCtrl, IComPack
-from log import Logger
-from profiles.settings import GlobalSettings
+from codec.interfaces import ICommunication_Ctrl, IComPack, netEncapsulation
+from utils.log import Logger
+from codec import GlobalSettings
 
-from codec.essential import BlockWeight, BatchWeight
+from codec.essential import Block_Weight
 from codec.ccdc import PartialBlockWeight, CodedBlockWeight
 
 
-class NaiveDuplicationCodec(ICommunicationCtrl):
+class NaiveDuplicationCodec(ICommunication_Ctrl):
     """
         Full duplication coding strategy.
         Nodes that have the same block broadcast its block to all other nodes which
@@ -28,7 +28,7 @@ class NaiveDuplicationCodec(ICommunicationCtrl):
         self.block_weights_have.clear()
         self.partial_block_weights_buffer.clear()
 
-    def update_blocks(self, block_weight:BlockWeight):
+    def update_blocks(self, block_weight:Block_Weight):
         block_weight = CodedBlockWeight.from_block_weight(block_weight)
         self.block_weights_have[block_weight.Block_ID] = block_weight
         send_to, compack = NaiveDuplicationComPack.compose_compack(self.Node_ID, block_weight)
@@ -36,10 +36,10 @@ class NaiveDuplicationCodec(ICommunicationCtrl):
 
         # check for aggregate just in case there is only one working nodes.
         self.aggregate()
-        yield (send_to, dic)
+        yield netEncapsulation(send_to, dic)
 
-    def receive_blocks(self, json_dict:dict):
-        pbw = NaiveDuplicationComPack.from_dictionary(json_dict).decompose_compack()
+    def receive_blocks(self, content:dict):
+        pbw = NaiveDuplicationComPack.from_dictionary(content).decompose_compack()
         self.partial_block_weights_buffer[(pbw.Block_ID, pbw.Position)] = pbw
 
         self.decoding(pbw)
@@ -65,8 +65,8 @@ class NaiveDuplicationCodec(ICommunicationCtrl):
 
         result_weights = np.concatenate(partial_weights, axis=CodedBlockWeight.SPLIT_AXIS)
 
-        self.block_weights_have[pbw.Block_ID] = BlockWeight(0, 0, pbw.Block_ID,
-                set(GlobalSettings.get_default().block_assignment.block_2_node[pbw.Block_ID]), result_weights)
+        self.block_weights_have[pbw.Block_ID] = Block_Weight(0, 0, pbw.Block_ID,
+                                                             set(GlobalSettings.get_default().block_assignment.block_2_node[pbw.Block_ID]), result_weights)
 
     def aggregate(self):
         if len(self.block_weights_have) == GlobalSettings.get_default().block_assignment.block_count:

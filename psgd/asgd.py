@@ -1,5 +1,5 @@
-from codec.essential import BlockWeight
-from psgd.ssgd import SynchronizedSGD
+from codec.essential import Block_Weight
+from psgd.ssgd import SynchronizedSGD, iterator_helper
 
 
 class AsynchronizedSGD(SynchronizedSGD):
@@ -14,16 +14,6 @@ class AsynchronizedSGD(SynchronizedSGD):
     def __init__(self, node_id, layer_id, codec):
 
         super().__init__(node_id, layer_id, codec)
-        self.init_startup_setting()
-
-    def init_startup_setting(self, params=None):
-        """
-            Currently not used.
-        :param params: None
-        :return: None
-        """
-        self.batch_updater = self.Updater(self.Node_ID)
-        pass
 
     def release_memory(self):
         """
@@ -35,17 +25,25 @@ class AsynchronizedSGD(SynchronizedSGD):
     def accept_data(self, obj):
         """
             Accept the data and get weights updated immediately.
-        :param obj: json like object: dict
+        :param obj: json like object: encode
         :return: None
         """
+        # check if the data was outdated
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
-            pack_to_sends = self.batch_updater.receive_blocks(obj)
+            # get package iterable
+            pack_to_sends = iterator_helper(self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA]))
+
+            # iterate package
             for pack_to_send in pack_to_sends:
-                target, pack = pack_to_send
-                pack[SynchronizedSGD.STR_BATCH_NO] = sender_batch
-                yield target, pack
+                target = pack_to_send.target()
+                pack = pack_to_send.content()
+                # tag this layer
+                pkg = {
+                    SynchronizedSGD.STR_BATCH_NO: sender_batch,
+                    SynchronizedSGD.DATA: pack
+                }
+                yield target, pkg
 
     def require_weights(self, tag):
-
         return self.batch_updater.get_result()
