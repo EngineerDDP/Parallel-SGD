@@ -69,7 +69,7 @@ class SynchronizedSGD(IParallelSGD):
         """
         self.current_batch = tag.Batch_No
 
-        block = Block_Weight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, tag.Adversary, content=content)
+        block = Block_Weight(tag.Layer_No, tag.Batch_No, tag.Block_No, tag.Company, adv_id=tag.Adversary, content=content)
 
         update_packs = iterator_helper(self.batch_updater.update_blocks(block))
 

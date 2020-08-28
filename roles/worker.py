@@ -72,7 +72,7 @@ class PSGD_Worker:
             exc_type, exc_value, exc_tb = sys.exc_info()
             exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
             for line in exc_tb:
-                self.client_logger.log_message(line[:-1])
+                self.client_logger.log_error(line[:-1])
             # print DEBUG message
 
     def post_log(self, com: ICommunication_Controller):
@@ -122,7 +122,7 @@ class PSGD_Worker:
                 id_from, data = com.get_one(blocking=False)
                 time.sleep(0.001)
                 # Assertion, this node count as one
-                assert Initialization_Server in com.available_clients(), "Initialization server exited without finishing the initialization."
+                assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
 
             # restoring data
             if isinstance(data, IReplyPackage):

@@ -7,7 +7,7 @@ from models.local.neural_models import ModelDNN
 from network import NodeAssignment, Request
 
 from profiles import Settings
-from roles import Coordinator
+from roles import Coordinator, Reclaimer
 from utils.constants import Parameter_Server
 from utils.log import Logger
 
@@ -131,11 +131,12 @@ if __name__ == '__main__':
 
     req = Request()
     with req.request(pkg) as com:
-        core = Coordinator(com, logger)
-
         if arg.do_retrieve_only:
+            core = Reclaimer(com, logger)
             core.require_client_log()
         else:
+            core = Coordinator(com, logger)
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
             core.submit_job(PSGDWorkerExecutor, data_size=dataset.estimate_size(), ps_executor=PSGDPSExecutor)
             core.resources_dispatch(setting, model_parameter, dataset, transform)
+            core.join()

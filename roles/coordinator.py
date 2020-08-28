@@ -127,17 +127,15 @@ class Reclaimer:
         # send request
         for id in self.__com.available_clients:
             self.__com.send_one(id, RequestWorkingLog())
+            self.__log.log_message('Acquire log file from worker({}).'.format(id))
 
         try:
-            # get result
-            for id in self.__com.available_clients:
-                self.__log.log_message('Acquire log file from worker({}).'.format(id))
-                log = None
-                while not isinstance(log, Done_Type):
-                    _, log = self.__com.get_one()
-                    if isinstance(log, Binary_File_Package):
-                        log.restore()
-                        self.__log.log_message('Save log file for worker({}).'.format(id))
+            log = None
+            while not isinstance(log, Done_Type):
+                id_from, log = self.__com.get_one()
+                if isinstance(log, Binary_File_Package):
+                    log.restore()
+                    self.__log.log_message('Save log file for worker({}).'.format(id_from))
         except:
             self.__log.log_error('Connection lost.')
 
