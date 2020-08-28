@@ -110,7 +110,7 @@ class ParaServerCodec(ICommunication_Ctrl):
         # analyze received data
         compack = PAClientComPack.from_dictionary(content)
         # update global current state
-        self.Current_Weights = self.Current_Weights + compack.Content
+        self.Current_Weights = self.Current_Weights - compack.Content
         comback = PAServerCompack.compose_compack(self.Current_Weights.astype('double'))
 
         yield netEncapsulation(compack.Node_ID, comback.to_dictionary())
