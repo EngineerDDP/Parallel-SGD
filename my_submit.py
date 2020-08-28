@@ -11,15 +11,5 @@ if __name__ == '__main__':
 
         from executor.myExe import myExecutor
         master.submit_job(myExecutor)
-
-        from time import sleep
-        sleep(7)
-
-    with net.request(nodes) as req:
-        Coordinator(req).require_client_log()
-
-
-
-
-
+        master.join()
 

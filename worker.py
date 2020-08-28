@@ -1,4 +1,4 @@
-from roles.worker import PSGD_Worker
+from roles import Worker
 
 if __name__ == '__main__':
-    PSGD_Worker().slave_forever()
+    Worker().slave_forever()

@@ -92,6 +92,9 @@ class Communication_Controller(ICommunication_Controller):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    def __repr__(self):
+        return "Communication process, self: ({}) remote: ({}).".format(self.Node_Id, self.available_clients)
+
     @property
     def Com(self):
         return self.__com
@@ -139,8 +142,13 @@ class Communication_Controller(ICommunication_Controller):
 
         return None
 
+    @property
     def available_clients(self):
         return self.__com.nodes
+
+    @property
+    def available_clients_count(self):
+        return self.__com.available_nodes
 
     def close(self):
         """
@@ -171,4 +179,6 @@ def get_repr():
     return socket.gethostbyname(socket.gethostname())
 
 if __name__ == "__main__":
-    pass
+    from threading import Lock
+    a = Lock()
+    a.acquire()

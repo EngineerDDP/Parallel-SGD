@@ -4,15 +4,12 @@ import json
 from dataset.transforms import TransformerList
 from models.local.neural_models import ModelDNN
 # method to start up a network
-from network import NodeAssignment, get_com
-from network.starnet_com_process import Promoter
+from network import NodeAssignment, Request
 
 from profiles import Settings
-from roles.coordinator import Coordinator
+from roles import Coordinator
 from utils.constants import Parameter_Server
 from utils.log import Logger
-
-NET = start_star_net
 
 
 if __name__ == '__main__':
@@ -132,18 +129,13 @@ if __name__ == '__main__':
         if i >= arg.n:
             break
 
-    com = get_com(pkg, Promoter())
-    core = Coordinator(com, logger)
+    req = Request()
+    with req.request(pkg) as com:
+        core = Coordinator(com, logger)
 
-    try:
         if arg.do_retrieve_only:
             core.require_client_log()
         else:
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
-            core.submit_job(PSGDWorkerExecutor, dataset.estimate_size(), PSGDPSExecutor)
+            core.submit_job(PSGDWorkerExecutor, data_size=dataset.estimate_size(), ps_executor=PSGDPSExecutor)
             core.resources_dispatch(setting, model_parameter, dataset, transform)
-    except ConnectionAbortedError:
-        print('All Done.')
-
-    com.close()
-

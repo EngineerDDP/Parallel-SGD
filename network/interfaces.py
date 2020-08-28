@@ -19,10 +19,19 @@ class NodeAssignment:
     def add(self, id, addr):
         assert id not in self.__unique, "Assigned id has been used."
         self.__nodes.append((id, addr))
+        self.__unique.add(id)
 
     def __iter__(self):
         for id, addr in self.__nodes:
             yield id, addr
+
+    def __len__(self):
+        return len(self.__unique)
+
+    def __repr__(self):
+        str = "({}) nodes has been assigned:\n".format(len(self))
+        str += ',\n'.join(["ID:{}, Address:{}".format(id, addr) for id, addr in self])
+        return str
 
 
 class IWorker_Register(metaclass=ABCMeta):
@@ -146,8 +155,14 @@ class ICommunication_Controller(metaclass=ABCMeta):
         """
         pass
 
+    @property
     @abstractmethod
     def available_clients(self):
+        pass
+
+    @property
+    @abstractmethod
+    def available_clients_count(self):
         pass
 
     @abstractmethod

@@ -1,8 +1,7 @@
 from threading import Thread
-from utils.log import Logger
 
+from network import ICommunication_Controller
 from psgd.interfaces import ITransfer, ReadTimeOut
-from network.interfaces import ICommunication_Controller
 
 
 class NTransfer(ITransfer):
@@ -15,7 +14,7 @@ class NTransfer(ITransfer):
     STR_W_TYPE = 'NW_Type'
     INT_RETRY_LIMIT = 5
 
-    def __init__(self, weights_ctrl, com: ICommunication_Controller, logger=Logger('Default Transfer')):
+    def __init__(self, weights_ctrl, com: ICommunication_Controller, group_offset:int, logger):
         """
             build a transfer controller for transferring data between local ML process and
             remote server process.
@@ -29,7 +28,7 @@ class NTransfer(ITransfer):
         self.communication_process = com
 
         self.working_thread = Thread(name='Transfer thread for node {}.' .format(com.Node_Id), target=self.__run)
-        self.Node_ID = com.Node_Id
+        self.__group_offset = group_offset
         self.__log = logger
 
     def put_weights(self, content, tag, w_type='w'):
@@ -75,6 +74,8 @@ class NTransfer(ITransfer):
         # skip none
         if len(target) == 0:
             return
+        # add vlan offset
+        target = [i + self.__group_offset if i >= 0 else i for i in target]
         # write tag
         dic[NTransfer.STR_LAYER_NO] = layer_no
         dic[NTransfer.STR_W_TYPE] = w_type
@@ -88,7 +89,7 @@ class NTransfer(ITransfer):
         """
         try:
             while not self.communication_process.is_closed():
-                sender, dic = self.communication_process.get_one()
+                _, dic = self.communication_process.get_one()
                 # blocking other format
                 if not isinstance(dic, dict):
                     continue

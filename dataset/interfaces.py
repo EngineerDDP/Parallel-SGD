@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-from enum import Enum, auto
 
 
 class IDataset(metaclass=ABCMeta):

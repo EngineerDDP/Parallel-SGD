@@ -16,19 +16,17 @@ class Coordinator:
             self.__log = Logger(title_info='Coordinator', log_to_file=True)
         else:
             self.__log = logger
-        self.__request_before = False
+        self.__allocation_list = set()
 
     def resources_dispatch(self, settings:Settings, hyper_model: IServerModel, data_set:AbsDataset, data_trans:ITransformer):
         """
             Reply to worker's requirements, prepare for the job
         :return:
         """
-        total_node_count = len(self.__com.available_clients())
-        worker_node_count = settings.node_count
+        # dispatch to certain group
         node_ready = set()
-        node_done = set()
 
-        while len(node_done) < worker_node_count:
+        while node_ready == self.__allocation_list:
 
             try:
                 id_from, data = self.__com.get_one()
@@ -56,57 +54,83 @@ class Coordinator:
                         continue
 
                     node_ready.add(id_from)
-                    self.__log.log_message('Node({}) is ready, {} nodes total, {} is ready.'.format(id_from, total_node_count, node_ready))
-
-                elif isinstance(data, Binary_File_Package):
-                    data.restore()
-                    self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
-
-                elif isinstance(data, Done_Type):
-                    node_done.add(id_from)
-                    self.__log.log_message('Node({}) is done, {} nodes total, {} is done.'.format(id_from, worker_node_count, node_done))
+                    self.__log.log_message('Node({}) is ready, {} is ready.'.format(id_from, node_ready))
 
                 self.__com.send_one(id_from, reply)
 
             except KeyboardInterrupt:
-                if len(node_ready) < total_node_count:
+                if len(node_ready) < len(self.__allocation_list):
                     self.__log.log_error('Some of workers is not ready.')
                 self.__log.log_error('Coordinator closed by user.')
 
-        self.__log.log_message('Dispatcher closed.')
-        self.__com.close()
+        self.__log.log_message('Dispatch complete.')
 
-    def submit_job(self, worker_execution_cls:type, estimate_data_size:int=0, ps_execution_cls:type=None):
+    def join(self) -> None:
+        """
+            Join all workers, wait for all task.
+        """
+        # dispatch to certain group
+        node_ready = set()
+
+        self.__log.log_message("Waiting for ({}) ...".format(self.__allocation_list))
+        while node_ready == self.__allocation_list:
+
+            id_from, data = self.__com.get_one()
+
+            if isinstance(data, Binary_File_Package):
+                data.restore()
+                self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
+
+            elif isinstance(data, Done_Type):
+                node_ready.add(id_from)
+                self.__log.log_message('Node({}) is done, {} is done.'.format(id_from, node_ready))
+
+        self.__log.log_message("All task is complete.")
+
+    def submit_job(self, worker_executor:type, worker_offset:int=0, worker_cnt:int=0, data_size:int=0, ps_executor:type=None):
         """
             Submit a job to cluster
         :return:
         """
-        assert self.__request_before is False, "Request can only use once."
-        self.__request_before = True
+        # set work group
+        if worker_cnt == 0:
+            working_group = set(self.__com.available_clients)
+        else:
+            working_group = set(range(worker_offset, worker_offset + worker_cnt))
+        # check for duplication
+        assert len(self.__allocation_list & working_group) == 0, "Cannot submit a task to node which already has a job."
         # calculate data size
-        total_nodes = len(self.__com.available_clients())
-        dataset_ett = total_nodes * estimate_data_size / Estimate_Bandwidth
+        dataset_ett = self.__com.available_clients_count * data_size / Estimate_Bandwidth
         # send request
-        for id in self.__com.available_clients():
-            if id == Parameter_Server and ps_execution_cls is not None:
-                self.__com.send_one(id, SubmitJob(total_nodes, True, dataset_ett * total_nodes, ps_execution_cls))
+        for id in working_group:
+            if id == Parameter_Server and ps_executor is not None:
+                self.__com.send_one(id, SubmitJob(working_group, worker_offset, True, dataset_ett * worker_cnt, ps_executor))
             else:
-                self.__com.send_one(id, SubmitJob(total_nodes, False, dataset_ett, worker_execution_cls))
+                self.__com.send_one(id, SubmitJob(working_group, worker_offset, False, dataset_ett, worker_executor))
+        self.__log.log_message("Submission complete.")
+
+
+class Reclaimer:
+
+    def __init__(self, com:ICommunication_Controller, logger:Logger=None):
+        self.__com = com
+        if logger is None:
+            self.__log = Logger(title_info='Retrieve', log_to_file=True)
+        else:
+            self.__log = logger
 
     def require_client_log(self):
         """
             Require client_log file from all workers.
         :return: None
         """
-        assert self.__request_before is False, "Request can only use once."
-        self.__request_before = True
         # send request
-        for id in self.__com.available_clients():
+        for id in self.__com.available_clients:
             self.__com.send_one(id, RequestWorkingLog())
 
         try:
             # get result
-            for id in self.__com.available_clients():
+            for id in self.__com.available_clients:
                 self.__log.log_message('Acquire log file from worker({}).'.format(id))
                 log = None
                 while not isinstance(log, Done_Type):
@@ -118,4 +142,3 @@ class Coordinator:
             self.__log.log_error('Connection lost.')
 
         self.__log.log_message('Done.')
-        self.__com.close()

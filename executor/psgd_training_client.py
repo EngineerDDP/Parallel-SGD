@@ -12,8 +12,8 @@ from utils.log import Logger
 
 class PSGDWorkerExecutor(IExecutor):
 
-    def __init__(self, node_id):
-        super().__init__(node_id)
+    def __init__(self, node_id, offset):
+        super().__init__(node_id, offset)
         self.__log = Logger('Fit-{}'.format(node_id))
         self.__trace_filename = [self.__log.File_Name]
         # waiting for those
@@ -51,7 +51,7 @@ class PSGDWorkerExecutor(IExecutor):
             {w:sgd_type(self.node_id, i, codec_type[i]) for w in self.__essential.weights_types} for i in iterator
         ]
         # build transfer thread
-        transfer = NTransfer(weights_updater, com, self.__log)
+        transfer = NTransfer(weights_updater, com, self.group_offset, self.__log)
         # get batch size
         batch_size = self.__setting.batch.batch_size
         # build tags
@@ -117,8 +117,8 @@ class PSGDWorkerExecutor(IExecutor):
 
 class PSGDPSExecutor(IExecutor):
 
-    def __init__(self, node_id):
-        super().__init__(node_id)
+    def __init__(self, node_id, offset):
+        super().__init__(node_id, offset)
         # wait
         self.__log = Logger('ParaServer'.format(node_id))
         self.__essential : IServerModel = None
@@ -150,10 +150,10 @@ class PSGDPSExecutor(IExecutor):
             {w:sgd_type(self.node_id, i, codec_type) for w in self.__essential.weights_types} for i in iterator
         ]
         # build transfer thread
-        transfer = NTransfer(weights_updater, com, self.__log)
+        transfer = NTransfer(weights_updater, com, 0, self.__log)
         self.__log.log_message('Transfer thread is ready.')
 
         transfer.start_transfer()
-        while len(com.available_clients()) != 0:
+        while com.available_clients_count != 0:
             sleep(7)
 

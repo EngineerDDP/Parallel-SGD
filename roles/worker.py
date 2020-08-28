@@ -30,24 +30,19 @@ class PSGD_Worker:
         com = None
         try:
             while True:
-                self.client_logger.log_message('Worker started with network type \'FCNet\'')
-                com = listener.acquire()
+                self.client_logger.log_message('Worker started with network type \'FCNet\'.')
 
-                self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
+                with listener.acquire() as com:
+                    self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
-                self.dispatch(com)
+                    self.dispatch(com)
 
-                self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
-                self.client_logger.log_message('Worker restarting...')
-
-                com.close()
+                    self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
+                    self.client_logger.log_message('Worker restarting...')
 
         except KeyboardInterrupt:
             self.client_logger.log_error('Worker shutdown by interruption.')
             listener.close()
-        finally:
-            if isinstance(com, ICommunication_Controller):
-                com.close()
 
     def dispatch(self, com: ICommunication_Controller):
         """
@@ -104,7 +99,7 @@ class PSGD_Worker:
         job_info.restore()
         # get info
         ready_state = set()
-        total_nodes = job_info.nodes_count
+        total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
         # request list
@@ -115,7 +110,7 @@ class PSGD_Worker:
         if not job_info.am_i_ps:
             com.send_one(Initialization_Server, Req.Dataset)
 
-        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id)
+        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id, job_info.group_offset)
 
         # Set job executor to ready state
         while not self.__job_executor.ready():
@@ -165,7 +160,7 @@ class PSGD_Worker:
         return True
 
     @staticmethod
-    def synchronize(com:ICommunication_Controller, ready_state: set, total_nodes:int, timeout:int):
+    def synchronize(com:ICommunication_Controller, ready_state: set, total_nodes: set, timeout:int):
         """
             Synchronize timeline with cluster.
             Make sure all nodes exits this method with same time.
@@ -178,10 +173,10 @@ class PSGD_Worker:
         timeout_clock = 0
 
         ready_state.add(com.Node_Id)
-        for id in com.available_clients():
+        for id in com.available_clients:
             com.send_one(id, Ready_Type(ready_state))
 
-        while len(ready_state) != total_nodes:
+        while ready_state != total_nodes:
             assert timeout_clock < timeout, "Maximum waiting time exceed."
 
             # inc time clock

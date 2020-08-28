@@ -371,7 +371,7 @@ class Communication_Process(ICommunication_Process):
 
     @property
     def available_nodes(self):
-        return self.__available_nodes_count
+        return self.__available_nodes_count.value
 
     @property
     def bytes_read(self):
