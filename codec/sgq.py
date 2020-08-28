@@ -3,13 +3,13 @@ import numpy as np
 #custmized module
 from utils.huffman import codec
 
-from codec.interfaces import yield_none, netEncapsulation
+from codec.interfaces import netEncapsulation
 from codec.interfaces import ICommunication_Ctrl
 from codec.essential import Block_Weight
 from utils.log import Logger
 from utils.constants import Parameter_Server
 
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 
 # based on paper SGQ chapter 3.1
 def build_quantization_space(bits:int) -> list:
@@ -97,7 +97,7 @@ class SGQClient(ICommunication_Ctrl):
         """
         content = block_weight.Content
         pkg = SGQPackage(content, self.Node_id)
-        yield netEncapsulation(Parameter_Server, pkg.encode())
+        return netEncapsulation(Parameter_Server, pkg.encode())
 
     def dispose(self):
         """
@@ -154,14 +154,14 @@ class SGQServer(ICommunication_Ctrl):
             SGQServer.__max_error = error
             print("Error:", error)
         # return
-        yield netEncapsulation(data.node_id, data_rtn.encode())
+        return netEncapsulation(data.node_id, data_rtn.encode())
 
 
     def update_blocks(self, block_weight):
         """
             SGQ server codec cannot receive data
         """
-        return yield_none()
+        pass
 
     def dispose(self):
         """

@@ -1,9 +1,8 @@
 import numpy as np
 
 from codec.essential import Block_Weight
-from utils.log import Logger
-from utils.constants import Parameter_Server
 from codec.interfaces import ICommunication_Ctrl, netEncapsulation
+from utils.constants import Parameter_Server
 
 
 class QuantizedPack:
