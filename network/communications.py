@@ -162,9 +162,6 @@ class Communication_Controller(ICommunication_Controller):
             wait_limit -= 1
         if wait_limit <= 0:
             self.__com.terminate()
-            import sys
-            if sys.version_info >= (3,7):
-                self.__com.close()
             print('Terminate communication process.')
 
     def is_closed(self):

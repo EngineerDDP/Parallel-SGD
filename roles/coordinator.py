@@ -26,7 +26,7 @@ class Coordinator:
         # dispatch to certain group
         node_ready = set()
 
-        while node_ready == self.__allocation_list:
+        while node_ready != self.__allocation_list:
 
             try:
                 id_from, data = self.__com.get_one()
@@ -73,7 +73,8 @@ class Coordinator:
         node_ready = set()
 
         self.__log.log_message("Waiting for ({}) ...".format(self.__allocation_list))
-        while node_ready == self.__allocation_list:
+
+        while node_ready != self.__allocation_list:
 
             id_from, data = self.__com.get_one()
 
@@ -104,9 +105,11 @@ class Coordinator:
         # send request
         for id in working_group:
             if id == Parameter_Server and ps_executor is not None:
-                self.__com.send_one(id, SubmitJob(working_group, worker_offset, True, dataset_ett * worker_cnt, ps_executor))
+                self.__com.send_one(id, SubmitJob(working_group, worker_offset, True, dataset_ett * len(working_group), ps_executor))
             else:
                 self.__com.send_one(id, SubmitJob(working_group, worker_offset, False, dataset_ett, worker_executor))
+
+        self.__allocation_list = self.__allocation_list | working_group
         self.__log.log_message("Submission complete.")
 
 

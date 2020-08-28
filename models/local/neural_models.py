@@ -153,13 +153,14 @@ class ModelDNN(AbsServerModel):
                          server_type, target_acc, learn_rate)
 
         self.__nn = None
-        layer_units = [3072, 3072, 784, 196, 128, 10]
+        layer_units = [784, 784, 784, 196, 128, 10]
 
         # init codec
         if codec is None:
-            codec = ['plain', 'plain', 'plain', 'plain', 'plain', 'plain']
+            codec = ['plain'] * len(layer_units)
         elif len(codec) != len(layer_units):
             codec = codec[:1] * len(layer_units)
+        codec.reverse()
 
         # init layer
         self.__nn = [FCLayer_v2(i, act=get_activation("tanh")) for i in layer_units[:-1]]

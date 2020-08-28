@@ -2,11 +2,12 @@ from time import sleep
 
 import pandas as pd
 
-from codec import build_tags
+from codec import build_tags, GlobalSettings
 from executor.interfaces import *
 from network.interfaces import ICommunication_Controller
 from nn.model import SequentialModel_v2
 from psgd.transfer import NTransfer
+from utils.constants import Initialization_Server
 from utils.log import Logger
 
 
@@ -32,6 +33,8 @@ class PSGDWorkerExecutor(IExecutor):
 
     def add_setting(self, obj:Settings):
         self.__setting = obj
+        # register global settings
+        GlobalSettings.deprecated_default_settings = obj
 
     def ready(self) -> bool:
         return self.__model is not None \
@@ -130,6 +133,8 @@ class PSGDPSExecutor(IExecutor):
 
     def add_setting(self, obj:Settings):
         self.__setting = obj
+        # register global settings
+        GlobalSettings.deprecated_default_settings = obj
 
     def add_info(self, obj:IServerModel):
         self.__essential = obj
@@ -154,6 +159,8 @@ class PSGDPSExecutor(IExecutor):
         self.__log.log_message('Transfer thread is ready.')
 
         transfer.start_transfer()
-        while com.available_clients_count != 0:
+        while set(com.available_clients) - {Initialization_Server} != set():
             sleep(7)
 
+    def trace_files(self) -> list:
+        return [self.__log.File_Name]

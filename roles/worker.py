@@ -27,22 +27,40 @@ class PSGD_Worker:
     def slave_forever(self):
         # set up listening port
         listener = Serve(net_type='fcnet')
-        com = None
         try:
             while True:
                 self.client_logger.log_message('Worker started with network type \'FCNet\'.')
+                try:
+                    with listener.acquire() as com:
+                        self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
-                with listener.acquire() as com:
-                    self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
+                        self.dispatch(com)
 
-                    self.dispatch(com)
-
-                    self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
-                    self.client_logger.log_message('Worker restarting...')
+                        self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
+                        self.client_logger.log_message('Worker restarting...')
+                except OSError:
+                    self.client_logger.log_message("Initialization server exited without report.")
+                except ConnectionResetError:
+                    self.client_logger.log_message("Initialization server exited without report.")
 
         except KeyboardInterrupt:
             self.client_logger.log_error('Worker shutdown by interruption.')
             listener.close()
+
+    @staticmethod
+    def __recv_pack(com:ICommunication_Controller, timeout:int=100):
+        data = None
+        id_from = None
+        time_clock = 0
+        # requests with timeout check
+        while data is None:
+            id_from, data = com.get_one(blocking=False)
+            time.sleep(0.001)
+            time_clock += 0.001
+            # Assertion, this node count as one
+            assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
+            assert time_clock < timeout, "Maximum waiting time exceed."
+        return id_from, data
 
     def dispatch(self, com: ICommunication_Controller):
         """
@@ -54,7 +72,7 @@ class PSGD_Worker:
         :return:
         """
         try:
-            _, req = com.get_one()
+            _, req = PSGD_Worker.__recv_pack(com, 7)
             if isinstance(req, SubmitJob):
                 if self.init_PSGD(com, req):
                     self.do_training(com)
@@ -115,14 +133,7 @@ class PSGD_Worker:
         # Set job executor to ready state
         while not self.__job_executor.ready():
 
-            id_from, data = com.get_one(blocking=False)
-
-            # requests with timeout check
-            while data is None:
-                id_from, data = com.get_one(blocking=False)
-                time.sleep(0.001)
-                # Assertion, this node count as one
-                assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
+            id_from, data = PSGD_Worker.__recv_pack(com, eta_waiting_time)
 
             # restoring data
             if isinstance(data, IReplyPackage):
@@ -179,6 +190,8 @@ class PSGD_Worker:
         while ready_state != total_nodes:
             assert timeout_clock < timeout, "Maximum waiting time exceed."
 
+            current_active = set(com.available_clients) | {com.Node_Id}
+            assert current_active & total_nodes == total_nodes, "Minimum nodes cannot be satisfied."
             # inc time clock
             time.sleep(1)
             timeout_clock += 1

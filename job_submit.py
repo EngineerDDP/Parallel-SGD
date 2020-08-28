@@ -110,7 +110,7 @@ if __name__ == '__main__':
                                learn_rate=arg.lr,
                                epoches=arg.epochs,
                                optimizer_type=arg.op,
-                               input_shape=3072)
+                               input_shape=784)
 
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
@@ -139,4 +139,7 @@ if __name__ == '__main__':
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
             core.submit_job(PSGDWorkerExecutor, data_size=dataset.estimate_size(), ps_executor=PSGDPSExecutor)
             core.resources_dispatch(setting, model_parameter, dataset, transform)
-            core.join()
+            try:
+                core.join()
+            except ConnectionAbortedError:
+                print('Worker exited without reported.')
