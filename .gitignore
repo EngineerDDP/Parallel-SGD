@@ -7,3 +7,5 @@ tmp_log/
 *.json
 *.txt
 /venv/
+.idea/
+.git/
