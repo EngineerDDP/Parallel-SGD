@@ -4,3 +4,5 @@ __pycache__/
 tmp_log/
 *.log
 *.sh
+*.json
+/venv/
