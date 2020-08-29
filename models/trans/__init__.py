@@ -49,6 +49,10 @@ class Binary_File_Package(IReplyPackage):
                 self.content = f.read()
 
     def restore(self):
+        path, file = os.path.split(self.filename)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         with open(self.filename, 'wb') as f:
             f.write(self.content)
 
