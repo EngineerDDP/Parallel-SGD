@@ -129,12 +129,12 @@ class ICommunication_Controller(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def Com(self):
+    def Com(self) -> ICommunication_Process:
         pass
 
     @property
     @abstractmethod
-    def Node_Id(self):
+    def Node_Id(self) -> int:
         pass
 
     @abstractmethod
