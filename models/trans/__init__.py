@@ -50,7 +50,7 @@ class Binary_File_Package(IReplyPackage):
 
     def restore(self):
         path, file = os.path.split(self.filename)
-        if not os.path.exists(path):
+        if path != '' and not os.path.exists(path):
             os.makedirs(path)
 
         with open(self.filename, 'wb') as f:
