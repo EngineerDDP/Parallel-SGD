@@ -15,7 +15,7 @@ class PSGDWorkerExecutor(IExecutor):
 
     def __init__(self, node_id, offset):
         super().__init__(node_id, offset)
-        self.__log = Logger('Fit-{}'.format(node_id))
+        self.__log = Logger('Fit-{}'.format(node_id), log_to_file=True)
         self.__trace_filename = [self.__log.File_Name]
         # waiting for those
         self.__model : SequentialModel_v2 = None
@@ -123,7 +123,7 @@ class PSGDPSExecutor(IExecutor):
     def __init__(self, node_id, offset):
         super().__init__(node_id, offset)
         # wait
-        self.__log = Logger('ParaServer'.format(node_id))
+        self.__log = Logger('ParaServer'.format(node_id), log_to_file=True)
         self.__essential : IServerModel = None
         self.__setting : Settings = None
         self.__done : bool = False
