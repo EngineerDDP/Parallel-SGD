@@ -1,3 +1,4 @@
+import time
 from time import sleep
 
 import pandas as pd
@@ -75,6 +76,10 @@ class PSGDWorkerExecutor(IExecutor):
         log_head = self.__log.Title
         # start !
         transfer.start_transfer()
+        # record data
+        time_start = time.time()
+        data_send_start = com.Com.bytes_sent
+        data_recv_start = com.Com.bytes_read
 
         evaluation_history = []
         # do until reach the target accuracy
@@ -94,6 +99,11 @@ class PSGDWorkerExecutor(IExecutor):
                 if r[1] > self.__essential.target_acc:
                     break
 
+        # record data
+        time_end = time.time()
+        data_sent_end = com.Com.bytes_sent
+        data_recv_end = com.Com.bytes_read
+
         training_history = self.__model.History
         # save training history data
         training_name = "TR-" + trace_head + ".csv"
@@ -106,6 +116,9 @@ class PSGDWorkerExecutor(IExecutor):
         self.__trace_filename.append(training_name)
         self.__trace_filename.append(evaluation_name)
 
+        self.__log.log_message('Execution complete, time:{}'.format(time_end - time_start))
+        self.__log.log_message('Execution complete, Total bytes sent: {}'.format(data_sent_end - data_send_start))
+        self.__log.log_message('Execution complete, Total bytes read: {}'.format(data_recv_end - data_recv_start))
         self.__log.log_message('Trace file has been saved to {}'.format(trace_head))
 
         # set marker
