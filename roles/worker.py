@@ -38,6 +38,7 @@ class PSGD_Worker:
 
                         self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
                         self.client_logger.log_message('Worker restarting...')
+                        time.sleep(1)
                 except OSError:
                     self.client_logger.log_message("Initialization server exited without report.")
                 except ConnectionResetError:
