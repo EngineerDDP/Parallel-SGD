@@ -116,10 +116,10 @@ class PSGDWorkerExecutor(IExecutor):
         self.__trace_filename.append(training_name)
         self.__trace_filename.append(evaluation_name)
 
-        self.__log.log_message('Execution complete, time:{}'.format(time_end - time_start))
-        self.__log.log_message('Execution complete, Total bytes sent: {}'.format(data_sent_end - data_send_start))
-        self.__log.log_message('Execution complete, Total bytes read: {}'.format(data_recv_end - data_recv_start))
-        self.__log.log_message('Trace file has been saved to {}'.format(trace_head))
+        self.__log.log_message('Execution complete, time: {}.'.format(time_end - time_start))
+        self.__log.log_message('Execution complete, Total bytes sent: {}.'.format(data_sent_end - data_send_start))
+        self.__log.log_message('Execution complete, Total bytes read: {}.'.format(data_recv_end - data_recv_start))
+        self.__log.log_message('Trace file has been saved to {}.'.format(trace_head))
 
         # set marker
         self.__done = True
