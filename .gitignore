@@ -9,3 +9,4 @@ tmp_log/
 /venv/
 .idea/
 .git/
+/codec/toy_codec.py
