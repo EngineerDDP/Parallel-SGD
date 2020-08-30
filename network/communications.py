@@ -173,7 +173,10 @@ class Communication_Controller(ICommunication_Controller):
 
 
 def get_repr():
-    return socket.gethostbyname(socket.gethostname())
+    dns, hosts, addrs = socket.gethostbyname_ex(socket.gethostname())
+    for addr in addrs:
+        if addr not in {"127.0.0.1", "127.0.1.1"}:
+            return addr
 
 if __name__ == "__main__":
     from threading import Lock
