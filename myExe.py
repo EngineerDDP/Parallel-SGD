@@ -10,7 +10,9 @@ class myExecutor(AbsSimpleExecutor):
 
     def run(self, com: ICommunication_Controller) -> None:
         with open(self.__my_output_file, 'a') as f:
-            f.write('Hello world!')
+            import os
+
+            f.write("{}".format(os.times()))
 
     def trace_files(self) -> list:
         return [self.__my_output_file]

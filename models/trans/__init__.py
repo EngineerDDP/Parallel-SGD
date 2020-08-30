@@ -53,7 +53,7 @@ class Binary_File_Package(IReplyPackage):
         if path != '' and not os.path.exists(path):
             os.makedirs(path)
 
-        with open(self.filename, 'wb') as f:
+        with open(self.filename, 'wb+') as f:
             f.write(self.content)
 
 
