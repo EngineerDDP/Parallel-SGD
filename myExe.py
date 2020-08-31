@@ -7,6 +7,11 @@ class myExecutor(AbsSimpleExecutor):
     def __init__(self, node_id, offset):
         """
             Node id 是分配到的全局node_id，offset是本组起始id的值
+            在当前抽象层面上，Executor可以访问集群内任意节点，每个节点都有独立id，
+            分组offset仅仅是分组建议，并非强制不可见。
+
+            在 Codec 层面上，分组策略才是强制执行的，每个组内有重复的id，组与组之间
+            不可互访。
         """
         super().__init__(node_id, offset)
         # 计算结果以文件的形式记录
@@ -22,7 +27,7 @@ class myExecutor(AbsSimpleExecutor):
 
     def trace_files(self) -> list:
         """
-            以文件的形式返回执行结果
+            返回当前执行结果保存在哪些文件上。
         """
         return [self.__my_output_file]
 

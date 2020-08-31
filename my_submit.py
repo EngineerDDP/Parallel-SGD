@@ -16,6 +16,7 @@ if __name__ == '__main__':
     from roles import Coordinator
 
     # 发起一个请求
+    # 如果客户端已经启动了，则可以直接提交，无需将代码更新至客户端。
     with net.request(nodes) as req:
         # 在请求的集群上创建一个协调者
         master = Coordinator(req)
