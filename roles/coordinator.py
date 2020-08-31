@@ -1,11 +1,8 @@
-from utils.constants import Parameter_Server, Estimate_Bandwidth
-from utils.log import Logger
-
 from models.trans import *
 from models.trans.net_package import *
-
 from network.interfaces import ICommunication_Controller
-from models.local.neural_models import IServerModel
+from utils.constants import Estimate_Bandwidth
+from utils.log import Logger
 
 
 class Coordinator:
@@ -88,7 +85,7 @@ class Coordinator:
 
         self.__log.log_message("All task is complete.")
 
-    def submit_job(self, worker_executor:type, worker_offset:int=0, worker_cnt:int=0, data_size:int=0, ps_executor:type=None):
+    def submit_job(self, worker_executor:type, worker_offset:int=0, worker_cnt:int=0, package_size:int=0):
         """
             Submit a job to cluster
         :return:
@@ -101,13 +98,10 @@ class Coordinator:
         # check for duplication
         assert len(self.__allocation_list & working_group) == 0, "Cannot submit a task to node which already has a job."
         # calculate data size
-        dataset_ett = self.__com.available_clients_count * data_size / Estimate_Bandwidth
+        dataset_ett = self.__com.available_clients_count * package_size / Estimate_Bandwidth
         # send request
         for id in working_group:
-            if id == Parameter_Server and ps_executor is not None:
-                self.__com.send_one(id, SubmitJob(working_group, worker_offset, True, dataset_ett * len(working_group), ps_executor))
-            else:
-                self.__com.send_one(id, SubmitJob(working_group, worker_offset, False, dataset_ett, worker_executor))
+            self.__com.send_one(id, SubmitJob(working_group, worker_offset, True, dataset_ett, worker_executor))
 
         self.__allocation_list = self.__allocation_list | working_group
         self.__log.log_message("Submission complete.")

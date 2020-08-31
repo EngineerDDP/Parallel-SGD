@@ -137,7 +137,8 @@ if __name__ == '__main__':
         else:
             core = Coordinator(com, logger)
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
-            core.submit_job(PSGDWorkerExecutor, data_size=dataset.estimate_size(), ps_executor=PSGDPSExecutor)
+            core.submit_job(PSGDPSExecutor, worker_offset=Parameter_Server, worker_cnt=1, package_size=dataset.estimate_size())
+            core.submit_job(PSGDWorkerExecutor, worker_offset=0, worker_cnt=arg.n, package_size=dataset.estimate_size())
             core.resources_dispatch(setting, model_parameter, dataset, transform)
             try:
                 core.join()
