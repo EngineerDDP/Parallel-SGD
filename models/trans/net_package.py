@@ -176,7 +176,7 @@ class data_package(IReplyPackage, IDataset):
 
 class data_content(data_package):
 
-    def __init__(self, data_cls:IDataset, transform:ITransformer):
+    def __init__(self, data_cls:AbsDataset, transform:ITransformer):
         super().__init__(data_cls, transform)
         self.__contents = [Binary_File_Package(filename) for filename in data_cls.extract_files()]
 
