@@ -8,6 +8,10 @@ class ImageCls(AbsTransformer):
     def __init__(self):
         super().__init__()
 
+    def __repr__(self):
+        return "<Scale to 1.0 and make onehot label>"
+
+    @property
     def params(self):
         return tuple()
 

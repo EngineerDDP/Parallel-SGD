@@ -1,5 +1,5 @@
 import os
-from enum import Enum
+from enum import Enum, auto
 from abc import ABCMeta, abstractmethod
 
 

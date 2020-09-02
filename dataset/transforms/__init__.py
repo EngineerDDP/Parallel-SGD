@@ -32,6 +32,14 @@ class AbsTransformer(ITransformer):
         transformer.__next = self.__next
         self.__next = transformer
 
+    def __repr__(self):
+        cur = self.__next
+        res = []
+        while cur != None:
+            res.append(str(cur))
+            cur = cur.__next
+        return "<Transformation: ({})>".format(','.join(res))
+
     def __call__(self, train_x, train_y, test_x, test_y) -> tuple:
         if self.__next is not None:
             train_x, train_y, test_x, test_y = self.__next(train_x, train_y, test_x, test_y)

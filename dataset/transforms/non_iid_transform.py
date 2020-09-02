@@ -17,6 +17,9 @@ class Make_Non_IID(AbsTransformer):
         super().__init__()
         self.__batch_size = batch_size
 
+    def __repr__(self):
+        return "<Make non-iid dataset, based on labels>"
+
     @property
     def params(self):
         return (self.__batch_size, )

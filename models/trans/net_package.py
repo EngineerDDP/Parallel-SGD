@@ -17,6 +17,9 @@ class global_setting_package(IReplyPackage, Settings):
     def restore(self):
         self.__sets = Settings(self.n, self.r, self.b, self.ass)
 
+    def __repr__(self):
+        return "<Net package (Settings)>"
+
     @property
     def redundancy(self) -> int:
         return self.__sets.redundancy
@@ -71,6 +74,9 @@ class essentials(IReplyPackage, IServerModel):
         self.__get_nn = [i[0](*i[1], *i[2], i[3]()) for i in self.__storage]
         if isinstance(self.__psgd_server_codec, IReplyPackage):
             self.__psgd_server_codec = self.__psgd_server_codec.restore()
+
+    def __repr__(self):
+        return "<Net package (Model)>"
 
     @property
     def weights_types(self):
@@ -138,7 +144,10 @@ class data_package(IReplyPackage, IDataset):
         return self.__decorated_class.check()
 
     def __repr__(self):
-        return self.__decorated_class.__repr__()
+        if self.__decorated_class is not None:
+            return self.__decorated_class.__repr__()
+        else:
+            return "<Net package (Dataset)>"
 
 class data_content(data_package):
 
@@ -159,3 +168,6 @@ class misc_package(IReplyPackage):
 
     def restore(self) -> None:
         pass
+
+    def __repr__(self):
+        return "<Net package (Other stuff)>"
