@@ -3,6 +3,7 @@ import json
 
 from dataset.transforms import TransformerList
 from models.local.neural_models import ModelDNN
+from models.trans import Req
 # method to start up a network
 from network import NodeAssignment, Request
 
@@ -35,6 +36,7 @@ if __name__ == '__main__':
     parse.add_argument("-O", "--optimizer", dest="op", type=str, default='psgd', help="Set optimizer used for model training.")
     parse.add_argument("-E", "--epochs", dest="epochs", type=int, default=2, help="Train epochs")
     parse.add_argument("-D", "--dataset", dest="dataset", type=str, default='mnist', help="Dataset in use.")
+    parse.add_argument("-I", "--input", dest='input_shape', type=int, default=784, help="Input dimension.")
 
     # Not commonly used
     parse.add_argument("--psgd", type=str, default='ssgd', help="Parallel stochastic gradient descent synchronization type {asgd, ssgd}")
@@ -64,11 +66,6 @@ if __name__ == '__main__':
     logger.log_message('\t --block_assignment <block assignment strategy {}>'.format(arg.assignment))
     logger.log_message('\t --server_codec <parameter server codec {}>'.format(arg.server_codec))
 
-    # set bandwidth suggestion
-    Estimate_Bandwidth = arg.bandwidth * 1024 * 1024
-
-    # Split and get codec list
-    codec = arg.codec.split(',')
     # get assignment class for batch_size calculation
     from models.local.neural_models import get_assignment
     ass = get_assignment(arg.assignment)
@@ -103,6 +100,8 @@ if __name__ == '__main__':
         from dataset.transforms.image import ImageCls
         transform.add(ImageCls())
 
+    # Split and get codec list
+    codec = arg.codec.split(',')
     # Set model parameters
     model_parameter = ModelDNN(codec=codec,
                                psgd_type=arg.psgd,
@@ -110,7 +109,7 @@ if __name__ == '__main__':
                                learn_rate=arg.lr,
                                epoches=arg.epochs,
                                optimizer_type=arg.op,
-                               input_shape=784)
+                               input_shape=arg.input_shape)
 
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
@@ -129,6 +128,9 @@ if __name__ == '__main__':
         if i >= arg.n:
             break
 
+    # set bandwidth suggestion
+    Estimate_Bandwidth = arg.bandwidth * 1024 * 1024
+
     req = Request()
     with req.request(pkg) as com:
         if arg.do_retrieve_only:
@@ -137,9 +139,18 @@ if __name__ == '__main__':
         else:
             core = Coordinator(com, logger)
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
-            core.submit_job(PSGDPSExecutor, worker_offset=Parameter_Server, worker_cnt=1, package_size=dataset.estimate_size())
+            if model_parameter.psgd_server_codec is not None:
+                core.submit_job(PSGDPSExecutor, worker_offset=Parameter_Server, worker_cnt=1, package_size=dataset.estimate_size())
             core.submit_job(PSGDWorkerExecutor, worker_offset=0, worker_cnt=arg.n, package_size=dataset.estimate_size())
-            core.resources_dispatch(setting, model_parameter, dataset, transform)
+
+            from models.trans.net_package import data_package, data_content, global_setting_package, essentials
+            core.resources_dispatch({
+                Req.GlobalSettings: global_setting_package(setting),
+                Req.Weights_And_Layers: essentials(model_parameter),
+                Req.Samples: data_content(dataset, transform),
+                Req.Dataset: data_package(dataset, transform)
+            })
+
             try:
                 core.join()
             except ConnectionAbortedError:

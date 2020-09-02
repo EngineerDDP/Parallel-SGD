@@ -15,7 +15,7 @@ class Coordinator:
             self.__log = logger
         self.__allocation_list = set()
 
-    def resources_dispatch(self, settings:Settings, hyper_model: IServerModel, data_set:AbsDataset, data_trans:ITransformer):
+    def resources_dispatch(self, dispatch_map):
         """
             Reply to worker's requirements, prepare for the job
         :return:
@@ -30,17 +30,7 @@ class Coordinator:
                 reply = None
 
                 if isinstance(data, Req):
-                    if data == Req.Weights_And_Layers:
-                        reply = essentials(hyper_model)
-
-                    elif data == Req.GlobalSettings:
-                        reply = global_setting_package(settings)
-
-                    elif data == Req.Dataset:
-                        reply = data_package(data_set, data_trans)
-
-                    elif data == Req.Samples:
-                        reply = data_content(data_set, data_trans)
+                    reply = dispatch_map[data]
 
                     self.__log.log_message('Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
 
@@ -101,7 +91,7 @@ class Coordinator:
         dataset_ett = self.__com.available_clients_count * package_size / Estimate_Bandwidth
         # send request
         for id in working_group:
-            self.__com.send_one(id, SubmitJob(working_group, worker_offset, True, dataset_ett, worker_executor))
+            self.__com.send_one(id, SubmitJob(working_group, worker_offset, dataset_ett, worker_executor))
 
         self.__allocation_list = self.__allocation_list | working_group
         self.__log.log_message("Submission complete.")

@@ -1,14 +1,16 @@
 import time
-from time import sleep
-
 import pandas as pd
 
+from time import sleep
+from functools import singledispatch
+
 from codec import build_tags, GlobalSettings
-from executor.interfaces import *
-from network.interfaces import ICommunication_Controller
+from executor.interfaces import IExecutor, Settings, IServerModel, IDataset, ICommunication_Controller
+from models.trans import Req
+
 from nn.model import SequentialModel_v2
 from psgd.transfer import NTransfer
-from utils.constants import Initialization_Server
+
 from utils.log import Logger
 
 
@@ -25,14 +27,36 @@ class PSGDWorkerExecutor(IExecutor):
         self.__data : IDataset = None
         self.__done : bool = False
 
-    def add_info(self, obj:IServerModel):
+    def requests(self) -> list:
+        return [Req.Dataset, Req.GlobalSettings, Req.Weights_And_Layers]
+
+    def satisfy(self, reply:list) -> list:
+        unsatisfied = []
+        # check list
+        for obj in reply:
+
+            if isinstance(obj, IDataset):
+                if not obj.check():
+                    unsatisfied.append(Req.Samples)
+                else:
+                    self.__add_data(obj)
+
+            if isinstance(obj, Settings):
+                self.__add_setting(obj)
+
+            if isinstance(obj, IServerModel):
+                self.__add_info(obj)
+
+        return unsatisfied
+
+    def __add_info(self, obj:IServerModel):
         self.__essential = obj
         self.__model = SequentialModel_v2(obj.get_nn(), self.__log)
 
-    def add_data(self, obj:IDataset):
+    def __add_data(self, obj:IDataset):
         self.__data = obj
 
-    def add_setting(self, obj:Settings):
+    def __add_setting(self, obj:Settings):
         self.__setting = obj
         # register global settings
         GlobalSettings.deprecated_default_settings = obj
@@ -141,19 +165,28 @@ class PSGDPSExecutor(IExecutor):
         self.__setting : Settings = None
         self.__done : bool = False
 
-    def done(self) -> bool:
-        return self.__done
+    def requests(self) -> list:
+        return [Req.Weights_And_Layers, Req.GlobalSettings]
 
-    def add_setting(self, obj:Settings):
+    def satisfy(self, reply:list) -> list:
+        # check list
+        for obj in reply:
+
+            if isinstance(obj, Settings):
+                self.__add_setting(obj)
+
+            elif isinstance(obj, IServerModel):
+                self.__add_info(obj)
+
+        return []
+
+    def __add_setting(self, obj:Settings):
         self.__setting = obj
         # register global settings
         GlobalSettings.deprecated_default_settings = obj
 
-    def add_info(self, obj:IServerModel):
+    def __add_info(self, obj:IServerModel):
         self.__essential = obj
-
-    def add_data(self, obj:IDataset):
-        pass
 
     def ready(self) -> bool:
         return self.__essential is not None \
@@ -172,8 +205,13 @@ class PSGDPSExecutor(IExecutor):
         self.__log.log_message('Transfer thread is ready.')
 
         transfer.start_transfer()
+
+        from utils.constants import Initialization_Server
         while set(com.available_clients) - {Initialization_Server} != set():
             sleep(7)
 
     def trace_files(self) -> list:
         return [self.__log.File_Name]
+
+    def done(self) -> bool:
+        return self.__done

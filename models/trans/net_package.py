@@ -8,9 +8,8 @@ from profiles import Settings
 
 class SubmitJob(IReplyPackage):
 
-    def __init__(self, nodes:set, group_offset:int, ps:bool, eta_waiting_time:int, exe:type):
+    def __init__(self, nodes:set, group_offset:int, eta_waiting_time:int, exe:type):
         self.__nodes = nodes
-        self.__ps = ps
         self.__eta_wait = eta_waiting_time
         self.__cls  = ClassSerializer(exe)
         self.__offset = group_offset
@@ -29,10 +28,6 @@ class SubmitJob(IReplyPackage):
     @property
     def work_group(self) -> set:
         return self.__nodes
-
-    @property
-    def am_i_ps(self):
-        return self.__ps
 
     @property
     def waiting_time(self):
@@ -184,3 +179,12 @@ class data_content(data_package):
         super().restore()
         for b_file in self.__contents:
             b_file.restore()
+
+
+class misc_package(IReplyPackage):
+
+    def __init__(self, **kwargs):
+        self.data = kwargs
+
+    def restore(self) -> None:
+        pass

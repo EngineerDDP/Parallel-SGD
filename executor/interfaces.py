@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
-from models.local.__init__ import IServerModel
 from dataset.interfaces import IDataset
+from models.local import IServerModel
 from network.interfaces import ICommunication_Controller
 from profiles import Settings
 
@@ -21,23 +21,18 @@ class IExecutor(metaclass=ABCMeta):
         return self.__vlan_offset
 
     @abstractmethod
-    def add_info(self, obj:IServerModel):
+    def requests(self) -> list:
         """
-            Add essential information.
-        """
-        pass
-
-    @abstractmethod
-    def add_data(self, obj:IDataset):
-        """
-            Add dataset reference
+            Requested types
+        return: list of Req(Enum) objects.
         """
         pass
 
     @abstractmethod
-    def add_setting(self, obj:Settings):
+    def satisfy(self, reply:list) -> list:
         """
-            Add settings.
+            Satisfy requested data.
+        :return: list of Req(Enum) contains requests which cannot be satisfied.
         """
         pass
 

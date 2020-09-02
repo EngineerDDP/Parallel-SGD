@@ -1,15 +1,12 @@
 import time
 
-from dataset.interfaces import IDataset
 from executor.interfaces import IExecutor
 
-from models.local import IServerModel
-from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, Done_Type, Req, Ready_Type
+from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, Done_Type, Ready_Type
 from models.trans.net_package import SubmitJob
 
 from network.communications import get_repr
 from network import ICommunication_Controller, Serve
-from profiles import Settings
 
 from utils.constants import Initialization_Server
 from utils.log import Logger
@@ -57,7 +54,7 @@ class PSGD_Worker:
         while data is None:
             id_from, data = com.get_one(blocking=False)
             time.sleep(0.001)
-            time_clock += 0.001
+            time_clock += 0.002
             # Assertion, this node count as one
             assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
             assert time_clock < timeout, "Maximum waiting time exceed."
@@ -121,46 +118,33 @@ class PSGD_Worker:
         total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
-        # request list
-        com.send_one(Initialization_Server, Req.GlobalSettings)
-        com.send_one(Initialization_Server, Req.Weights_And_Layers)
+        from executor.psgd_training_client import PSGDWorkerExecutor
+        self.__job_executor: IExecutor = PSGDWorkerExecutor(com.Node_Id, job_info.group_offset)
 
-        # request dataset
-        if not job_info.am_i_ps:
-            com.send_one(Initialization_Server, Req.Dataset)
-
-        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id, job_info.group_offset)
+        # Acknowledge requests
+        requests = self.__job_executor.requests()
+        replies = []
+        # Ask for replies
+        for req in requests:
+            com.send_one(Initialization_Server, req)
 
         # Set job executor to ready state
         while not self.__job_executor.ready():
 
             id_from, data = PSGD_Worker.__recv_pack(com, eta_waiting_time)
 
+            self.client_logger.log_message('Ack package, type: ({})'.format(data.__class__.__name__))
             # restoring data
             if isinstance(data, IReplyPackage):
                 data.restore()
-
-            # pass to job executor
-            if isinstance(data, IServerModel):
-                self.__job_executor.add_info(data)
-
-            if isinstance(data, Settings):
-                self.__job_executor.add_setting(data)
-
-            # pass and check
-            if isinstance(data, IDataset):
-                if not data.check():
-                    com.send_one(Initialization_Server, Req.Samples)
-                    self.client_logger.log_message('Dataset absent, request full dataset.')
-                    self.client_logger.log_message('ETA: {} sec'.format(eta_waiting_time))
-                else:
-                    self.__job_executor.add_data(data)
+                replies.append(data)
+                if len(replies) == len(requests):
+                    for req in self.__job_executor.satisfy(replies):
+                        com.send_one(Initialization_Server, req)
 
             # pass to sync
-            if isinstance(data, Ready_Type):
+            elif isinstance(data, Ready_Type):
                 ready_state = ready_state | data.current_ready()
-
-            self.client_logger.log_message('Ack package, type: ({})'.format(data.__class__.__name__))
 
         self.client_logger.log_message('Submit stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
         self.client_logger.log_message('Submit stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
