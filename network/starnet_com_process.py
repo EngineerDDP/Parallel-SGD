@@ -415,7 +415,7 @@ class Promoter(IPromoter):
                 for con in worker_register.to_list():
                     if isinstance(con, socket.socket):
                         con.close()
-                raise OSError('Error: {}, while connecting {}.'.format(error, address))
+                raise OSError('{}, while connecting {}.'.format(error, address))
 
         writer.close()
 
