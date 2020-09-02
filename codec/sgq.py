@@ -58,10 +58,10 @@ def ternarization(arr, epsilon=1e-9):
 
 def stochastic_quantization(arr:np.ndarray, space:list):
     sign = np.sign(arr)
-    arr = np.abs(arr)
-    for x in np.nditer(arr, op_flags=["readwrite"]):
-        lo = 0
-        hi = 0
+    arr_in = np.abs(arr)
+    for x in np.nditer(arr_in, op_flags=["readwrite"]):
+        lo = 0.0
+        hi = 0.0
         for i in space:
             if i < x:
                 lo = i
@@ -71,11 +71,11 @@ def stochastic_quantization(arr:np.ndarray, space:list):
 
         rnd = np.random.uniform(lo, hi)
         if (rnd > x):
-            x = lo
+            x[...] = lo
         else:
-            x = hi
+            x[...] = hi
 
-    return arr
+    return sign * arr_in
 
 def quantize_matrix(arr):
     raise NotImplementedError()
