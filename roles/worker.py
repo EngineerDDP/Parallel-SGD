@@ -94,7 +94,7 @@ class PSGD_Worker:
         :param com:
         :return:
         """
-        self.client_logger.log_message('Nothing needs to be done, send back logfile and exit process.')
+        self.client_logger.log_message('ACK Log Reclaim.')
         com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
         if isinstance(self.__job_executor, IExecutor):
             for filename in self.__job_executor.trace_files():
@@ -107,7 +107,7 @@ class PSGD_Worker:
         :param job_info: job info
         :return:
         """
-        self.client_logger.log_message('Request (settings), (weights and layer).')
+        self.client_logger.log_message('ACK Job Submission.')
         # restoring data
         job_info.restore()
         # get info
@@ -124,6 +124,7 @@ class PSGD_Worker:
         for req in requests:
             com.send_one(Initialization_Server, req)
 
+        self.client_logger.log_message('Request data: ({}).'.format(requests))
         # Set job executor to ready state
         while not self.__job_executor.ready():
 
@@ -136,8 +137,11 @@ class PSGD_Worker:
                 replies.append(data)
 
                 if len(replies) == len(requests):
-                    for req in self.__job_executor.satisfy(replies):
+                    requests = self.__job_executor.satisfy(replies)
+                    for req in requests:
                         com.send_one(Initialization_Server, req)
+                    self.client_logger.log_message('Request data: ({}).'.format(requests))
+                    replies.clear()
 
             # pass to sync
             elif isinstance(data, Ready_Type):
