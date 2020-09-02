@@ -10,3 +10,4 @@ tmp_log/
 .idea/
 .git/
 /codec/toy_codec.py
+/codec/pdd.py
