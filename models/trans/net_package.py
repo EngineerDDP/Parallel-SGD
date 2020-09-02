@@ -1,37 +1,8 @@
-from executor.interfaces import IExecutor
 from dataset.interfaces import AbsDataset, IDataset
 from dataset.transforms.__init__ import ITransformer
 from models.local import IServerModel
 from models.trans import IReplyPackage, ClassSerializer, Binary_File_Package
 from profiles import Settings
-
-
-class SubmitJob(IReplyPackage):
-
-    def __init__(self, nodes:set, group_offset:int, eta_waiting_time:int, exe:type):
-        self.__nodes = nodes
-        self.__eta_wait = eta_waiting_time
-        self.__cls  = ClassSerializer(exe)
-        self.__offset = group_offset
-
-    def restore(self) -> None:
-        self.__cls : type = self.__cls.restore()
-
-    @property
-    def group_offset(self):
-        return self.__offset
-
-    @property
-    def executioner(self):
-        return self.__cls
-
-    @property
-    def work_group(self) -> set:
-        return self.__nodes
-
-    @property
-    def waiting_time(self):
-        return self.__eta_wait
 
 
 class global_setting_package(IReplyPackage, Settings):

@@ -1,5 +1,5 @@
-from models.trans import *
-from models.trans.net_package import *
+from models.trans import SubmitJob, Binary_File_Package, Req, Ready_Type, Done_Type, RequestWorkingLog
+
 from network.interfaces import ICommunication_Controller
 from utils.constants import Estimate_Bandwidth
 from utils.log import Logger

@@ -2,8 +2,7 @@ import time
 
 from executor.interfaces import IExecutor
 
-from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, Done_Type, Ready_Type
-from models.trans.net_package import SubmitJob
+from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, Done_Type, Ready_Type, SubmitJob
 
 from network.communications import get_repr
 from network import ICommunication_Controller, Serve
@@ -13,8 +12,6 @@ from utils.log import Logger
 
 
 class PSGD_Worker:
-
-    Training_TimeOut_Limit = 180
 
     def __init__(self):
         self.client_logger = Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
@@ -118,8 +115,7 @@ class PSGD_Worker:
         total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
-        from executor.psgd_training_client import PSGDWorkerExecutor
-        self.__job_executor: IExecutor = PSGDWorkerExecutor(com.Node_Id, job_info.group_offset)
+        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id, job_info.group_offset)
 
         # Acknowledge requests
         requests = self.__job_executor.requests()
@@ -138,6 +134,7 @@ class PSGD_Worker:
             if isinstance(data, IReplyPackage):
                 data.restore()
                 replies.append(data)
+
                 if len(replies) == len(requests):
                     for req in self.__job_executor.satisfy(replies):
                         com.send_one(Initialization_Server, req)
