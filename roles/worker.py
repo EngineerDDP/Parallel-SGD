@@ -169,7 +169,7 @@ class PSGD_Worker:
         for id in com.available_clients:
             com.send_one(id, Ready_Type(ready_state))
 
-        while ready_state != total_nodes:
+        while ready_state & total_nodes != total_nodes:
             assert timeout_clock < timeout, "Maximum waiting time exceed."
 
             current_active = set(com.available_clients) | {com.Node_Id}
