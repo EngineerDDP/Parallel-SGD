@@ -9,7 +9,7 @@ from dataset.interfaces import AbsDataset
 class MNIST(AbsDataset):
 
     def __init__(self, check_sum=None):
-        self.path = './dataset/CNN/MNIST_data'
+        self.path = './dataset/mnist_data/'
         super().__init__(check_sum)
 
     def __repr__(self):
@@ -18,18 +18,18 @@ class MNIST(AbsDataset):
     def check_sum(self) -> str:
         if not (os.path.exists(os.path.join(self.path, '%s-labels.idx1-ubyte' % 'train'))
             and os.path.exists(os.path.join(self.path, '%s-labels.idx1-ubyte' % 't10k'))
-            and os.path.exists(os.path.join(self.path, '%s-images.idx1-ubyte' % 'train'))
-            and os.path.exists(os.path.join(self.path, '%s-images.idx1-ubyte' % 't10k'))):
+            and os.path.exists(os.path.join(self.path, '%s-images.idx3-ubyte' % 'train'))
+            and os.path.exists(os.path.join(self.path, '%s-images.idx3-ubyte' % 't10k'))):
             return ''
 
         sum = hashlib.md5()
         with open(os.path.join(self.path, '%s-labels.idx1-ubyte' % 'train'), 'rb') as file:
             sum.update(file.read())
-        with open(os.path.join(self.path, '%s-images.idx1-ubyte' % 'train'), 'rb') as file:
+        with open(os.path.join(self.path, '%s-images.idx3-ubyte' % 'train'), 'rb') as file:
             sum.update(file.read())
         with open(os.path.join(self.path, '%s-labels.idx1-ubyte' % 't10k'), 'rb') as file:
             sum.update(file.read())
-        with open(os.path.join(self.path, '%s-images.idx1-ubyte' % 't10k'), 'rb') as file:
+        with open(os.path.join(self.path, '%s-images.idx3-ubyte' % 't10k'), 'rb') as file:
             sum.update(file.read())
 
         return sum.hexdigest()
@@ -37,9 +37,9 @@ class MNIST(AbsDataset):
     def extract_files(self) -> list:
         return [
             os.path.join(self.path, '%s-labels.idx1-ubyte' % 'train'),
-            os.path.join(self.path, '%s-images.idx1-ubyte' % 'train'),
+            os.path.join(self.path, '%s-images.idx3-ubyte' % 'train'),
             os.path.join(self.path, '%s-labels.idx1-ubyte' % 't10k'),
-            os.path.join(self.path, '%s-images.idx1-ubyte' % 't10k')
+            os.path.join(self.path, '%s-images.idx3-ubyte' % 't10k')
         ]
 
     def estimate_size(self) -> int:

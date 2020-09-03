@@ -130,6 +130,7 @@ class data_package(IReplyPackage, IDataset):
 
     def __init__(self, data_cls:AbsDataset, transform:ITransformer):
         self.__sum = data_cls.check_sum()
+        assert self.__sum != '', "Local dataset is corrupted."
         self.__cls = ClassSerializer(data_cls.__class__)
         self.__decorated_class : AbsDataset = None
         self.__transformer = transform
