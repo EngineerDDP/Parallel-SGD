@@ -74,6 +74,7 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
     def __init__(self, name: str):
         Process.__init__(self, name=name, daemon=True)
         self.__exit = Value(c_bool, 0)
+        self.__alive = Value(c_bool, 0)
         self.__recv_que = Queue(maxsize=24)
         self.__send_que = Queue(maxsize=24)
 
@@ -102,6 +103,14 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
     @Exit.setter
     def Exit(self, value):
         self.__exit.value = value
+
+    @property
+    def Alive(self):
+        return self.__alive.value
+
+    @Alive.setter
+    def Alive(self, value):
+        self.__alive.value = value
 
     @property
     @abstractmethod

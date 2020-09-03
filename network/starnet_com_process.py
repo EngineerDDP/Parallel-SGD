@@ -242,6 +242,7 @@ class Communication_Process(ICommunication_Process):
             start both sending and receiving thread on target socket object
         """
         import threading
+        self.Alive = True
 
         recv_buffer_list = {}
         for fd in self.__connections.to_list():
@@ -307,8 +308,7 @@ class Communication_Process(ICommunication_Process):
         self.send_que.close()
 
         self.__connections.reset()
-
-        print('Communication process exited.')
+        self.Alive = False
 
     def __run_deque(self):
         """

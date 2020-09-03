@@ -169,7 +169,7 @@ class Communication_Controller(ICommunication_Controller):
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return self.__com.Exit and self.__com.recv_que.empty()
+        return not self.__com.Alive and self.__com.Exit
 
 
 def get_repr():
