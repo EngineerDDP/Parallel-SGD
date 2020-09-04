@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     # 添加一个ip作为Worker
     nodes = NodeAssignment()
-    nodes.add(0, '10.196.83.205')
+    nodes.add(0, '192.168.1.116')
     net = Request()
 
     # 增加协调者角色

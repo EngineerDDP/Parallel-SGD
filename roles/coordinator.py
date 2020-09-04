@@ -47,7 +47,7 @@ class Coordinator:
 
             except KeyboardInterrupt:
                 if len(node_ready) < len(self.__allocation_list):
-                    self.__log.log_error('Some of workers is not ready.')
+                    self.__log.log_error('Some workers are not ready.')
                 self.__log.log_error('Coordinator closed by user.')
 
         self.__log.log_message('Dispatch complete.')

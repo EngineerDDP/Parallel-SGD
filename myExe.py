@@ -15,7 +15,13 @@ class myExecutor(AbsSimpleExecutor):
         """
         super().__init__(node_id, offset)
         # 计算结果以文件的形式记录
-        self.__my_output_file = "./HelloWorld.txt"
+        self.__my_output_file = "./Done({})".format(self.node_id)
+
+    def requests(self) -> list:
+        return []
+
+    def satisfy(self, reply:list) -> list:
+        return []
 
     def run(self, com: ICommunication_Controller) -> None:
         """
@@ -24,6 +30,11 @@ class myExecutor(AbsSimpleExecutor):
         with open(self.__my_output_file, 'w+') as f:
             for i in range(1, 21):
                 f.write("{} ".format(i))
+        import shutil as sh
+        try:
+            sh.rmtree('./tmp_log')
+        except:
+            pass
 
     def trace_files(self) -> list:
         """
