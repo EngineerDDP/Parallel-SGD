@@ -69,13 +69,15 @@ class PSGD_Worker:
         try:
             _, req = PSGD_Worker.__recv_pack(com, 7)
             if isinstance(req, SubmitJob):
+                self.client_logger.log_message('ACK job submission.')
                 if self.init_PSGD(com, req):
                     self.do_training(com)
+                    self.post_log(com)
 
             if isinstance(req, RequestWorkingLog):
+                self.client_logger.log_message('ACK logfile reclaim.')
                 self.post_log(com)
 
-            com.send_one(Initialization_Server, Done_Type())
         except Exception as e:
             self.client_logger.log_error('Exception occurred: {}'.format(e))
 
@@ -94,11 +96,13 @@ class PSGD_Worker:
         :param com:
         :return:
         """
-        self.client_logger.log_message('ACK Log Reclaim.')
-        com.send_one(Initialization_Server, Binary_File_Package(self.client_logger.File_Name))
+        posting_files = [self.client_logger.File_Name]
         if isinstance(self.__job_executor, IExecutor):
             for filename in self.__job_executor.trace_files():
-                com.send_one(Initialization_Server, Binary_File_Package(filename))
+                posting_files.append(filename)
+
+        # Post files
+        com.send_one(Initialization_Server, Done_Type(posting_files))
 
     def init_PSGD(self, com: ICommunication_Controller, job_info: SubmitJob) -> bool:
         """
@@ -107,7 +111,6 @@ class PSGD_Worker:
         :param job_info: job info
         :return:
         """
-        self.client_logger.log_message('ACK Job Submission.')
         # restoring data
         job_info.restore()
         # get info
@@ -142,6 +145,7 @@ class PSGD_Worker:
                     for req in requests:
                         com.send_one(Initialization_Server, req)
                     self.client_logger.log_message('Request data: ({}).'.format(requests))
+                    self.client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
                     replies.clear()
 
             # pass to sync

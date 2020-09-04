@@ -33,11 +33,14 @@ class Ready_Type:
         return self.__nodes_ready
 
 
-class Done_Type:
+class Done_Type(IReplyPackage):
 
-    def __init__(self):
-        pass
+    def __init__(self, posted_files):
+        self.__contents = [Binary_File_Package(f) for f in posted_files]
 
+    def restore(self) -> None:
+        for bf in self.__contents:
+            bf.restore()
 
 class Binary_File_Package(IReplyPackage):
 

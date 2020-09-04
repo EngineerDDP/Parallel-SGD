@@ -70,6 +70,8 @@ class Coordinator:
                 self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
 
             elif isinstance(data, Done_Type):
+                data.restore()
+                self.__log.log_message('Restoring data from {}.'.format(id_from))
                 node_ready.add(id_from)
                 self.__log.log_message('Node({}) is done, {} is done.'.format(id_from, node_ready))
 
@@ -117,12 +119,17 @@ class Reclaimer:
             self.__log.log_message('Acquire log file from worker({}).'.format(id))
 
         try:
-            log = None
-            while not isinstance(log, Done_Type):
+            nodes_ready = set()
+            total_nodes = set(self.__com.available_clients)
+            while nodes_ready != total_nodes:
                 id_from, log = self.__com.get_one()
                 if isinstance(log, Binary_File_Package):
                     log.restore()
                     self.__log.log_message('Save log file for worker({}).'.format(id_from))
+                elif isinstance(log, Done_Type):
+                    nodes_ready.add(id_from)
+                    log.restore()
+                    self.__log.log_message('All package received for worker({})'.format(id_from))
         except:
             self.__log.log_error('Connection lost.')
 
