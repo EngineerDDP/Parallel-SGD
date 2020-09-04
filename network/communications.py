@@ -20,19 +20,20 @@ class Worker_Communication_Constructor:
             Typo server address
         """
         self.__id_register = worker_register
-        self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # using Non-blocking IO
-        self.__bind_listener.setblocking(False)
-        # bind address
-        self.__bind_listener.bind((server, worker_register.working_port))
-        # start listening
-        self.__bind_listener.listen(4)
+        self.__server_addr = server
 
     def buildCom(self):
         """
             Non-blocking IO for register this slave com to a specified job.
             Connection will be established while all connections between slaves were established.
         """
+        self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # using Non-blocking IO
+        self.__bind_listener.setblocking(False)
+        # bind address
+        self.__bind_listener.bind((self.__server_addr, self.__id_register.working_port))
+        # start listening
+        self.__bind_listener.listen(40)
         # reset register
         self.__id_register.reset()
         # temporary register
