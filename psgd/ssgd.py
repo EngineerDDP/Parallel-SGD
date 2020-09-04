@@ -4,6 +4,7 @@ from time import sleep
 from codec.essential import Block_Weight
 from psgd.interfaces import IParallelSGD
 from psgd.interfaces import ReadTimeOut, AsyncDetected, OutdatedUpdates
+from utils.constants import SSGD_Sync_Timeout_Limit_MSec
 
 
 def iterator_helper(iter):
@@ -28,7 +29,7 @@ class SynchronizedSGD(IParallelSGD):
 
     STR_BATCH_NO = 'SSGD_BATCH_NO'
     DATA = 'SSGD_SUB_DATA'
-    INT_READ_TIMEOUT_SEC = 10
+    INT_READ_TIMEOUT_MSEC = SSGD_Sync_Timeout_Limit_MSec
 
     def __init__(self, node_id, layer_id, codec):
         """
@@ -108,9 +109,9 @@ class SynchronizedSGD(IParallelSGD):
             # wait until more data is available
             if self.receive_buffer.get(self.current_batch) is None \
                     or self.receive_buffer[self.current_batch].empty():
-                sleep(0.01)
-                time_out += 0.02
-                if time_out >= SynchronizedSGD.INT_READ_TIMEOUT_SEC:
+                sleep(0.001)
+                time_out += 1
+                if time_out >= SynchronizedSGD.INT_READ_TIMEOUT_MSEC:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
                     raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
 

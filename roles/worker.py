@@ -7,7 +7,7 @@ from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, 
 from network.communications import get_repr
 from network import ICommunication_Controller, Serve
 
-from utils.constants import Initialization_Server
+from utils.constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec
 from utils.log import Logger
 
 
@@ -67,7 +67,7 @@ class PSGD_Worker:
         :return:
         """
         try:
-            _, req = PSGD_Worker.__recv_pack(com, 7)
+            _, req = PSGD_Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
             if isinstance(req, SubmitJob):
                 self.client_logger.log_message('ACK job submission.')
                 if self.init_PSGD(com, req):
