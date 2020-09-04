@@ -6,7 +6,7 @@ from utils.log import Logger
 
 class Coordinator:
 
-    def __init__(self, com:ICommunication_Controller, estimate_bandwidth=1, logger=None):
+    def __init__(self, com:ICommunication_Controller, estimate_bandwidth=180000, logger=None):
         self.__com = com
         if logger is None:
             self.__log = Logger(title_info='Coordinator', log_to_file=True)
