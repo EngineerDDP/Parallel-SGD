@@ -204,11 +204,19 @@ class PSGDPSExecutor(IExecutor):
         transfer = NTransfer(weights_updater, com, 0, self.__log)
         self.__log.log_message('Transfer thread is ready.')
 
+        data_send_start = com.Com.bytes_sent
+        data_recv_start = com.Com.bytes_read
+
         transfer.start_transfer()
 
         from utils.constants import Initialization_Server
         while set(com.available_clients) - {Initialization_Server} != set():
             sleep(7)
+
+        data_sent_end = com.Com.bytes_sent
+        data_recv_end = com.Com.bytes_read
+        self.__log.log_message('Execution complete, Total bytes sent: {}.'.format(data_sent_end - data_send_start))
+        self.__log.log_message('Execution complete, Total bytes read: {}.'.format(data_recv_end - data_recv_start))
 
     def trace_files(self) -> list:
         return [self.__log.File_Name]
