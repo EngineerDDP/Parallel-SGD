@@ -1,18 +1,18 @@
 from models.trans import SubmitJob, Binary_File_Package, Req, Ready_Type, Done_Type, RequestWorkingLog
 
 from network.interfaces import ICommunication_Controller
-from utils.constants import Estimate_Bandwidth
 from utils.log import Logger
 
 
 class Coordinator:
 
-    def __init__(self, com:ICommunication_Controller, logger=None):
+    def __init__(self, com:ICommunication_Controller, estimate_bandwidth=180000, logger=None):
         self.__com = com
         if logger is None:
             self.__log = Logger(title_info='Coordinator', log_to_file=True)
         else:
             self.__log = logger
+        self.__estimate_bandwidth = estimate_bandwidth
         self.__allocation_list = set()
 
     def resources_dispatch(self, dispatch_map):
@@ -88,7 +88,7 @@ class Coordinator:
         # check for duplication
         assert len(self.__allocation_list & working_group) == 0, "Cannot submit a task to node which already has a job."
         # calculate data size
-        dataset_ett = self.__com.available_clients_count * package_size / Estimate_Bandwidth
+        dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
         # send request
         for id in working_group:
             self.__com.send_one(id, SubmitJob(working_group, worker_offset, dataset_ett, worker_executor))

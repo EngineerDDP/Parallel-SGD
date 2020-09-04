@@ -128,16 +128,13 @@ if __name__ == '__main__':
         if i >= arg.n:
             break
 
-    # set bandwidth suggestion
-    Estimate_Bandwidth = arg.bandwidth * 1024 * 1024
-
     req = Request()
     with req.request(pkg) as com:
         if arg.do_retrieve_only:
             core = Reclaimer(com, logger)
             core.require_client_log()
         else:
-            core = Coordinator(com, logger)
+            core = Coordinator(com, estimate_bandwidth=arg.bandwidth * 1024 * 1024, logger=logger)
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
             if model_parameter.psgd_server_codec is not None:
                 core.submit_job(PSGDPSExecutor, worker_offset=Parameter_Server, worker_cnt=1, package_size=dataset.estimate_size())

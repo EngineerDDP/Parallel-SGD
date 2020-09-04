@@ -125,6 +125,7 @@ class PSGD_Worker:
             com.send_one(Initialization_Server, req)
 
         self.client_logger.log_message('Request data: ({}).'.format(requests))
+        self.client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
         # Set job executor to ready state
         while not self.__job_executor.ready():
 
