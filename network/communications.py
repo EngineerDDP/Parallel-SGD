@@ -27,7 +27,10 @@ class Worker_Communication_Constructor:
             Non-blocking IO for register this slave com to a specified job.
             Connection will be established while all connections between slaves were established.
         """
+        # Set up an socket stream listener
         self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Make port reusable
+        self.__bind_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # using Non-blocking IO
         self.__bind_listener.setblocking(False)
         # bind address
