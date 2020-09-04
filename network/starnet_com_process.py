@@ -340,6 +340,7 @@ class Communication_Process(ICommunication_Process):
                                 self.__data_bytes_sent.value += len(buffer)
                             # put it back
                             else:
+                                # Potential Deadlock !!! When send_que were filled, this thread will never exit.
                                 self.send_que.put(([send_to], data))
                 except Empty:
                     continue
