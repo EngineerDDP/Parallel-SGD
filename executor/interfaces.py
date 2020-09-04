@@ -67,14 +67,11 @@ class IExecutor(metaclass=ABCMeta):
 
 class AbsSimpleExecutor(IExecutor):
 
-    def add_info(self, obj: IServerModel):
-        pass
+    def requests(self) -> list:
+        return []
 
-    def add_data(self, obj: IDataset):
-        pass
-
-    def add_setting(self, obj: Settings):
-        pass
+    def satisfy(self, reply:list) -> list:
+        return []
 
     def ready(self) -> bool:
         return True
