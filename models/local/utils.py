@@ -105,7 +105,7 @@ __para_server_map = {
 }
 
 def get_para_server(x: str):
-    if __para_server_map.get(x, 'null') is not 'null':
+    if __para_server_map.get(x, 'null') != 'null':
         return __para_server_map[x]
     else:
         return codec_auto_search(x)
