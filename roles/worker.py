@@ -118,7 +118,7 @@ class PSGD_Worker:
         total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
-        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id, job_info.group_offset)
+        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
 
         # Acknowledge requests
         requests = self.__job_executor.requests()

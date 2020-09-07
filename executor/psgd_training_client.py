@@ -79,7 +79,7 @@ class PSGDWorkerExecutor(IExecutor):
             {w:sgd_type(self.node_id, i, codec_type[i]) for w in self.__essential.weights_types} for i in iterator
         ]
         # build transfer thread
-        transfer = NTransfer(weights_updater, com, self.group_offset, self.__log)
+        transfer = NTransfer(weights_updater, com, next(iter(self.group)), self.__log)
         # get batch size
         batch_size = self.__setting.batch.batch_size
         # build tags

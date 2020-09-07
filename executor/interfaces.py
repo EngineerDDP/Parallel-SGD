@@ -8,17 +8,17 @@ from profiles import Settings
 
 class IExecutor(metaclass=ABCMeta):
 
-    def __init__(self, node_id:int, VLAN_offset:int):
+    def __init__(self, node_id:int, working_group:set):
         self.__node_id = node_id
-        self.__vlan_offset = VLAN_offset
+        self.__working_group = working_group
 
     @property
     def node_id(self):
         return self.__node_id
 
     @property
-    def group_offset(self):
-        return self.__vlan_offset
+    def group(self):
+        return self.__working_group
 
     @abstractmethod
     def requests(self) -> list:

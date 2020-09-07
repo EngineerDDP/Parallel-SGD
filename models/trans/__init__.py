@@ -92,10 +92,6 @@ class SubmitJob(IReplyPackage):
         self.__cls : type = self.__cls.restore()
 
     @property
-    def group_offset(self):
-        return self.__offset
-
-    @property
     def executioner(self):
         return self.__cls
 

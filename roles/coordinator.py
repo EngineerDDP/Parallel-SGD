@@ -13,7 +13,12 @@ class Coordinator:
         else:
             self.__log = logger
         self.__estimate_bandwidth = estimate_bandwidth
-        self.__allocation_list = set()
+        self.__group_allocated = set()
+        self.__global_allocated = set()
+
+    @property
+    def allocated_nodes(self):
+        return self.__global_allocated | self.__global_allocated
 
     def resources_dispatch(self, dispatch_map):
         """
@@ -23,7 +28,7 @@ class Coordinator:
         # dispatch to certain group
         node_ready = set()
 
-        while node_ready != self.__allocation_list:
+        while node_ready != self.allocated_nodes:
 
             try:
                 id_from, data = self.__com.get_one()
@@ -46,7 +51,7 @@ class Coordinator:
                 self.__com.send_one(id_from, reply)
 
             except KeyboardInterrupt:
-                if len(node_ready) < len(self.__allocation_list):
+                if len(node_ready) < len(self.allocated_nodes):
                     self.__log.log_error('Some workers are not ready.')
                 self.__log.log_error('Coordinator closed by user.')
 
@@ -59,9 +64,9 @@ class Coordinator:
         # dispatch to certain group
         node_ready = set()
 
-        self.__log.log_message("Waiting for ({}) ...".format(self.__allocation_list))
+        self.__log.log_message("Waiting for ({}) ...".format(self.allocated_nodes))
 
-        while node_ready != self.__allocation_list:
+        while node_ready != self.allocated_nodes:
 
             id_from, data = self.__com.get_one()
 
@@ -77,10 +82,16 @@ class Coordinator:
 
         self.__log.log_message("All task is complete.")
 
-    def submit_job(self, worker_executor:type, worker_offset:int=0, worker_cnt:int=0, package_size:int=0):
+    def submit_group(self, worker_executor:type, worker_offset:int=0, worker_cnt:int=0, package_size:int=0):
         """
-            Submit a job to cluster
-        :return:
+            Submit a job to a specified worker group.
+            Nodes inside this group will wait for each other and synchronize start time.
+            Group will also wait for all single nodes were ready.
+        :param worker_executor: executor class, implementation of IExecutor
+        :param worker_offset: Worker group offset. (Offset) is the first id in the group
+        :param worker_cnt: Number of workers. (Offset + Worker_cnt - 1) is the last id in the group.
+        :param package_size: Package size in transmission. Potentially required by executor, and provided by dispatch.
+        :return: None
         """
         # set work group
         if worker_cnt == 0:
@@ -88,15 +99,34 @@ class Coordinator:
         else:
             working_group = set(range(worker_offset, worker_offset + worker_cnt))
         # check for duplication
-        assert len(self.__allocation_list & working_group) == 0, "Cannot submit a task to node which already has a job."
+        assert len(self.__group_allocated & working_group) == 0, "Cannot submit a task to node which already has a job."
         # calculate data size
         dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
         # send request
         for id in working_group:
-            self.__com.send_one(id, SubmitJob(working_group, worker_offset, dataset_ett, worker_executor))
+            self.__com.send_one(id, SubmitJob(working_group | self.__global_allocated, worker_offset, dataset_ett, worker_executor))
 
-        self.__allocation_list = self.__allocation_list | working_group
-        self.__log.log_message("Submission complete.")
+        self.__group_allocated = self.__group_allocated | working_group
+        self.__log.log_message("Group submission complete ({}).".format(working_group))
+
+    def submit_single(self, worker_executor:type, worker_id, package_size:int=0):
+        """
+            Submit a job to a specified node.
+            This global node will start execution immediately when itself was ready.
+        :param worker_executor: executor class, implementation of IExecutor
+        :param worker_id: Worker id.
+        :param package_size: Package size in transmission. Potentially required by executor, and provided by dispatch.
+        :return:
+        """
+        # check for duplication
+        assert worker_id not in self.__global_allocated, "Cannot submit a task to node which already has a job."
+        # calculate data size
+        dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
+        # send request
+        self.__com.send_one(id, SubmitJob({worker_id}, 0, dataset_ett, worker_executor))
+
+        self.__global_allocated.add(worker_id)
+        self.__log.log_message("Single node submission complete.")
 
 
 class Reclaimer:
