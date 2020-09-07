@@ -137,8 +137,8 @@ if __name__ == '__main__':
             core = Coordinator(com, estimate_bandwidth=arg.bandwidth * 1024 * 1024, logger=logger)
             from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
             if model_parameter.psgd_server_codec is not None:
-                core.submit_job(PSGDPSExecutor, worker_offset=Parameter_Server, worker_cnt=1, package_size=dataset.estimate_size())
-            core.submit_job(PSGDWorkerExecutor, worker_offset=0, worker_cnt=arg.n, package_size=dataset.estimate_size())
+                core.submit_single(PSGDPSExecutor, worker_id=Parameter_Server, package_size=dataset.estimate_size())
+            core.submit_group(PSGDWorkerExecutor, worker_offset=0, worker_cnt=arg.n, package_size=dataset.estimate_size())
 
             from models.trans.net_package import data_package, data_content, global_setting_package, essentials
             core.resources_dispatch({

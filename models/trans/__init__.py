@@ -82,11 +82,10 @@ class ClassSerializer(IReplyPackage):
 
 class SubmitJob(IReplyPackage):
 
-    def __init__(self, nodes:set, group_offset:int, eta_waiting_time:int, exe:type):
+    def __init__(self, nodes:set, eta_waiting_time:int, exe:type):
         self.__nodes = nodes
         self.__eta_wait = eta_waiting_time
         self.__cls  = ClassSerializer(exe)
-        self.__offset = group_offset
 
     def restore(self) -> None:
         self.__cls : type = self.__cls.restore()

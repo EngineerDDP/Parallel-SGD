@@ -18,7 +18,7 @@ class Coordinator:
 
     @property
     def allocated_nodes(self):
-        return self.__global_allocated | self.__global_allocated
+        return self.__global_allocated | self.__group_allocated
 
     def resources_dispatch(self, dispatch_map):
         """
@@ -104,7 +104,7 @@ class Coordinator:
         dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
         # send request
         for id in working_group:
-            self.__com.send_one(id, SubmitJob(working_group | self.__global_allocated, worker_offset, dataset_ett, worker_executor))
+            self.__com.send_one(id, SubmitJob(working_group | self.__global_allocated, dataset_ett, worker_executor))
 
         self.__group_allocated = self.__group_allocated | working_group
         self.__log.log_message("Group submission complete ({}).".format(working_group))
@@ -123,7 +123,7 @@ class Coordinator:
         # calculate data size
         dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
         # send request
-        self.__com.send_one(id, SubmitJob({worker_id}, 0, dataset_ett, worker_executor))
+        self.__com.send_one(worker_id, SubmitJob({worker_id}, dataset_ett, worker_executor))
 
         self.__global_allocated.add(worker_id)
         self.__log.log_message("Single node submission complete.")
