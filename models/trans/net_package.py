@@ -136,7 +136,7 @@ class data_package(IReplyPackage, IDataset):
         self.__transformer = transform
 
     def restore(self):
-        self.__decorated_class = self.__cls.restore()(self.__sum)
+        self.__decorated_class = self.__cls.restore()(check_sum=self.__sum)
 
     def load(self) -> tuple:
         return self.__transformer(*self.__decorated_class.load())
