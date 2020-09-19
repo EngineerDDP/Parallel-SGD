@@ -242,6 +242,7 @@ class Communication_Process(ICommunication_Process):
             start both sending and receiving thread on target socket object
         """
         import threading
+        self.Alive = True
 
         recv_buffer_list = {}
         for fd in self.__connections.to_list():
@@ -307,8 +308,7 @@ class Communication_Process(ICommunication_Process):
         self.send_que.close()
 
         self.__connections.reset()
-
-        print('Communication process exited.')
+        self.Alive = False
 
     def __run_deque(self):
         """
@@ -316,33 +316,54 @@ class Communication_Process(ICommunication_Process):
         """
         writing_list = {}
         active_connections = []
+        tmp_item = None
+        # if not exit and workable
         while not self.Exit or len(active_connections) != 0:
+            # if network is idle, or queue has items
             if len(active_connections) == 0 or self.send_que.qsize() > 0:
-                try:
-                    target, data = self.send_que.get(timeout=1)
-                    for send_to in target:
-                        fd = self.__connections.find(send_to)
-                        if fd is not None:
-                            buffer = writing_list.get(fd, BufferWriter())
-                            writing_list[fd] = buffer
-                            # if can send
-                            if buffer.is_done():
-                                pkg = {
-                                    Key.Type: Type_Val.Normal,
-                                    Key.From: self.__connections.get_id(),
-                                    Key.To: target,
-                                    Key.Content: data
-                                }
-                                # do encode
-                                buffer.set_content(pkg)
-                                active_connections.append(fd)
-                                # record length
-                                self.__data_bytes_sent.value += len(buffer)
-                            # put it back
-                            else:
-                                self.send_que.put(([send_to], data))
-                except Empty:
-                    continue
+                if isinstance(tmp_item, tuple):
+                    target, data = tmp_item # cond: (len(a) > 0 and buff is not valid and qsize > 0)
+                    tmp_item = None
+                else:
+                    target, data = self.send_que.get() # cond: (len(a) == 0 and qsize == 0) or (qsize > 0)
+
+                left = list()
+                for send_to in target:
+                    fd = self.__connections.find(send_to)
+                    if fd is None:
+                        continue
+
+                    # cond: (send_to is valid) and (fd is valid)
+                    buffer = writing_list.get(fd, BufferWriter())
+                    writing_list[fd] = buffer
+                    # if not full
+                    if buffer.is_done():
+                        pkg = {
+                            Key.Type: Type_Val.Normal,
+                            Key.From: self.__connections.get_id(),
+                            Key.To: target,
+                            Key.Content: data
+                        }
+                        # cond: (buffer is valid) and (send_to is valid) and (fd is valid)
+                        # do encode
+                        buffer.set_content(pkg)
+                        active_connections.append(fd)
+                        # record length
+                        self.__data_bytes_sent.value += len(buffer)
+                    # put it back
+                    else:
+                        left.append(send_to)
+
+                if len(left) > 0:
+                    # cond: (qfull or not qfull) and tmp_item = None
+                    tmp_item = (left, data)
+                    if not self.send_que.full():
+                        try:
+                            self.send_que.put_nowait(tmp_item)
+                            # cond: put valid and len(left) > 0
+                            tmp_item = None
+                        except:
+                            pass
 
             # do send jobs
             if len(active_connections) > 0:
@@ -415,7 +436,7 @@ class Promoter(IPromoter):
                 for con in worker_register.to_list():
                     if isinstance(con, socket.socket):
                         con.close()
-                raise OSError('Error: {}, while connecting {}.'.format(error, address))
+                raise OSError('{}, while connecting {}.'.format(error, address))
 
         writer.close()
 

@@ -1,14 +1,13 @@
-if __name__ != '__main__':
-    raise AssertionError('This module cannot be imported.')
-
 # import test codec
 from codec.essential import Block_Weight
-from profiles.settings import GlobalSettings
+from codec.interfaces import netEncapsulation
 
 # import np
 import numpy as np
 
 # import event logger
+from codec import GlobalSettings
+from profiles import Settings
 from utils.log import Logger
 
 # import network agreements
@@ -25,10 +24,11 @@ from utils.constants import Parameter_Server
 """
     ---------------DEFINE HERE---------------
 """
-from codec.sgq import SGQServer, SGQClient
+from codec.quantization import Quantization2BitPSCodec, FPWParaServer
+from codec.pdd import JianShang
 # Type
-SLAVE_CODEC = SGQClient
-MASTER_CODEC = SGQServer
+SLAVE_CODEC = Quantization2BitPSCodec
+MASTER_CODEC = FPWParaServer
 """
     ---------------DEFINE HERE---------------
 """
@@ -36,14 +36,19 @@ MASTER_CODEC = SGQServer
 # const parameters
 SLAVE_IDS = [0,1,2,3]
 MASTER_ID = -2
-TEST_ROUNDS = 10
+TEST_ROUNDS = 1024
 WEIGHTS_SHAPE = np.random.randint(3, 1024, size=2)
 LAYER = 0
-GlobalSettings.set_default(len(SLAVE_IDS), 1, 1, None)
+GlobalSettings.deprecated_default_settings = Settings(len(SLAVE_IDS), 1, 1, None)
 
 # build codec
-slave_codec = [SLAVE_CODEC(node_id=i) for i in SLAVE_IDS]
-master_codec = MASTER_CODEC(node_id=MASTER_ID)
+codecs = {}
+slave_codec = []
+for id in SLAVE_IDS:
+    codecs[id] = SLAVE_CODEC(node_id=id)
+    slave_codec.append(codecs[id])
+
+codecs[MASTER_ID] = MASTER_CODEC(node_id=MASTER_ID)
 
 for i in range(TEST_ROUNDS):
     # starting consensus stage
@@ -55,27 +60,41 @@ for i in range(TEST_ROUNDS):
         # build BlockWeight
         blockweight = Block_Weight(LAYER, i, node_id, {node_id}, content=arr)
         # send consensus package
-        for package in slave.update_blocks(blockweight):
+        pkg = slave.update_blocks(blockweight)
+        if isinstance(pkg, netEncapsulation):
+            pkg = [pkg]
+        if pkg is None:
+            pkg = []
+        for package in pkg:
             # check the package that will be sent to parameter server
-            assert Parameter_Server in package.target()
-            # reply each package
-            for reply in master_codec.receive_blocks(package.content()):
-                # check the package header
-                assert node_id in reply.target()
-                # receive each reply
-                slave.receive_blocks(reply.content())
-        arr_res = slave.get_result()
+            for target in package.target():
+                # send each package
+                replies = codecs[target].receive_blocks(package.content())
+                if isinstance(replies, netEncapsulation):
+                    replies = [replies]
+                if replies is None:
+                    replies = []
+                # reply each package
+                for reply in replies:
+                    # check the package header
+                    for node_id in reply.target():
+                        # receive each reply
+                        codecs[node_id].receive_blocks(reply.content())
         # inc
         node_id += 1
+    for slave in slave_codec:
+        arr_res = slave.get_result()
+
 
     print("INFO: -----------Test complete {}/{} -----------".format(i, TEST_ROUNDS))
 
 for slave in slave_codec:
     slave.dispose()
 
-master_codec.dispose()
+codecs[MASTER_ID].dispose()
 
-print("INFO: All test input was handled without exception.")
+
+print("INFO: All test input_ref was handled without exception.")
 print("WARNING: The functionality of the codec cannot be tested here.\n"
       "WARNING: Use Mathematical analysis to make sure that your codec process didn't prevents SGD from properly convergence.")
 

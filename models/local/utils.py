@@ -10,8 +10,8 @@ def codec_auto_search(abs_name: str):
         raise AssertionError('Cannot find codec \'{}\'.'.format(abs_name))
     return cls
 
-from nn.activations import Sigmoid
-from nn.activations import Tanh, Linear, ReLU, SoftmaxNoGrad
+from nn.activations_deprecated import Sigmoid
+from nn.activations_deprecated import Tanh, Linear, ReLU, SoftmaxNoGrad
 
 __activation_map = {
     'tanh': Tanh,
@@ -24,8 +24,8 @@ __activation_map = {
 def get_activation(x: str):
     return __activation_map[x]()
 
-from nn.losses import CrossEntropyLoss, CrossEntropyLossWithSoftmax
-from nn.losses import MseLoss
+from nn.losses_deprecated import CrossEntropyLoss, CrossEntropyLossWithSoftmax
+from nn.losses_deprecated import MseLoss
 
 __loss_map = {
     'mse': MseLoss,
@@ -59,7 +59,7 @@ def get_codec(x: str):
     else:
         return codec_auto_search(x)
 
-from nn.optimizer import ParallelSGDOptimizer, ParaAverageOptimizer, FastParallelSGDOptimizer
+from nn.optimizer_deprecated import ParallelSGDOptimizer, ParaAverageOptimizer, FastParallelSGDOptimizer
 
 __optimizer_map = {
     'psgd': ParallelSGDOptimizer,
@@ -105,7 +105,7 @@ __para_server_map = {
 }
 
 def get_para_server(x: str):
-    if __para_server_map.get(x, 'null') is not 'null':
+    if __para_server_map.get(x, 'null') != 'null':
         return __para_server_map[x]
     else:
         return codec_auto_search(x)

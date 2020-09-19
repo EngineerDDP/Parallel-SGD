@@ -26,13 +26,13 @@ class Tag:
     # used in backward propagation
     def incBatch(self):
         self.Batch_No += 1
-        self.Layer_No = -1
+        self.resetLayer()
 
     def incLayer(self):
-        self.Layer_No -= 1
+        self.Layer_No += 1
 
     def resetLayer(self):
-        self.Layer_No = -1
+        self.Layer_No = 0
 
     def getSlice(self):
         # which batch
@@ -56,8 +56,6 @@ def build_tags(node_id: int, settings:Settings):
     if not isinstance(node_id, int):
         node_id = int(node_id)
 
-    # register global settings
-    GlobalSettings.deprecated_default_settings = settings
     assert node_id < settings.node_count, "This worker has nothing to do."
 
     batch = settings.batch

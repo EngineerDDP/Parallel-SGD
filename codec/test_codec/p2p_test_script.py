@@ -106,7 +106,7 @@ for slave in slave_codec:
     slave.dispose()
 
 
-print("INFO: All test input was handled without exception.")
+print("INFO: All test input_ref was handled without exception.")
 print("WARNING: The functionality of the codec cannot be tested here.\n"
       "WARNING: Use Mathematical analysis to make sure that your codec process didn't prevents SGD from properly convergence.")
 

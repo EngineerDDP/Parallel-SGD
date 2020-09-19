@@ -1,9 +1,26 @@
 import numpy as np
 
 from codec.essential import Block_Weight
-from utils.log import Logger
-from utils.constants import Parameter_Server
 from codec.interfaces import ICommunication_Ctrl, netEncapsulation
+from utils.constants import Parameter_Server
+
+
+def q1(arr):
+    std = np.std(arr)
+    weights = arr.copy()
+    weights[np.abs(weights) < std] = 0
+    weights = np.sign(weights)
+    return weights, std
+
+
+def q2(arr):
+    std = np.std(arr)
+    weights = (arr - np.mean(arr)) / std
+    # be aware, this will change the value of referenced object.
+    weights[weights > std] = 1
+    weights[weights < -std] = -1
+    weights[np.abs(weights) != 1] = 0
+    return weights, std
 
 
 class QuantizedPack:
@@ -32,11 +49,7 @@ class Quantization1BitPSCodec(ICommunication_Ctrl):
         pass
 
     def update_blocks(self, block_weight):
-        weights = block_weight.Content
-        std = np.std(weights)
-        weights[np.abs(weights) < std] = 0
-        weights = np.sign(weights)
-
+        weights, std = q1(block_weight.Content)
         weights = weights.astype('int8')
 
         yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
@@ -61,14 +74,7 @@ class Quantization2BitPSCodec(ICommunication_Ctrl):
         pass
 
     def update_blocks(self, block_weight):
-        weights = block_weight.Content
-        std = np.std(weights)
-        weights = (weights - np.mean(weights)) / std
-
-        # be aware, this will change the value of referenced object.
-        weights[weights > std] = 1
-        weights[weights < -std] = -1
-        weights[np.abs(weights) != 1] = 0
+        weights, std = q2(block_weight.Content)
         weights = weights.astype('int8')
 
         yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
@@ -95,4 +101,61 @@ class FPWParaServer(ICommunication_Ctrl):
         self.__global_weights -= content.content.astype('double') * content.std
         yield netEncapsulation(content.node_id, QuantizedPack(Parameter_Server, self.__global_weights, 1).pack())
 
+
+class LPWParaServer(ICommunication_Ctrl):
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+        self.__global_weights = 0
+
+    def dispose(self):
+        pass
+
+    def update_blocks(self, block_weight:Block_Weight):
+        pass
+
+    def receive_blocks(self, content:list):
+        pkg = QuantizedPack.unpack(content)
+        self.__global_weights -= pkg.content.astype('double') * pkg.std
+        return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, self.__global_weights.astype('float16'), 1).pack())
+
+
+class Q2WParaServer(ICommunication_Ctrl):
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+        self.__global_weights = 0
+
+    def dispose(self):
+        pass
+
+    def update_blocks(self, block_weight:Block_Weight):
+        pass
+
+    def receive_blocks(self, content:list):
+        pkg = QuantizedPack.unpack(content)
+        self.__global_weights -= pkg.content.astype('double') * pkg.std
+        weights, std = q2(self.__global_weights)
+        weights = weights.astype('int8')
+        return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, weights, std).pack())
+
+
+class Q1WParaServer(ICommunication_Ctrl):
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+        self.__global_weights = 0
+
+    def dispose(self):
+        pass
+
+    def update_blocks(self, block_weight:Block_Weight):
+        pass
+
+    def receive_blocks(self, content:list):
+        pkg = QuantizedPack.unpack(content)
+        self.__global_weights -= pkg.content.astype('double') * pkg.std
+        weights, std = q1(self.__global_weights)
+        weights = weights.astype('int8')
+        return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, weights, std).pack())
 

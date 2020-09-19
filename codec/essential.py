@@ -11,7 +11,9 @@ class Block_Weight:
         Weights calculated using one block
     """
 
-    def __init__(self, layer_id, batch_id, block_id, company_id, adv_id, content):
+    def __init__(self, layer_id, batch_id, block_id, company_id, content, adv_id=None):
+        if adv_id is None:
+            adv_id = set()
         self.Layer_ID = layer_id
         self.Batch_ID = batch_id
         self.Block_ID = block_id

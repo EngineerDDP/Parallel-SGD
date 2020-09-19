@@ -1,6 +1,6 @@
 import time
 
-from nn.interfaces import ILayer, IOptimizer, IMetrics, ILoss
+from nn.interface import ILayer, IOptimizer, IMetrics, ILoss
 from utils.log import Logger
 
 
@@ -51,7 +51,7 @@ class SequentialModel_v2:
 
     def fit(self, x, y, batch_size:int, epochs:int):
         """
-            Fit model parameters with given input samples.
+            Fit model parameters with given input_ref samples.
         """
         if batch_size > len(x):
             batch_size = len(x)
@@ -98,7 +98,7 @@ class SequentialModel_v2:
         intermediate = x
 
         for layer in self.NN:
-            intermediate = layer.F(intermediate)
+            intermediate = layer.__call__(intermediate)
 
         return intermediate
 

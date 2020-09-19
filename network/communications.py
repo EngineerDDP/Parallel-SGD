@@ -20,19 +20,23 @@ class Worker_Communication_Constructor:
             Typo server address
         """
         self.__id_register = worker_register
-        self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # using Non-blocking IO
-        self.__bind_listener.setblocking(False)
-        # bind address
-        self.__bind_listener.bind((server, worker_register.working_port))
-        # start listening
-        self.__bind_listener.listen(4)
+        self.__server_addr = server
 
     def buildCom(self):
         """
             Non-blocking IO for register this slave com to a specified job.
             Connection will be established while all connections between slaves were established.
         """
+        # Set up an socket stream listener
+        self.__bind_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Make port reusable
+        self.__bind_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # using Non-blocking IO
+        self.__bind_listener.setblocking(False)
+        # bind address
+        self.__bind_listener.bind((self.__server_addr, self.__id_register.working_port))
+        # start listening
+        self.__bind_listener.listen(40)
         # reset register
         self.__id_register.reset()
         # temporary register
@@ -162,9 +166,6 @@ class Communication_Controller(ICommunication_Controller):
             wait_limit -= 1
         if wait_limit <= 0:
             self.__com.terminate()
-            import sys
-            if sys.version_info >= (3,7):
-                self.__com.close()
             print('Terminate communication process.')
 
     def is_closed(self):
@@ -172,11 +173,14 @@ class Communication_Controller(ICommunication_Controller):
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return self.__com.Exit and self.__com.recv_que.empty()
+        return not self.__com.Alive and self.__com.Exit
 
 
 def get_repr():
-    return socket.gethostbyname(socket.gethostname())
+    dns, hosts, addrs = socket.gethostbyname_ex(socket.gethostname())
+    for addr in addrs:
+        if addr not in {"127.0.0.1", "127.0.1.1"}:
+            return addr
 
 if __name__ == "__main__":
     from threading import Lock

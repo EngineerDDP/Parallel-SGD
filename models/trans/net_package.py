@@ -1,42 +1,8 @@
-from executor.interfaces import IExecutor
 from dataset.interfaces import AbsDataset, IDataset
 from dataset.transforms.__init__ import ITransformer
 from models.local import IServerModel
 from models.trans import IReplyPackage, ClassSerializer, Binary_File_Package
 from profiles import Settings
-
-
-class SubmitJob(IReplyPackage):
-
-    def __init__(self, nodes:set, group_offset:int, ps:bool, eta_waiting_time:int, exe:type):
-        self.__nodes = nodes
-        self.__ps = ps
-        self.__eta_wait = eta_waiting_time
-        self.__cls  = ClassSerializer(exe)
-        self.__offset = group_offset
-
-    def restore(self) -> None:
-        self.__cls : type = self.__cls.restore()
-
-    @property
-    def group_offset(self):
-        return self.__offset
-
-    @property
-    def executioner(self):
-        return self.__cls
-
-    @property
-    def work_group(self) -> set:
-        return self.__nodes
-
-    @property
-    def am_i_ps(self):
-        return self.__ps
-
-    @property
-    def waiting_time(self):
-        return self.__eta_wait
 
 
 class global_setting_package(IReplyPackage, Settings):
@@ -50,6 +16,9 @@ class global_setting_package(IReplyPackage, Settings):
 
     def restore(self):
         self.__sets = Settings(self.n, self.r, self.b, self.ass)
+
+    def __repr__(self):
+        return "<Net package (Settings)>"
 
     @property
     def redundancy(self) -> int:
@@ -106,6 +75,9 @@ class essentials(IReplyPackage, IServerModel):
         if isinstance(self.__psgd_server_codec, IReplyPackage):
             self.__psgd_server_codec = self.__psgd_server_codec.restore()
 
+    def __repr__(self):
+        return "<Net package (Model)>"
+
     @property
     def weights_types(self):
         return self.__weights_types
@@ -158,12 +130,13 @@ class data_package(IReplyPackage, IDataset):
 
     def __init__(self, data_cls:AbsDataset, transform:ITransformer):
         self.__sum = data_cls.check_sum()
+        assert self.__sum != '', "Local dataset is corrupted."
         self.__cls = ClassSerializer(data_cls.__class__)
         self.__decorated_class : AbsDataset = None
         self.__transformer = transform
 
     def restore(self):
-        self.__decorated_class = self.__cls.restore()(self.__sum)
+        self.__decorated_class = self.__cls.restore()(check_sum=self.__sum)
 
     def load(self) -> tuple:
         return self.__transformer(*self.__decorated_class.load())
@@ -172,11 +145,14 @@ class data_package(IReplyPackage, IDataset):
         return self.__decorated_class.check()
 
     def __repr__(self):
-        return self.__decorated_class.__repr__()
+        if self.__decorated_class is not None:
+            return self.__decorated_class.__repr__()
+        else:
+            return "<Net package (Dataset)>"
 
 class data_content(data_package):
 
-    def __init__(self, data_cls:IDataset, transform:ITransformer):
+    def __init__(self, data_cls:AbsDataset, transform:ITransformer):
         super().__init__(data_cls, transform)
         self.__contents = [Binary_File_Package(filename) for filename in data_cls.extract_files()]
 
@@ -184,3 +160,15 @@ class data_content(data_package):
         super().restore()
         for b_file in self.__contents:
             b_file.restore()
+
+
+class misc_package(IReplyPackage):
+
+    def __init__(self, **kwargs):
+        self.data = kwargs
+
+    def restore(self) -> None:
+        pass
+
+    def __repr__(self):
+        return "<Net package (Other stuff)>"

@@ -4,8 +4,8 @@ from abc import ABCMeta, abstractmethod
 from models.local.__init__ import IServerModel
 from models.local.utils import *
 
-from nn.layers import FCLayer_v2
-from nn.layers import MaxPool, Conv2dLayer, Reshape
+from nn.layers_deprecated import FCLayer_v2
+from nn.layers_deprecated import MaxPool, Conv2dLayer, Reshape
 
 from nn.metrics import CategoricalAccuracy, MeanSquareError
 
@@ -91,13 +91,14 @@ class ModelLinear(AbsServerModel):
                  target_acc=None,
                  learn_rate=0.05,
                  codec=None,
-                 input_shape=784):
+                 input_shape=784,
+                 output_shape=1):
 
         super().__init__(psgd_type, optimizer_type, server_codec, epoches,
                          server_type, target_acc, learn_rate)
 
         self.__nn = None
-        layer_units = [1024]
+        layer_units = [output_shape]
 
         # init codec
         if codec is None:
@@ -112,7 +113,7 @@ class ModelLinear(AbsServerModel):
         input_sample = np.random.normal(size=[1, input_shape])
 
         for nn in self.__nn:
-            input_sample = nn.F(input_sample)
+            input_sample = nn.__call__(input_sample)
 
         self.__codec = [get_codec(c_str) for c_str in codec]
 
@@ -153,13 +154,14 @@ class ModelDNN(AbsServerModel):
                          server_type, target_acc, learn_rate)
 
         self.__nn = None
-        layer_units = [3072, 3072, 784, 196, 128, 10]
+        layer_units = [784, 784, 784, 196, 128, 10]
 
         # init codec
         if codec is None:
-            codec = ['plain', 'plain', 'plain', 'plain', 'plain', 'plain']
+            codec = ['plain'] * len(layer_units)
         elif len(codec) != len(layer_units):
             codec = codec[:1] * len(layer_units)
+        codec.reverse()
 
         # init layer
         self.__nn = [FCLayer_v2(i, act=get_activation("tanh")) for i in layer_units[:-1]]
@@ -170,7 +172,7 @@ class ModelDNN(AbsServerModel):
         input_sample = np.random.normal(size=[1, input_shape])
 
         for nn in self.__nn:
-            input_sample = nn.F(input_sample)
+            input_sample = nn.__call__(input_sample)
 
         self.__codec = [get_codec(c_str) for c_str in codec]
 
@@ -237,7 +239,7 @@ class ModelCNN(AbsServerModel):
         input_sample = np.random.normal(size=[1] + input_shape)
 
         for nn in self.__nn:
-            input_sample = nn.F(input_sample)
+            input_sample = nn.__call__(input_sample)
 
         self.__codec = [get_codec(c_str) for c_str in codec]
 

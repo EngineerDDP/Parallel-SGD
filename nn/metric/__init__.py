@@ -1,8 +1,8 @@
 from utils.metrichelper import *
-from nn.interfaces import IMetrics
+from nn.metric.interface import IMetric
 
 
-class BinaryAccuracy(IMetrics):
+class BinaryAccuracy(IMetric):
     """
         Binary accuracy metric.
         Default classification threshold is 0.5.
@@ -23,7 +23,7 @@ class BinaryAccuracy(IMetrics):
         return 'accuracy'
 
 
-class CategoricalAccuracy(IMetrics):
+class CategoricalAccuracy(IMetric):
     """
         Categorical Accuracy metric.
         Use one-hot vector as label.
@@ -44,7 +44,7 @@ class CategoricalAccuracy(IMetrics):
         return 'accuracy'
 
 
-class RelativeError(IMetrics):
+class RelativeError(IMetric):
     """
         Relative error metric.
         Use numerical result as prediction.
@@ -63,7 +63,7 @@ class RelativeError(IMetrics):
         return 'relative error'
 
 
-class MeanSquareError(IMetrics):
+class MeanSquareError(IMetric):
     """
         Mean squre error metric.
         Use numerical result as prediction.
@@ -82,7 +82,7 @@ class MeanSquareError(IMetrics):
         return 'MSE'
 
 
-class RelativeMeanSquareError(IMetrics):
+class RelativeMeanSquareError(IMetric):
     """
         RMSE
     """
@@ -97,7 +97,7 @@ class RelativeMeanSquareError(IMetrics):
         return 'RMSE'
 
 
-class EqualErrorRate(IMetrics):
+class EqualErrorRate(IMetric):
     """
         Equal error rate metric.
         Use interpolation method.
@@ -115,7 +115,7 @@ class EqualErrorRate(IMetrics):
         return 'EER'
 
 
-class TruePositive(IMetrics):
+class TruePositive(IMetric):
     """
         True positive.
     """
@@ -130,7 +130,7 @@ class TruePositive(IMetrics):
         return 'TP'
 
 
-class FalsePositive(IMetrics):
+class FalsePositive(IMetric):
     """
         False positive.
     """
@@ -145,7 +145,7 @@ class FalsePositive(IMetrics):
         return 'FP'
 
 
-class TrueNegative(IMetrics):
+class TrueNegative(IMetric):
     """
         True negative.
     """
@@ -160,7 +160,7 @@ class TrueNegative(IMetrics):
         return 'TN'
 
 
-class FalseNegative(IMetrics):
+class FalseNegative(IMetric):
     """
         False negative.
     """
@@ -175,7 +175,7 @@ class FalseNegative(IMetrics):
         return 'FN'
 
 
-class AreaUnderCurve(IMetrics):
+class AreaUnderCurve(IMetric):
     """
         AUC
     """
@@ -188,4 +188,3 @@ class AreaUnderCurve(IMetrics):
 
     def description(self):
         return 'AUC'
-

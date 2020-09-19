@@ -1,6 +1,6 @@
 import numpy as np
 
-from nn.interfaces import IActivation
+from nn.interface import IActivation
 
 
 class Linear(IActivation):

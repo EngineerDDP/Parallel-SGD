@@ -2,12 +2,13 @@ import argparse
 import json
 
 from dataset.transforms import TransformerList
-from models.local.neural_models import ModelDNN
+from models.local.neural_models import ModelLinear
+from models.trans import Req
 # method to start up a network
 from network import NodeAssignment, Request
 
 from profiles import Settings
-from roles import Coordinator
+from roles import Coordinator, Reclaimer
 from utils.constants import Parameter_Server
 from utils.log import Logger
 
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     # Flags
     parse.add_argument("--retrieve", action="store_true", dest="do_retrieve_only", default=False, help="Set this flag to retrieve trace files from given workers.")
     parse.add_argument("--non-iid", action="store_true", default=False, dest="make_iid_dataset", help="Set this flag to make the dataset non-iid compatible.")
-    parse.add_argument("--image-classification", action="store_true", default=True, dest="is_img_cls", help="Set this flag to indicate that target task is image classification.")
+    parse.add_argument("--no-image-classification", action="store_false", default=True, dest="is_img_cls", help="Set this flag to indicate that target task is image classification.")
 
     # Shorter Sign
     parse.add_argument("-n", "--node-count", dest="n", type=int, default=1, help="Worker node count")
@@ -35,6 +36,7 @@ if __name__ == '__main__':
     parse.add_argument("-O", "--optimizer", dest="op", type=str, default='psgd', help="Set optimizer used for model training.")
     parse.add_argument("-E", "--epochs", dest="epochs", type=int, default=2, help="Train epochs")
     parse.add_argument("-D", "--dataset", dest="dataset", type=str, default='mnist', help="Dataset in use.")
+    parse.add_argument("-I", "--input_ref", dest='input_shape', type=int, default=784, help="Input dimension.")
 
     # Not commonly used
     parse.add_argument("--psgd", type=str, default='ssgd', help="Parallel stochastic gradient descent synchronization type {asgd, ssgd}")
@@ -64,11 +66,6 @@ if __name__ == '__main__':
     logger.log_message('\t --block_assignment <block assignment strategy {}>'.format(arg.assignment))
     logger.log_message('\t --server_codec <parameter server codec {}>'.format(arg.server_codec))
 
-    # set bandwidth suggestion
-    Estimate_Bandwidth = arg.bandwidth * 1024 * 1024
-
-    # Split and get codec list
-    codec = arg.codec.split(',')
     # get assignment class for batch_size calculation
     from models.local.neural_models import get_assignment
     ass = get_assignment(arg.assignment)
@@ -103,14 +100,16 @@ if __name__ == '__main__':
         from dataset.transforms.image import ImageCls
         transform.add(ImageCls())
 
+    # Split and get codec list
+    codec = arg.codec.split(',')
     # Set model parameters
-    model_parameter = ModelDNN(codec=codec,
+    model_parameter = ModelLinear(codec=codec,
                                psgd_type=arg.psgd,
                                server_codec=arg.server_codec,
                                learn_rate=arg.lr,
                                epoches=arg.epochs,
                                optimizer_type=arg.op,
-                               input_shape=3072)
+                               input_shape=arg.input_shape)
 
     with open(arg.workers, 'r') as f:
         workers = json.load(f)
@@ -131,11 +130,25 @@ if __name__ == '__main__':
 
     req = Request()
     with req.request(pkg) as com:
-        core = Coordinator(com, logger)
-
         if arg.do_retrieve_only:
+            core = Reclaimer(com, logger)
             core.require_client_log()
         else:
-            from executor.psgd_training_client import PSGDPSExecutor, PSGDWorkerExecutor
-            core.submit_job(PSGDWorkerExecutor, data_size=dataset.estimate_size(), ps_executor=PSGDPSExecutor)
-            core.resources_dispatch(setting, model_parameter, dataset, transform)
+            core = Coordinator(com, estimate_bandwidth=arg.bandwidth * 1024 * 1024, logger=logger)
+            from executor.psgd.worker import PSGDPSExecutor, PSGDWorkerExecutor
+            if model_parameter.psgd_server_codec is not None:
+                core.submit_single(PSGDPSExecutor, worker_id=Parameter_Server, package_size=dataset.estimate_size())
+            core.submit_group(PSGDWorkerExecutor, worker_offset=0, worker_cnt=arg.n, package_size=dataset.estimate_size())
+
+            from models.trans.net_package import data_package, data_content, global_setting_package, essentials
+            core.resources_dispatch({
+                Req.GlobalSettings: global_setting_package(setting),
+                Req.Weights_And_Layers: essentials(model_parameter),
+                Req.Samples: data_content(dataset, transform),
+                Req.Dataset: data_package(dataset, transform)
+            })
+
+            try:
+                core.join()
+            except ConnectionAbortedError:
+                print('Worker exited without reported.')

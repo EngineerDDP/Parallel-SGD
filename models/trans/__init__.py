@@ -1,5 +1,5 @@
 import os
-from enum import Enum
+from enum import Enum, auto
 from abc import ABCMeta, abstractmethod
 
 
@@ -33,11 +33,14 @@ class Ready_Type:
         return self.__nodes_ready
 
 
-class Done_Type:
+class Done_Type(IReplyPackage):
 
-    def __init__(self):
-        pass
+    def __init__(self, posted_files):
+        self.__contents = [Binary_File_Package(f) for f in posted_files]
 
+    def restore(self) -> None:
+        for bf in self.__contents:
+            bf.restore()
 
 class Binary_File_Package(IReplyPackage):
 
@@ -49,7 +52,11 @@ class Binary_File_Package(IReplyPackage):
                 self.content = f.read()
 
     def restore(self):
-        with open(self.filename, 'wb') as f:
+        path, file = os.path.split(self.filename)
+        if path != '' and not os.path.exists(path):
+            os.makedirs(path)
+
+        with open(self.filename, 'wb+') as f:
             f.write(self.content)
 
 
@@ -72,3 +79,25 @@ class ClassSerializer(IReplyPackage):
         cls_type = getattr(mod, self.__class_name)
         return cls_type
 
+
+class SubmitJob(IReplyPackage):
+
+    def __init__(self, nodes:set, eta_waiting_time:int, exe:type):
+        self.__nodes = nodes
+        self.__eta_wait = eta_waiting_time
+        self.__cls  = ClassSerializer(exe)
+
+    def restore(self) -> None:
+        self.__cls : type = self.__cls.restore()
+
+    @property
+    def executioner(self):
+        return self.__cls
+
+    @property
+    def work_group(self) -> set:
+        return self.__nodes
+
+    @property
+    def waiting_time(self):
+        return self.__eta_wait

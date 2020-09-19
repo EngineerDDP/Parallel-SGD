@@ -74,6 +74,7 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
     def __init__(self, name: str):
         Process.__init__(self, name=name, daemon=True)
         self.__exit = Value(c_bool, 0)
+        self.__alive = Value(c_bool, 0)
         self.__recv_que = Queue(maxsize=24)
         self.__send_que = Queue(maxsize=24)
 
@@ -104,6 +105,14 @@ class ICommunication_Process(Process, metaclass=ABCMeta):
         self.__exit.value = value
 
     @property
+    def Alive(self):
+        return self.__alive.value
+
+    @Alive.setter
+    def Alive(self, value):
+        self.__alive.value = value
+
+    @property
     @abstractmethod
     def available_nodes(self):
         pass
@@ -129,12 +138,12 @@ class ICommunication_Controller(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def Com(self):
+    def Com(self) -> ICommunication_Process:
         pass
 
     @property
     @abstractmethod
-    def Node_Id(self):
+    def Node_Id(self) -> int:
         pass
 
     @abstractmethod

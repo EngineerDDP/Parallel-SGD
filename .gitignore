@@ -4,3 +4,10 @@ __pycache__/
 tmp_log/
 *.log
 *.sh
+*.json
+*.txt
+/venv/
+.idea/
+.git/
+/codec/toy_codec.py
+/codec/pdd.py

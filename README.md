@@ -1,7 +1,22 @@
 # Parallel SGD
 
-　　Parallel SGD已经更新到r0.4版本了，使用了全新的网络与调度架构重新设计，再也不需要通过复杂的调度脚本去挨个节点拉取 log 文件了，所有的参数使用 job_submit 一次提交到处运行。  
+　　Parallel-SGD v0.5  
 　　本项目用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验框架，通过本项目暴漏出的ICommunication_Ctrl接口（详情参阅  [编码控制器教程](./codec/README.md) ），可以实现选择性的建立节点之间的通讯机制，并对数据网络上流通的数据进行加解密等操作。当您需要对网络拓扑进行改动时，仅需要修改ICommunication_Ctrl模块来改变网络通信的目的和方式，底层自建的TCP长连接会帮助您将数据包送达至指定目的地。
+
+## 更新说明
+
+1.更改了 *worker.json* 的组织结构。  
+2.将Executor从Worker中抽象出来，添加了 *IExecutor* 接口，支持自定义任务类型，不再局限于联邦学习。  
+3.抽象了Dataset类，添加了 *IDataset* 接口，添加md5数据集校验，添加了错误重传。  
+4.抽象了Transformer类，添加了 *ITransform* 接口，将计算与数据解耦，遵循移动计算不移动数据的原则。  
+5.添加了 *TransformList* 容器，通过链表的形式链接 *ITransform* 对象，实现对数据集形式的转换。  
+6.重新设计了 *data_package* 包，使用装饰器模式，将 *ITransform* 定义的行为绑定到 *IDataset* 上。  
+7.重新设计了 *network* 模块，将网络部分所有的复杂逻辑隐藏，只暴漏三个接口 *Request* ，*Serve* 和 *NodeAssignment*。  
+8.为 *IDataset* ， *IExecutor* 和 *ICommunication_Ctrl* 增加类序列化机制。涉及到上述类的修改的，不再需要重启Worker更新代码。  
+9.为 *ICoordinator* 增加了分组策略。使用组内ID和组偏移量实现，组与组之间互相不可访问，组内可互相访问，各个组之间共享一个参数服务器。  
+10.添加项目依赖，项目目前仅依赖 pandas（任意版本） 和 numpy（任意版本）。  
+
+附：关于自定义Executor，参见如何定义Executor： [executor](./myExe.py)，如何提交自定义的Executor： [submit](./my_submit.py)。  
 
 ## 参数说明
 

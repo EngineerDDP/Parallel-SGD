@@ -2,7 +2,7 @@ from codec.interfaces import ICommunication_Ctrl
 from codec.essential import Block_Weight
 from codec.interfaces import netEncapsulation
 
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 
 
 class myComCtrl(ICommunication_Ctrl):

@@ -6,9 +6,9 @@ from dataset.transforms.__init__ import AbsTransformer
 class Make_Non_IID(AbsTransformer):
     """
         Make your dataset i.i.d. compatible.
-        Transform input x, y into non-i.i.d. data distribution.
-    :param x: input samples
-    :param y: input labels
+        Transform input_ref x, y into non-i.i.d. data distribution.
+    :param x: input_ref samples
+    :param y: input_ref labels
     :param batch_size: batch_size while splitting.
     :return: (x, y) with non-i.i.d. distribution
     """
@@ -16,6 +16,9 @@ class Make_Non_IID(AbsTransformer):
     def __init__(self, batch_size):
         super().__init__()
         self.__batch_size = batch_size
+
+    def __repr__(self):
+        return "<Make non-iid dataset, based on labels>"
 
     @property
     def params(self):

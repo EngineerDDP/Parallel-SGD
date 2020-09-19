@@ -49,6 +49,7 @@ class Serve:
         :return: full functional ICommunication_Controller instance
         """
         register = self.__constructor.buildCom()
+        self.__constructor.close()
         com_proc = self.__proc_cls(register)
         com_ctrl = cc(com_proc)
         return com_ctrl

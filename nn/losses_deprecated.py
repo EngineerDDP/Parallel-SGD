@@ -1,6 +1,6 @@
 import numpy as np
 
-from nn.interfaces import ILoss
+from nn.interface import ILoss
 
 
 class MseLoss(ILoss):
