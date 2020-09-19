@@ -1,35 +1,54 @@
+from time import sleep
+
 import numpy as np
 
-from time import sleep
-from nn.interfaces import IOptimizer
+from nn import IOptimizer
+from nn.interface import IGDContainer, ILoss
 
 
-class GradientDecentOptimizer_v2(IOptimizer):
+
+class GradientDescentOptimizer(IGDContainer):
+    """
+        Packed Gradient Descent Optimizer.
+        Use batch or no batch, 2 or 4 dimension inputs.
+    """
 
     def __init__(self, learn_rate=0.01):
-
-        self.LR = learn_rate
-        self.Loss = None
-        self.Layers = []
+        self.__learn_rate = learn_rate
+        self.__loss = None
+        self.__ops = None
 
     def optimize(self, layers):
-        self.Layers = layers
+        self.__layers = [layer for layer in layers]
+        self.__ops = [[(SGDOptimizer(var, self.__learn_rate)) for var in layer.Variables] for layer in layers]
 
-    def set_loss(self, loss):
-        self.Loss = loss
+    def set_loss(self, loss:ILoss):
+        self.__loss = loss
 
-    def forward_propagate(self, x):
-        # forward propagation
-        intermediate = [x]
-        for nn in self.Layers:
-            intermediate.append(nn.F(intermediate[-1]))
-        return intermediate
+    def train(self, x, label):
+        # build placeholder
+        layer_wise_output = [0 for _ in range(len(self.__layers)+1)]
+
+        # forward propagate
+        i = 0
+        layer_wise_output[i] = x
+        for layer in self.__layers:
+            i += 1
+            layer_wise_output[i] = layer(layer_wise_output[i-1])
+
+        grad = self.__loss.gradient(layer_wise_output[-1], label)
+
+        while i > 0:
+            gx = self.__layers[i-1].gradient(layer_wise_output[i-1], grad)
+
+            self.__ops[i].optimize(gx)
+
 
     def backward_propagate(self, intermediate, gradient):
-        # backward propagation
+        # backward_predict propagation
         grad = gradient
-        for i in range(1, len(self.Layers)+1):
-            grad = self.Layers[-1*i].backpropagation(intermediate[-1 * (i+1)], grad)
+        for i in range(1, len(self.Layers) + 1):
+            grad = self.Layers[-1 * i].backpropagation(intermediate[-1 * (i + 1)], grad)
         return None
 
     def calculate_gradient(self, y, label):
@@ -43,8 +62,8 @@ class GradientDecentOptimizer_v2(IOptimizer):
         intermediate = self.forward_propagate(x)
         # apply learning rate
         grad = self.calculate_gradient(intermediate[-1], label)
-        # backward
-        self.backward_propagate(intermediate, grad)
+        # backward_predict
+        self.backward_propagate(grad)
 
 
 class AdagradOptimizer(GradientDecentOptimizer_v2):
@@ -65,7 +84,7 @@ class AdagradOptimizer(GradientDecentOptimizer_v2):
         grad = self.calculate_gradient(intermediate[-1], label)
         # update Gt
         self.Gt = self.Gt + np.mean(np.square(grad))
-        # backward
+        # backward_predict
         self.backward_propagate(intermediate, grad)
 
 
@@ -126,15 +145,15 @@ class ParallelSGDOptimizer(GradientDecentOptimizer_v2):
 
     def do_layer_wise_bp(self, x, layer, gradient):
         """
-            do backward propagation layer-wise
-        :param x: input of this layer
+            do backward_predict propagation layer-wise
+        :param x: input_ref of this layer
         :param layer: instance of ILayer
-        :param gradient: gradient to the output of this layer
+        :param gradient: gradient to the output_ref of this layer
         """
         grad_back = []
 
         for j in range(len(self.Tags)):
-            w, b, y = layer.delta_wb(x[self.Slice_To_Take[j]], gradient[self.Slice_To_Take[j]])
+            w, b, y = layer.gradient(x[self.Slice_To_Take[j]], gradient[self.Slice_To_Take[j]])
             grad_back.append(y)
 
             self.TransferHelper.put_weights(w, self.Tags[j], 'w')
@@ -150,9 +169,9 @@ class ParallelSGDOptimizer(GradientDecentOptimizer_v2):
         """
             Backward propagation process.
         """
-        for i in range(1, len(self.Layers)+1):
-            nn = self.Layers[-1*i]
-            gradient = self.do_layer_wise_bp(intermediate[-1*(i+1)], nn, gradient)
+        for i in range(1, len(self.Layers) + 1):
+            nn = self.Layers[-1 * i]
+            gradient = self.do_layer_wise_bp(intermediate[-1 * (i + 1)], nn, gradient)
             # increase layer
             for tag in self.Tags:
                 tag.incLayer()
@@ -171,14 +190,14 @@ class FastParallelSGDOptimizer(ParallelSGDOptimizer):
     def do_layer_wise_bp(self, x, layer, gradient):
         """
             Update weight and bias delta, but do training without update new weights.
-        :param x: input of this layer
+        :param x: input_ref of this layer
         :param layer: instance of ILayer
-        :param gradient: gradient to the output of this layer
+        :param gradient: gradient to the output_ref of this layer
         """
         grad_back = []
 
         for j in range(len(self.Tags)):
-            w, b, y = layer.delta_wb(x[self.Slice_To_Take[j]], gradient[self.Slice_To_Take[j]])
+            w, b, y = layer.gradient(x[self.Slice_To_Take[j]], gradient[self.Slice_To_Take[j]])
             grad_back.append(y)
 
             self.TransferHelper.put_weights(w, self.Tags[j], 'w')
@@ -190,19 +209,19 @@ class FastParallelSGDOptimizer(ParallelSGDOptimizer):
     def backward_propagate(self, intermediate, gradient):
         """
             Backward propagation process.
-            Do weights update after the backward propagate stage complete.
+            Do weights update after the backward_predict propagate stage complete.
         """
-        for i in range(1, len(self.Layers)+1):
-            nn = self.Layers[-1*i]
-            gradient = self.do_layer_wise_bp(intermediate[-1*(i+1)], nn, gradient)
+        for i in range(1, len(self.Layers) + 1):
+            nn = self.Layers[-1 * i]
+            gradient = self.do_layer_wise_bp(intermediate[-1 * (i + 1)], nn, gradient)
             # increase layer
             for tag in self.Tags:
                 tag.incLayer()
 
         # reset layer and do it again
         self.Tags[0].resetLayer()
-        for i in range(1, len(self.Layers)+1):
-            nn =  self.Layers[-1*i]
+        for i in range(1, len(self.Layers) + 1):
+            nn = self.Layers[-1 * i]
             # get newest updates
             w_new = self.TransferHelper.get_weights(self.Tags[0], 'w') / self.BatchSize
             b_new = self.TransferHelper.get_weights(self.Tags[0], 'b') / self.BatchSize
@@ -248,17 +267,17 @@ class ParaAverageOptimizer(ParallelSGDOptimizer):
 
     def do_layer_wise_bp(self, x, layer, gradient):
         """
-            do backward propagation layer-wise
+            do backward_predict propagation layer-wise
             using parameter server with initial value as zero.
             be aware, the initial value of parameter server is zero!!!
-        :param x: input of this layer
+        :param x: input_ref of this layer
         :param layer: instance of ILayer
-        :param gradient: gradient to the output of this layer
+        :param gradient: gradient to the output_ref of this layer
         """
         for j in range(len(self.Tags)):
             block_x = x[self.Slice_To_Take[j]]
             block_grad = gradient[self.Slice_To_Take[j]]
-            w, b, y = layer.delta_wb(block_x, block_grad)
+            w, b, y = layer.gradient(block_x, block_grad)
 
             self.TransferHelper.put_weights(w / len(block_x), self.Tags[j], 'w')
             self.TransferHelper.put_weights(b / len(block_x), self.Tags[j], 'b')

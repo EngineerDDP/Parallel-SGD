@@ -51,7 +51,7 @@ Approach to Parallelizing Stochastic Gradient Descent. Advances in Neural Inform
 Systems (NIPS). Curran Associates, Inc. 2011.*
 。
 ```shell script
-python job_submit.py --codec ps --server_codec simple --optimizer pa
+python job_submit.py --codec ps --server_codec simple optimizer pa
 ```
 3.带延迟补偿的梯度增量更新方法。是一种基于二阶梯度的并行优化方法，参考文献：  
 *Shuxin Zheng, Qi Meng, Taifeng Wang, et al. Asynchronous Stochastic Gradient Descent with Delay 
@@ -60,7 +60,7 @@ Compensation. International Conference on Machine Learning (ICML), Sydney, Austr
 python job_submit.py --codec ps --server_codec dc --optimizer pa
 ```
 4.基于双重缓冲的异步并行梯度下降算法。关于双重缓冲的执行流程，请参考文献：    
-*F. Seide, H. Fu, J. Droppo, et al. 1-Bit stochastic gradient descent and its 
+*__call__. Seide, H. Fu, J. Droppo, et al. 1-Bit stochastic gradient descent and its 
 application to data-parallel distributed training of speech DNNs \[C\]// 15th Annual 
 Conference of the International Speech Communication Association (INTERSPEECH), 
 Singapore, 2014:1058-1062.*。

@@ -1,6 +1,6 @@
 import time
 
-from executor.interfaces import IExecutor
+from executor.abstract import AbsExecutor
 
 from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, Done_Type, Ready_Type, SubmitJob
 
@@ -97,7 +97,7 @@ class PSGD_Worker:
         :return:
         """
         posting_files = [self.client_logger.File_Name]
-        if isinstance(self.__job_executor, IExecutor):
+        if isinstance(self.__job_executor, AbsExecutor):
             for filename in self.__job_executor.trace_files():
                 posting_files.append(filename)
 
@@ -118,7 +118,7 @@ class PSGD_Worker:
         total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
-        self.__job_executor: IExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
+        self.__job_executor: AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
 
         # Acknowledge requests
         requests = self.__job_executor.requests()
@@ -198,7 +198,7 @@ class PSGD_Worker:
         """
         self.client_logger.log_message('Execution process started.')
         begin = time.time()
-        self.__job_executor.run(com)
+        self.__job_executor.start(com)
         end = time.time()
 
         self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))

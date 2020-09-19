@@ -1,9 +1,9 @@
 import numpy as np
 
-from nn.interfaces import ILayer
+from nn.interface import ILayer
 
-from nn.activations import Linear
-from nn.activations import ReLU
+from nn.activations_deprecated import Linear
+from nn.activations_deprecated import ReLU
 
 
 class FCLayer_v2(ILayer):
@@ -64,17 +64,17 @@ class FCLayer_v2(ILayer):
 
         return None
 
-    def F(self, x):
+    def __call__(self, x):
         """
-            output function
+            output_ref function
         """
         # activation
         return self.Act.activation(self.logit(x))
 
-    def delta_wb(self, x, gradient):
+    def gradient(self, x, gradient):
         # calculate gradient
         act_grad = self.Act.gradient(self.logit(x))
-        # y shape=[output, samples count]
+        # y shape=[output_ref, samples count]
         y_grad = np.multiply(act_grad, gradient)
 
         # adjust weight
@@ -94,7 +94,7 @@ class FCLayer_v2(ILayer):
     def forward_gradient(self, x, gradient):
         # calculate gradient
         act_grad = self.Act.gradient(self.logit(x))
-        # y shape=[output, samples count]
+        # y shape=[output_ref, samples count]
         y = np.multiply(act_grad, gradient)
         # calculate gradient for BP
         grad = y.dot(self.W.transpose())
@@ -103,10 +103,10 @@ class FCLayer_v2(ILayer):
     def backpropagation(self, x, gradient):
         """
             Calculate gradient, adjust weight and bias and return gradients of this layer
-            x shape=[input, samples count]
-            grad shape=[output, samples count]
+            x shape=[input_ref, samples count]
+            grad shape=[output_ref, samples count]
         """
-        w, b, y = self.delta_wb(x, gradient)
+        w, b, y = self.gradient(x, gradient)
         w = w / x.shape[0]
         b = b / x.shape[0]
         return self.apply_wb(w, b, y)
@@ -268,7 +268,7 @@ class Conv2dLayer(ILayer):
 
         return None
 
-    def delta_wb(self, x, gradient):
+    def gradient(self, x, gradient):
         # g = \partial \sigma (z) / \partial z
         act_grad = self.Act.gradient(self.logit(x))
         # apply
@@ -287,16 +287,16 @@ class Conv2dLayer(ILayer):
         self.Kernels = self.Kernels - w
         self.Bias = self.Bias - b
 
-        # sum all gradient calculated from single input channel
+        # sum all gradient calculated from single input_ref channel
         grad_back_per_channel = lambda grad_map: np.sum([self.__channel_conv_upsample(grad_map, self.Kernels[:,:,:,i]) for i in range(self.Previous_Channels)], axis=0)
         # calculate for all samples
         grad_back = np.asarray([grad_back_per_channel(grad) for grad in y])
 
         return grad_back
 
-    def F(self, x):
+    def __call__(self, x):
         """
-            Calculate from input to output result
+            Calculate from input_ref to output_ref result
         """
         return self.Act.activation(self.logit(x))
 
@@ -310,7 +310,7 @@ class Conv2dLayer(ILayer):
             b is 1-dimensional like: [feature_maps]
             self.B is 1-dimensional like: [kernel]
         """
-        w, b, y = self.delta_wb(x, gradient)
+        w, b, y = self.gradient(x, gradient)
         grad_back = self.apply_wb(w, b, y)
 
         return grad_back
@@ -339,7 +339,7 @@ class MaxPool(ILayer):
         if strikes is None:
             strikes = self.Strikes
         if (x.shape[0] % strikes[0] != 0) or (x.shape[1] % strikes[1] != 0):
-            raise AssertionError('Cannot pooling input x shape like {} with filter shape like {}.'.format(x.shape, filter_size))
+            raise AssertionError('Cannot pooling input_ref x shape like {} with filter shape like {}.'.format(x.shape, filter_size))
 
         return filter_size, strikes
 
@@ -412,11 +412,11 @@ class MaxPool(ILayer):
 
         return pool
 
-    def F(self, x):
+    def __call__(self, x):
         # no activation function in pooling layer
         return self.logit(x)
 
-    def delta_wb(self, x, gradient):
+    def gradient(self, x, gradient):
         return self.__pool2d_revt(x, gradient)
 
     def apply_wb(self, w, b, y):
@@ -439,9 +439,9 @@ class Reshape(ILayer):
 
     def __init__(self, shape):
         """
-            Reshape input while forward propagating
-            Reshape back while backward propagating
-        :param shape: shape of output
+            Reshape input_ref while forward propagating
+            Reshape back while backward_predict propagating
+        :param shape: shape of output_ref
         """
         super().__init__()
         self.Shape_Out = shape
@@ -467,15 +467,15 @@ class Reshape(ILayer):
             self.Shape_Out = temp_out
         return np.reshape(x, self.Shape_Out)
 
-    def F(self, x):
+    def __call__(self, x):
         # no activation function in pooling layer
         return self.logit(x)
 
-    def delta_wb(self, x, gradient):
+    def gradient(self, x, gradient):
         return np.reshape(gradient, self.Shape_In)
 
     def apply_wb(self, w, b, y):
         pass
 
     def backpropagation(self, x, gradient):
-        return self.delta_wb(x, gradient)
+        return self.gradient(x, gradient)

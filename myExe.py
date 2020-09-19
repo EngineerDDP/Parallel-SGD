@@ -1,4 +1,4 @@
-from executor.interfaces import AbsSimpleExecutor
+from executor.abstract import AbsSimpleExecutor
 from network.interfaces import ICommunication_Controller
 
 # 继承自 AbsSimpleExecutor
@@ -23,7 +23,7 @@ class myExecutor(AbsSimpleExecutor):
     def satisfy(self, reply:list) -> list:
         return []
 
-    def run(self, com: ICommunication_Controller) -> None:
+    def start(self, com: ICommunication_Controller) -> None:
         """
             获取 ICommunication_Controller 控制权，开始执行任务。
         """

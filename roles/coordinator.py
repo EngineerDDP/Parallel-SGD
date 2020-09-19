@@ -6,7 +6,7 @@ from utils.log import Logger
 
 class Coordinator:
 
-    def __init__(self, com:ICommunication_Controller, estimate_bandwidth=180000, logger=None):
+    def __init__(self, com:ICommunication_Controller, estimate_bandwidth=10, logger=None):
         self.__com = com
         if logger is None:
             self.__log = Logger(title_info='Coordinator', log_to_file=True)
@@ -82,7 +82,7 @@ class Coordinator:
 
         self.__log.log_message("All task is complete.")
 
-    def submit_group(self, worker_executor:type, worker_offset:int=0, worker_cnt:int=0, package_size:int=0):
+    def submit_group(self, worker_executor:type, worker_offset:int=0, worker_cnt:int=0, package_size:int=1e9):
         """
             Submit a job to a specified worker group.
             Nodes inside this group will wait for each other and synchronize start time.
@@ -109,7 +109,7 @@ class Coordinator:
         self.__group_allocated = self.__group_allocated | working_group
         self.__log.log_message("Group submission complete ({}).".format(working_group))
 
-    def submit_single(self, worker_executor:type, worker_id, package_size:int=0):
+    def submit_single(self, worker_executor:type, worker_id, package_size:int=1e9):
         """
             Submit a job to a specified node.
             This global node will start execution immediately when itself was ready.

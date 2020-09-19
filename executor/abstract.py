@@ -1,12 +1,10 @@
 from abc import ABCMeta, abstractmethod
 
-from dataset.interfaces import IDataset
-from models.local import IServerModel
-from network.interfaces import ICommunication_Controller
-from profiles import Settings
+from executor.interface import IExecutor
+from network import ICommunication_Controller
 
 
-class IExecutor(metaclass=ABCMeta):
+class AbsExecutor(IExecutor, metaclass=ABCMeta):
 
     def __init__(self, node_id:int, working_group:set):
         self.__node_id = node_id
@@ -37,7 +35,7 @@ class IExecutor(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run(self, com:ICommunication_Controller) -> None:
+    def start(self, com:ICommunication_Controller) -> None:
         """
             Do the job.
         """
@@ -65,7 +63,11 @@ class IExecutor(metaclass=ABCMeta):
         pass
 
 
-class AbsSimpleExecutor(IExecutor):
+class AbsSimpleExecutor(AbsExecutor):
+
+    def __init__(self, node_id: int, working_group: set):
+        super().__init__(node_id, working_group)
+        self.__done = False
 
     def requests(self) -> list:
         return []
@@ -77,7 +79,11 @@ class AbsSimpleExecutor(IExecutor):
         return True
 
     def done(self) -> bool:
-        return True
+        return self.__done
+
+    def start(self, com:ICommunication_Controller) -> None:
+        self.run(com)
+        self.__done = True
 
     @abstractmethod
     def run(self, com: ICommunication_Controller) -> None:
