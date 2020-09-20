@@ -29,3 +29,6 @@ from nn.optimizer.gradient_descent import GDOptimizer
 from nn.optimizer.gradient_ascent import GAOptimizer
 from nn.optimizer.adam import ADAMOptimizer
 from nn.optimizer.sgd import SGDOptimizer
+from nn.optimizer.adagrad import AdaGradOptimizer
+from nn.optimizer.rmsprop import RMSPropOptimizer
+from nn.optimizer.adadelta import AdaDeltaOptimizer
