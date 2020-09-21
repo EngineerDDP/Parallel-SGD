@@ -1,19 +1,21 @@
+import numpy as np
+
 from abc import abstractmethod
-
-from nn.abstract import AbsValue
-from nn.interface import IOperator, ITrainable, IOptimizer
+from numpy import ndarray
+from nn.activation.interface import IActivation
+from nn.value.abstract import AbsValue
+from nn.interface import IOperator, ITrainable, IOptimizer, ModelState
 from nn.layer.interface import ILazyInitialization
-from nn.operation.interface import IActivation
-from nn.operation.linear import Linear
+from nn.activation.linear import Linear
 
 
-class Weights(ITrainable, AbsValue):
+class Weights(AbsValue, ITrainable):
 
     def __init__(self):
         super().__init__()
         self.__content = None
         self.__content_gradient = None
-        self.__optimizer:IOptimizer = None
+        self.__optimizer:[IOptimizer] = None
 
     def get_shape(self) -> list:
         return self.__content.shape
@@ -35,6 +37,11 @@ class Weights(ITrainable, AbsValue):
     def attach_optimizer(self, optimizer:IOptimizer) -> None:
         self.__optimizer = optimizer
 
+    def reset(self) -> None:
+        high = np.sqrt(6 / np.sum(self.get_shape()))
+        low = -high
+        self.__content = np.random.uniform(low=low, high=high, size=self.get_shape())
+
 
 class AbsLayer(IOperator, ILazyInitialization):
     """
@@ -48,17 +55,12 @@ class AbsLayer(IOperator, ILazyInitialization):
         """
         self.__op_input = input
         self.__ref_input = None
-        self.__ref_output = None
         self.__activation = activation
-        self.reset()
+        self.__initialized = False
 
     @property
     def input_ref(self):
         return self.__ref_input
-
-    @property
-    def output_ref(self):
-        return self.__ref_output
 
     def set_input(self, input:IOperator):
         self.__op_input = input
@@ -114,40 +116,39 @@ class AbsLayer(IOperator, ILazyInitialization):
         pass
 
     def reset(self):
-        self.__forward_predict_prepare = self.__forward_predict_prepare_prep
-        self.__forward_train_prepare = self.__forward_train_prepare_prep
+        self.__initialized = False
 
-    def __forward_predict_prepare_prep(self, x):
+    def __forward_prepare(self, x):
         self.initialize_parameters(x)
-        assert self.__op_input is not None, "This layer doesn't have input reference."
-        # redirect function
-        self.__forward_predict_prepare = self.do_forward_predict
-        self.__forward_train_prepare = self.do_forward_train
-        return self.__activation.do_forward(self.do_forward_predict(x))
+        self.__initialized = True
 
-    def __forward_train_prepare_prep(self, x):
-        self.initialize_parameters(x)
-        assert self.__op_input is not None, "This layer doesn't have input reference."
-        # redirect function
-        self.__forward_predict_prepare = self.do_forward_predict
-        self.__forward_train_prepare = self.do_forward_train
-        return self.__activation.do_forward(self.do_forward_train(x))
+    def F(self, x:[float, ndarray, tuple]=None, state:ModelState=ModelState.Training) -> [float, ndarray]:
+        """
+            Do forward propagate.
+        :param x: input of this layer.
+                This parameter works only when this layer is not part of the computation graph.
+        :param state: State to identify training process, works in some particular layer like
+                (Dropout).
+        :return: output of this layer.
+        """
+        self.__ref_input = self.__op_input.F(x, state) if self.__op_input else x
+        if not self.__initialized:
+            self.__forward_prepare(self.__ref_input)
+        if state != ModelState.Training:
+            return self.__activation.do_forward(self.do_forward_predict(self.__ref_input))
+        else:
+            return self.__activation.do_forward(self.do_forward_train(self.__ref_input))
 
-    def forward_predict(self):
-        return self.__forward_predict_prepare(self.__op_input.forward_predict())
-
-    def forward_train(self):
-        self.__ref_input = self.__op_input.forward_train()
-        self.__ref_output = self.__forward_train_prepare(self.__ref_input)
-        return self.__ref_output
-
-    def backward_predict(self, grad) -> None:
-        grad = self.__activation.do_backward(grad)
-        self.__op_input.backward_predict(self.backward_propagate(grad))
-        self.backward_adjust(grad)
-
-    def backward_train(self, grad) -> None:
-        grad = self.__activation.do_backward(grad)
-        self.backward_adjust(grad)
-        self.__op_input.backward_predict(self.backward_propagate(grad))
-
+    def G(self, grad:[float, ndarray]=None) -> None:
+        """
+            Do backward and adjust parameters.
+        :param grad: Gradients from back-propagation, set to None when this layer doesnt needs
+                input gradients. e.g. loss functions.
+        :return: None, try get gradients from placeholder or variable.
+        """
+        # adjust variables with given gradients.
+        gradient = self.__activation.do_backward(None, grad)
+        self.backward_adjust(gradient)
+        # adjust previous layers.
+        if self.__op_input:
+            self.__op_input.G(self.backward_propagate(gradient))

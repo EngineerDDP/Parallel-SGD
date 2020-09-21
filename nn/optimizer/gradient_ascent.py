@@ -11,7 +11,7 @@ class GAOptimizer(IOptimizer):
     def optimize(self, variable: IValue) -> None:
         """
             1st order gradient based optimize algorithm.
-            {arg max}_{x}{f(x)}
+            {arg max}_{x}{F(x)}
         :param variable: variable object.
         :return: None
         """

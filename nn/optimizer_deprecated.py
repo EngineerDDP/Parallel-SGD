@@ -157,10 +157,10 @@ class ParallelSGDOptimizer(GradientDecentOptimizer_v2):
             grad_back.append(y)
 
             self.TransferHelper.put_weights(w, self.Tags[j], 'w')
-            self.TransferHelper.put_weights(b, self.Tags[j], 'b')
+            self.TransferHelper.put_weights(b, self.Tags[j], 'G')
 
         w_new = self.TransferHelper.get_weights(self.Tags[0], 'w') / self.BatchSize
-        b_new = self.TransferHelper.get_weights(self.Tags[0], 'b') / self.BatchSize
+        b_new = self.TransferHelper.get_weights(self.Tags[0], 'G') / self.BatchSize
 
         gradient = layer.apply_wb(w_new, b_new, np.concatenate(grad_back, axis=0))
         return gradient
@@ -201,7 +201,7 @@ class FastParallelSGDOptimizer(ParallelSGDOptimizer):
             grad_back.append(y)
 
             self.TransferHelper.put_weights(w, self.Tags[j], 'w')
-            self.TransferHelper.put_weights(b, self.Tags[j], 'b')
+            self.TransferHelper.put_weights(b, self.Tags[j], 'G')
 
         gradient = layer.apply_wb(0, 0, np.concatenate(grad_back, axis=0))
         return gradient
@@ -224,7 +224,7 @@ class FastParallelSGDOptimizer(ParallelSGDOptimizer):
             nn = self.Layers[-1 * i]
             # get newest updates
             w_new = self.TransferHelper.get_weights(self.Tags[0], 'w') / self.BatchSize
-            b_new = self.TransferHelper.get_weights(self.Tags[0], 'b') / self.BatchSize
+            b_new = self.TransferHelper.get_weights(self.Tags[0], 'G') / self.BatchSize
             # apply data
             nn.apply_wb(w_new, b_new, np.asarray(0))
             # inc layer
@@ -280,10 +280,10 @@ class ParaAverageOptimizer(ParallelSGDOptimizer):
             w, b, y = layer.gradient(block_x, block_grad)
 
             self.TransferHelper.put_weights(w / len(block_x), self.Tags[j], 'w')
-            self.TransferHelper.put_weights(b / len(block_x), self.Tags[j], 'b')
+            self.TransferHelper.put_weights(b / len(block_x), self.Tags[j], 'G')
 
         w_new = self.TransferHelper.get_weights(self.Tags[0], 'w')
-        b_new = self.TransferHelper.get_weights(self.Tags[0], 'b')
+        b_new = self.TransferHelper.get_weights(self.Tags[0], 'G')
 
         layer.W, layer.B = self.initial_value[layer][0] + w_new, self.initial_value[layer][1] + b_new
 

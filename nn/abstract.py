@@ -1,27 +1,116 @@
-from nn.interface import IValue
+from abc import abstractmethod
+
+from numpy import ndarray
+
+from nn.interface import IOperator, IBinaryNode, IUnaryNode, ModelState, IFlexNode
 
 
-__var_id_max = 0
-__var_ids = set()
+class AbsFlexibleBinaryNode(IBinaryNode):
 
-def register():
-    global __var_id_max, __var_ids
-    __var_ids.add(__var_id_max)
-    __var_id_max += 1
-    return __var_id_max - 1
-
-def remove(id):
-    global __var_ids
-    __var_ids.remove(id)
-
-class AbsValue(IValue):
-
-    def __init__(self):
-        self.__var_id = register()
-
-    def __del__(self):
-        remove(self.__var_id)
+    def __init__(self, op1:[IOperator]=None, op2:[IOperator]=None):
+        self.__op_left:IOperator = op1
+        self.__op_right:IOperator = op2
+        # input reference
+        self.__ref_left:[float, ndarray] = 0
+        self.__ref_right:[float, ndarray] = 0
 
     @property
-    def id(self):
-        return self.__var_id
+    def op_left(self):
+        return self.__op_left
+
+    @property
+    def op_right(self):
+        return self.__op_right
+
+    def set_child(self, op1:IOperator, op2:IOperator):
+        self.__op_left = op1
+        self.__op_right = op2
+
+    @abstractmethod
+    def do_forward(self, left:[float, ndarray], right:[float, ndarray], training:bool=True) -> [float, ndarray]:
+        """
+            Do forward propagation.
+        """
+        pass
+
+    @abstractmethod
+    def do_backward(self, left:[float, ndarray], right:[float, ndarray], grad:[float, ndarray]) -> (ndarray, ndarray):
+        """
+            Do backward propagation.
+        """
+        pass
+
+    def F(self, x:[float, ndarray, tuple]=None, state:ModelState=ModelState.Training) -> [float, ndarray]:
+        """
+            Forward propagate to get predictions.
+        :return: output_ref
+        """
+        assert isinstance(x, tuple) or x is None, "This operator requires tuple inputs, but ({}) was given".format(type(x))
+        if self.op_left:
+            self.__ref_left = self.op_left.F(x[0] if x else None, state)
+        else:
+            self.__ref_left = x[0]
+        if self.op_right:
+            self.__ref_right = self.op_right.F(x[1] if x else None, state)
+        else:
+            self.__ref_right = x[1]
+        self.do_forward(self.__ref_left, self.__ref_right, state == ModelState.Training)
+
+    def G(self, grad:[float, ndarray]=None) -> None:
+        """
+            Backward propagate and update variables.
+        :param grad: gradients of backward_predict layers
+        """
+        grad_left, grad_right = self.do_backward(self.__ref_left, self.__ref_right, grad)
+        if self.op_left:
+            self.op_left.G(grad_left)
+        if self.op_right:
+            self.op_right.G(grad_right)
+
+
+class AbsFlexibleUnaryNode(IUnaryNode, IFlexNode):
+
+    def __init__(self, op:[IOperator]=None):
+        self.__op_child:IOperator = op
+        self.__ref_input:[ndarray, float] = 0
+
+    @property
+    def op_child(self):
+        return self.__op_child
+
+    def set_input(self, op:IOperator):
+        self.__op_child = op
+
+    @abstractmethod
+    def do_forward(self, x: [float, ndarray], training: bool = True) -> [float, ndarray]:
+        """
+            Do forward propagation.
+        """
+        pass
+
+    @abstractmethod
+    def do_backward(self, x: [float, ndarray], grad: [float, ndarray]) -> [ndarray, float]:
+        """
+            Do backward propagation.
+        """
+        pass
+
+    def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
+        """
+            Forward propagate to get predictions.
+        :return: output_ref
+        """
+        if self.__op_child:
+            self.__ref_input = self.op_child.F(x, state)
+        else:
+            self.__ref_input = x
+        self.do_forward(self.__ref_input, state == ModelState.Training)
+
+    def G(self, grad: [float, ndarray] = None) -> None:
+        """
+            Backward propagate and update variables.
+        :param grad: gradients of backward_predict layers
+        """
+        grad_back = self.do_backward(self.__ref_input, grad)
+        if self.__op_child:
+            self.op_child.G(grad_back)

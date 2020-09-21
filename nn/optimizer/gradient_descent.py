@@ -11,7 +11,7 @@ class GDOptimizer(IOptimizer):
     def optimize(self, variable: IValue) -> None:
         """
             1st order gradient based optimize algorithm.
-            {arg min}_{x}{f(x)}
+            {arg min}_{x}{F(x)}
         :param variable: variable object.
         :return: None
         """

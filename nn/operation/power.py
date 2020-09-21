@@ -1,10 +1,11 @@
 import numpy as np
 
 from nn.interface import IOperator
-from nn.operation.abstract import AbsUnaryOperator
+from nn.abstract import AbsFlexibleUnaryNode
+from nn.operation.abstract import OperandHelper
 
 
-class Square(AbsUnaryOperator):
+class Square(AbsFlexibleUnaryNode, OperandHelper):
 
     def __init__(self, op: IOperator):
         super().__init__(op)
@@ -19,7 +20,7 @@ class Square(AbsUnaryOperator):
         return 2 * self.input_ref * grad
 
 
-class Power(AbsUnaryOperator):
+class Power(AbsFlexibleUnaryNode, OperandHelper):
 
     def __init__(self, op: IOperator, power:int):
         super().__init__(op)

@@ -46,7 +46,7 @@ class Binary_File_Package(IReplyPackage):
 
     def __init__(self, filename):
         self.filename = filename
-        self.content = b''
+        self.content = G''
         if os.path.exists(filename):
             with open(filename, 'rb') as f:
                 self.content = f.read()
