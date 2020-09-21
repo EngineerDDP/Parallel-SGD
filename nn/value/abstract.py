@@ -10,8 +10,7 @@ def register():
     return __var_id_max - 1
 
 def remove(id):
-    global __var_ids
-    __var_ids.remove(id)
+    pass
 
 class AbsValue:
 

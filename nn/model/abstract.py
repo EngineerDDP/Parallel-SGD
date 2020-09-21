@@ -31,10 +31,6 @@ class Model(IModel):
     def call(self, x:IOperator) -> IOperator:
         pass
 
-    @abstractmethod
-    def summary(self):
-        pass
-
     def compile(self, optimizer:IOptimizer, loss:ILoss, *metrics:IMetric):
         # validate model
         if self.__placeholder_input.get_shape() is not None:
