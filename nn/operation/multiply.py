@@ -42,4 +42,4 @@ class Multiply(AbsFlexibleBinaryNode, OperandHelper):
         return np.dot(left, right)
 
     def do_backward(self, left:[float, ndarray], right:[float, ndarray], grad:[float, ndarray]) -> [ndarray, float]:
-        return np.dot(grad, left.T), np.dot(right.T, grad)
+        return np.dot(grad, right.T), np.dot(left.T, grad)

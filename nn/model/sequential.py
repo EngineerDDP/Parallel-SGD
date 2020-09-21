@@ -1,13 +1,9 @@
 from numpy import ndarray
 
-from nn import IModel
+from nn.model.interface import IModel
+from nn import IOperator, IOptimizer, IMetric, ILoss, AbsLayer
 from nn.data.interface import IDataFeeder
 from nn.data.numpy_data_feeder import NumpyDataFeeder
-from nn.interface import IOperator
-from nn.layer.abstract import AbsLayer
-from nn.loss.abstract import ILoss
-from nn.metric.interface import IMetric
-from nn.optimizer import IOptimizer
 from utils.log import IPrinter
 from nn.value.placeholder import Placeholder
 from nn.model.abstract import FitResultHelper

@@ -6,14 +6,18 @@ from nn.interface import IOptimizer, ITrainable, ModelState
 from nn.operation.abstract import OperandHelper
 
 
-class Variable(OperandHelper, ITrainable, AbsValue):
+class Variable(AbsValue, OperandHelper, ITrainable):
     """
         Variable for operation, trainable.
         Basic leaf node in computation graph.
     """
-    def __init__(self, initial_value=None):
+    def __init__(self, initial_value=None, shape:[tuple, list]=None):
         super().__init__()
-        self.__var = np.asarray(initial_value) if initial_value is not None else None
+        self.__var = None
+        if initial_value is not None:
+            self.__var = np.asarray(initial_value)
+        if shape:
+            self.initialize(shape)
         self.__ref_gradient = None
         self.__attached_optimizer: [IOptimizer] = None
 
@@ -61,7 +65,7 @@ class Variable(OperandHelper, ITrainable, AbsValue):
         return self.__var
 
     def set_value(self, val) -> None:
-        self.__var[:] = val
+        self.__var = val
         return None
 
     def get_gradient(self):

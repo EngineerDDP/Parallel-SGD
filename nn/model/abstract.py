@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List
+from typing import Tuple, List
 
 from numpy import ndarray
 
@@ -19,12 +19,13 @@ class Model(IModel):
     def __init__(self, input_shape=None):
         self.__placeholder_input = Placeholder(input_shape)
         self.__ref_output:[IOperator] = None
-        self.__ref_loss:[ILoss] = None
+        self.__metrics:List[IMetric] = []
+        self.__loss:[ILoss] = None
         self.__optimizer:[IOptimizer] = None
         self.__fit_history:FitResultHelper = FitResultHelper()
 
     @abstractmethod
-    def trainable_variables(self) -> List[ITrainable]:
+    def trainable_variables(self) -> Tuple[ITrainable]:
         pass
 
     @abstractmethod
@@ -32,6 +33,7 @@ class Model(IModel):
         pass
 
     def compile(self, optimizer:IOptimizer, loss:ILoss, *metrics:IMetric):
+        self.__ref_output = self.call(self.__placeholder_input)
         # validate model
         if self.__placeholder_input.get_shape() is not None:
             self.__placeholder_input.set_value()

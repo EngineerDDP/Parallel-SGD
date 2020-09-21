@@ -15,7 +15,10 @@ class GDOptimizer(IOptimizer):
         :param variable: variable object.
         :return: None
         """
-        variable.set_value(variable.get_value() - self.__optimizer.delta(variable.get_gradient() / self.__batch_size))
+        grad = variable.get_gradient()
+        if variable.get_shape() != grad.shape:
+            grad = grad.mean(axis=0)
+        variable.set_value(variable.get_value() - self.__optimizer.delta(grad / self.__batch_size))
 
     def set_batch_size(self, batch_size:int):
         self.__batch_size = batch_size

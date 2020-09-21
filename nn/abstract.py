@@ -54,7 +54,7 @@ class AbsFlexibleBinaryNode(IBinaryNode):
             self.__ref_right = self.op_right.F(x[1] if x else None, state)
         else:
             self.__ref_right = x[1]
-        self.do_forward(self.__ref_left, self.__ref_right, state == ModelState.Training)
+        return self.do_forward(self.__ref_left, self.__ref_right, state == ModelState.Training)
 
     def G(self, grad:[float, ndarray]=None) -> None:
         """
