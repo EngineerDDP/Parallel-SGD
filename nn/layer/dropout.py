@@ -2,12 +2,13 @@ import numpy as np
 
 from nn.interface import IOperator
 from nn.layer.abstract import AbsLayer
+from nn.activation.abstract import IActivation
 
 
 class Dropout(AbsLayer):
 
-    def __init__(self, drop_out_rate: float = 0.5, input=None):
-        super().__init__(input)
+    def __init__(self, drop_out_rate: float = 0.5, activation:IActivation=None, input=None):
+        super().__init__(input, activation)
         self.__ref_mask = None
         self.__probability = drop_out_rate
 

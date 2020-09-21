@@ -1,28 +1,40 @@
 import numpy as np
+from numpy import ndarray
 
-from nn.interface import IOperator
-from nn.loss.abstract import AbsLoss
-
-
-class Cross_Entropy(AbsLoss):
-
-    def __init__(self, op1: IOperator, op2: IOperator):
-        super().__init__(op1, op2)
-
-    def do_forward(self, arg1, arg2):
-        return np.mean(np.multiply(arg1, np.log(arg2)) + np.multiply((1 - arg1), np.log(1 - arg2))) * -1
-
-    def do_backward(self, arg1, arg2):
-        return (1 - arg2) / (1 - arg1) - arg2 / arg1, (1 - arg1) / (1 - arg2) - arg1 / arg2
+from nn.loss.abstract import ILoss
 
 
-class Cross_Entropy_With_Softmax(AbsLoss):
+class Cross_Entropy(ILoss):
 
-    def __init__(self, op1: IOperator, op2: IOperator):
-        super().__init__(op1, op2)
+    def __init__(self):
+        pass
 
-    def do_forward(self, arg1, arg2):
-        return np.mean(np.multiply(arg1, np.log(arg2)) + np.multiply((1 - arg1), np.log(1 - arg2))) * -1
+    def __repr__(self):
+        print(self.__str__())
 
-    def do_backward(self, arg1, arg2):
+    def __str__(self):
+        return "<Cross Entropy Loss>"
+
+    def metric(self, arg1, arg2):
+        return np.mean(np.multiply(arg2, np.log(arg1)) + np.multiply((1 - arg2), np.log(1 - arg1))) * -1
+
+    def gradient(self, left:[float, ndarray], right:[float, ndarray]) -> (ndarray, ndarray):
+        return (1 - right) / (1 - left) - right / left, (1 - left) / (1 - right) - left / right
+
+
+class Cross_Entropy_With_Softmax(ILoss):
+
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        print(self.__str__())
+
+    def __str__(self):
+        return "<Cross Entropy Loss>"
+
+    def metric(self, arg1, arg2):
+        return np.mean(np.multiply(arg2, np.log(arg1)) + np.multiply((1 - arg2), np.log(1 - arg1))) * -1
+
+    def gradient(self, arg1, arg2):
         return arg1 - arg2, arg2 - arg1

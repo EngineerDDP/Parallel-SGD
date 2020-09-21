@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     # Shorter Sign
     parse.add_argument("-n", "--node-count", dest="n", type=int, default=1, help="Worker node count")
-    parse.add_argument("-b", "--batch-size", dest="b", type=int, default=64, help="Batch size")
+    parse.add_argument("-G", "--batch-size", dest="G", type=int, default=64, help="Batch size")
     parse.add_argument("-r", "--redundancy", dest="r", type=int, default=1, help="Redundancy")
     parse.add_argument("-C", "--codec", dest="codec", type=str, default='plain', help="Initial communication codec and protocol {ccdc, plain, ps}")
     parse.add_argument("-O", "--optimizer", dest="op", type=str, default='psgd', help="Set optimizer used for model training.")

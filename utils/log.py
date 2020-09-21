@@ -1,8 +1,20 @@
 import datetime
 import os
+from abc import ABCMeta, abstractmethod
 
 
-class Logger:
+class IPrinter(metaclass=ABCMeta):
+
+    @abstractmethod
+    def log_message(self, msg):
+        pass
+
+    @abstractmethod
+    def log_error(self, error):
+        pass
+
+
+class Logger(IPrinter):
 
     def __init__(self, title_info, log_to_file=False):
 

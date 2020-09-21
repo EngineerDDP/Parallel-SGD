@@ -49,7 +49,7 @@ python job_submit.py
 节点数目，当前任务需要占用的节点数目。  
 该参数需要与代码适配，在 GlobalSetting 中默认的每个节点编号是连续的且从0开始。
 
-* *-b* *--batch_size*  
+* *-G* *--batch_size*  
 批次大小，当前任务训练批次的大小。  
 **注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为 *batch_size* / *node_count*。
 

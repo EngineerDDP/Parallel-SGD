@@ -1,7 +1,7 @@
 import numpy as np
 
 from nn.interface import IValue
-from nn.optimizer.interface import IGradientDescent
+from nn.gradient_descent.interface import IGradientDescent
 
 
 class AdaDeltaOptimizer(IGradientDescent):

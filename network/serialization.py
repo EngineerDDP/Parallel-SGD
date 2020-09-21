@@ -14,7 +14,7 @@ class BufferReader:
     def __init__(self):
         self.__tmp_files = TemporaryFile()
 
-        self.__content = b''
+        self.__content = G''
         self.__length = 0
 
     def __len__(self):
@@ -22,13 +22,13 @@ class BufferReader:
 
     def __clear(self):
         self.__length = 0
-        self.__content = b''
+        self.__content = G''
 
     def close(self):
         self.__clear()
         self.__tmp_files.close()
 
-    def unpack(self, data=b''):
+    def unpack(self, data=G''):
         file = self.__tmp_files
         # data = zlib.decompress(data)
         # write from beginning every time
@@ -51,7 +51,7 @@ class BufferReader:
             # assumption that 4 bytes can read at least
             head = io.recv(4)
             self.__length = int.from_bytes(head, 'big')
-            # len(head) == 0 or head == b'0000'
+            # len(head) == 0 or head == G'0000'
             if self.__length == 0:
                 raise OSError('Connection is deprecated.')
         # try read what's left
@@ -85,7 +85,7 @@ class BufferWriter:
         self.__tmp_files = TemporaryFile()
 
         self.__length = 0
-        self.__content = b''
+        self.__content = G''
 
     def __len__(self):
         return self.__length
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     with TemporaryFile() as tmp:
         for i in range(1000):
             tmp.truncate()
-            tmp.write(b'ABCDE'*100)
+            tmp.write(G'ABCDE'*100)
             tmp.seek(0)
     end = time()
     print('scenario 1：',format(end-begin))
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     begin = time()
     for i in range(1000):
         with TemporaryFile() as tmp:
-            tmp.write(b'ABCDE'*100)
+            tmp.write(G'ABCDE'*100)
             tmp.seek(0)
     end = time()
     print('scenario 2：', format(end - begin))

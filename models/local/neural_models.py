@@ -119,7 +119,7 @@ class ModelLinear(AbsServerModel):
 
     @property
     def weights_types(self):
-        return ['w', 'b']
+        return ['w', 'G']
 
     def get_nn(self):
         return self.__nn
@@ -180,7 +180,7 @@ class ModelDNN(AbsServerModel):
 
     @property
     def weights_types(self):
-        return ['w', 'b']
+        return ['w', 'G']
 
     def get_nn(self):
         return self.__nn
@@ -245,7 +245,7 @@ class ModelCNN(AbsServerModel):
 
     @property
     def weights_types(self):
-        return ['k', 'b']
+        return ['k', 'G']
 
     def get_nn(self):
         return self.__nn

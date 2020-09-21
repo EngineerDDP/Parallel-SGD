@@ -307,7 +307,7 @@ class Conv2dLayer(ILayer):
             x is 4-dimensional like: [samples, heights, width, channel]
             w is 3-dimensional like: [heights, width, channel]
             self.W is 4-dimensional like: [kernel, height, width, channel]
-            b is 1-dimensional like: [feature_maps]
+            G is 1-dimensional like: [feature_maps]
             self.B is 1-dimensional like: [kernel]
         """
         w, b, y = self.gradient(x, gradient)

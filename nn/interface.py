@@ -1,7 +1,22 @@
 from abc import ABCMeta, abstractmethod
+from enum import Enum, auto
+
+from numpy import ndarray
+
+
+class ModelState(Enum):
+    Training = auto()
+    Evaluating = auto()
+    Predicting = auto()
 
 
 class IOperator(metaclass=ABCMeta):
+    """
+        Operator interface.
+        All operations and variables must implements this interface.
+        This interface defined basic input and output functions for
+        forward and backward propagation.
+    """
 
     @abstractmethod
     def output_shape(self) -> [list, tuple, None]:
@@ -11,35 +26,54 @@ class IOperator(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def forward_train(self):
+    def F(self, x:[float, ndarray, tuple]=None, state:ModelState=ModelState.Training) -> [float, ndarray]:
         """
-            Forward propagate.
-        :return: output_ref
-        """
-        pass
-
-    @abstractmethod
-    def forward_predict(self):
-        """
-            Forward propagate to get predictions.
-        :return: output_ref
+            Forward propagation.
+        :param x: input source.
+                Single ndarray input if this operator only accepts one argument.
+                Input a tuple if this operator need multiple inputs.
+        :param state: State of current process.
+        :return: output of this layer.
         """
         pass
 
     @abstractmethod
-    def backward_train(self, arg) -> None:
+    def G(self, grad:[float, ndarray]=None) -> None:
         """
             Backward propagate and update variables.
         :param grad: gradients of backward_predict layers
         """
         pass
 
+
+class IBinaryNode(IOperator):
+
+    @property
     @abstractmethod
-    def backward_predict(self, arg) -> None:
-        """
-            Backward propagate without update variables.
-        :param grad: gradients of backward_predict layers
-        """
+    def op_left(self):
+        pass
+
+    @property
+    @abstractmethod
+    def op_right(self):
+        pass
+
+
+class IUnaryNode(IOperator):
+
+    @property
+    @abstractmethod
+    def op_child(self):
+        pass
+
+
+class IFlexNode(metaclass=ABCMeta):
+    """
+        Flexible graph nodes interface.
+        Make this operation can be operated with or without previous nodes.
+    """
+    @abstractmethod
+    def set_input(self, *ops:IOperator):
         pass
 
 
@@ -84,18 +118,6 @@ class IValue(metaclass=ABCMeta):
         pass
 
 
-class IVariable(metaclass=ABCMeta):
-
-    @abstractmethod
-    def initialize(self, shape:list) -> None:
-        """
-            Initialize variable with given shape.
-        :param shape: list
-        :return: None
-        """
-        pass
-
-
 class IOptimizer(metaclass=ABCMeta):
 
     @abstractmethod
@@ -117,13 +139,22 @@ class IOptimizer(metaclass=ABCMeta):
         pass
 
 
-class ITrainable(metaclass=ABCMeta):
+class ITrainable(IValue):
 
     @abstractmethod
     def attach_optimizer(self, optimizer:IOptimizer) -> None:
         """
             Attach a designated optimizer, replace the old one if possible.
         :param optimizer: new optimizer
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def reset(self) -> None:
+        """
+            Initialize variable with given shape.
+        :param shape: list
         :return: None
         """
         pass

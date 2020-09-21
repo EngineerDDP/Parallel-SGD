@@ -2,12 +2,13 @@ import numpy as np
 
 from nn.interface import IOperator
 from nn.layer.abstract import Weights, AbsLayer
+from nn.activation.interface import IActivation
 
 
 class Dense(AbsLayer):
 
-    def __init__(self, units, activation:IOperator=None, input:IOperator=None):
-        super().__init__(input)
+    def __init__(self, units, activation:IActivation=None, input:IOperator=None):
+        super().__init__(input, activation)
         self.__layer_units = units
         self.__w = Weights()
         self.__b = Weights()
@@ -25,7 +26,7 @@ class Dense(AbsLayer):
             low = -high
             self.__w.set_value(np.random.uniform(low=low, high=high, size=[x.shape[1], self.__layer_units]))
         if self.__b.get_value() is None:
-            self.__b.set_value(np.zeros(shape=[1, self.__layer_units]))
+            self.__b.set_value(np.zeros(shape=[self.__layer_units]))
 
     def do_forward_predict(self, x):
         return np.dot(x, self.__w.get_value()) + self.__b.get_value()

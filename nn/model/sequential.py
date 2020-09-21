@@ -1,23 +1,22 @@
-from nn.interface import IOperator
-from nn.layer.abstract import AbsLayer
-from nn.loss.abstract import AbsLoss
-from nn.metric.interface import IMetric
-from nn.model.abstract import FitResultHelper
+from numpy import ndarray
+
 from nn.model.interface import IModel
-from nn.optimizer import IOptimizer
-from nn.variable import Placeholder
-from utils.log import Logger
+from nn import IOperator, IOptimizer, IMetric, ILoss, AbsLayer
+from nn.data.interface import IDataFeeder
+from nn.data.numpy_data_feeder import NumpyDataFeeder
+from utils.log import IPrinter
+from nn.value.placeholder import Placeholder
+from nn.model.abstract import FitResultHelper
 
 
 class SequentialModel(IModel):
 
     def __init__(self, input_shape=None):
         self.__placeholder_input = Placeholder(input_shape)
-        self.__placeholder_output = Placeholder()
         self.__layers = []
         self.__variables = []
         self.__ref_output:[AbsLayer] = self.__placeholder_input
-        self.__loss:[AbsLoss, None] = None
+        self.__loss:[ILoss, None] = None
         self.__metrics = []
         self.__fit_history = FitResultHelper()
         self.__optimizer:[IOptimizer] = None
@@ -28,19 +27,19 @@ class SequentialModel(IModel):
         self.__layers.append(layer)
         self.__ref_output = layer
 
-    def compile(self, optimizer:IOptimizer, loss:type, *metrics):
+    def compile(self, optimizer:IOptimizer, loss:ILoss, *metrics:IMetric):
         # validate model
         if self.__placeholder_input.get_shape() is not None:
             self.__placeholder_input.set_value()
-            # initialize and validate
-            self.__ref_output.forward_predict()
-        # set output_ref hooker
-        self.__placeholder_output.set_shape(self.__ref_output.output_shape())
+            # reset and validate
+            self.__ref_output.F()
         # setup loss
-        self.__loss = loss(self.__ref_output, self.__placeholder_output)
+        self.__loss:ILoss = loss
+        # setup metric
+        self.__metrics = [self.__loss]
+        self.__metrics.extend(metrics)
         # validate metrics and set title
-        self.__metrics = metrics
-        title = ["Epochs", "Batches", "in", "Total", "Loss"]
+        title = ["Epochs", "Batches", "in", "Total"]
         for metric in self.__metrics:
             assert isinstance(metric, IMetric), "Something cannot be interpreted as metric were passed in."
             title.append(metric.description())
@@ -48,38 +47,33 @@ class SequentialModel(IModel):
         # set title
         self.__fit_history.set_fit_title(title)
         # set optimizer
-        optimizer.optimize(self.__variables)
         self.__optimizer = optimizer
+        self.__optimizer.optimize(self.__variables)
 
-    def evaluate_metrics(self, y, label) -> list:
+    def __evaluate_metrics(self, y, label) -> list:
         return [metric.metric(y, label) for metric in self.__metrics]
 
-    def fit(self, x, label, batch_size, epoch, printer:Logger=None):
-        assert isinstance(self.__loss, AbsLoss) and isinstance(self.__ref_output, IOperator), "Model hasn't complied."
+    def fit(self, x:[ndarray, IDataFeeder], epoch:int, label:[ndarray]=None, batch_size:int=64, printer:IPrinter=None) -> FitResultHelper:
+        assert isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator), "Model hasn't complied."
+        assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."
 
-        batch_size = min(batch_size, len(x))
-        batches = len(x) // batch_size
+        if isinstance(x, ndarray):
+            x = NumpyDataFeeder(x, label, batch_size=batch_size)
 
         self.__optimizer.set_batch_size(batch_size)
 
         for j in range(epoch):
-            for i in range(batches):
-                start = i * batch_size % (len(x) - batch_size + 1)
-                end = start + batch_size
-                part_x = x[start:end]
-                part_y = label[start:end]
-
+            for part_x, part_y in x:
                 self.__placeholder_input.set_value(part_x)
-                self.__placeholder_output.set_value(part_y)
-                # do forward propagation to loss
-                loss = self.__loss.forward_train()
-                y = self.__ref_output.output_ref
-
+                # do forward propagation
+                y = self.__ref_output.F()
+                # get loss
+                grad_y, _ = self.__loss.gradient(y, part_y)
                 # do backward propagation from loss
-                self.__loss.backward_train()
+                self.__ref_output.G(grad_y)
                 # record fitting process
-                fit_rec = [j+1, i+1, batches, self.__fit_history.count+1, loss]
-                fit_rec.extend(self.evaluate_metrics(y, part_y))
+                fit_rec = [j+1, x.position, x.length, self.__fit_history.count+1]
+                fit_rec.extend(self.__evaluate_metrics(y, part_y))
 
                 str_formatted = self.__fit_history.append_row(fit_rec)
                 if printer:
@@ -92,12 +86,12 @@ class SequentialModel(IModel):
     def evaluate(self, x, label):
         # set placeholder
         self.__placeholder_input.set_value(x)
-        self.__placeholder_output.set_value(label)
-        # predict
-        loss = self.__loss.forward_predict()
-        y = self.__ref_output.output_ref
+        # do forward propagation
+        y = self.__ref_output.F()
+        # get lost
+        loss = self.__loss.metric(y, label)
         # get evaluation
-        eval = self.evaluate_metrics(y, label)
+        eval = self.__evaluate_metrics(y, label)
         eval.append(loss)
         # get title
         title = [metric.description() for metric in self.__metrics]
@@ -106,10 +100,10 @@ class SequentialModel(IModel):
 
     def predict(self, x):
         self.__placeholder_input.set_value(x)
-        y = self.__ref_output.forward_predict()
+        y = self.__ref_output.F()
         return y
 
-    def summary(self, printer:Logger=None):
+    def summary(self):
 
         summary = "\n------------\t\tModel Summary\t\t------------\n"
         for nn in self.__layers:
@@ -133,27 +127,3 @@ class SequentialModel(IModel):
         # reset to default, do initialization process again
         for nn in self.__layers:
             nn.reset()
-
-
-if __name__ == '__main__':
-    from nn.optimizer import Optimize, ADAMOptimizer, GDOptimizer, SGDOptimizer, GAOptimizer
-    from nn.metric import MeanSquareError
-    from nn.loss import MSELoss
-    from nn.layer import Dense, Dropout
-    from nn.operation import Sigmoid
-
-    import numpy as np
-
-    model = SequentialModel()
-    fc1 = Dense(1, activation=Sigmoid())
-    model.add(fc1)
-    drop = Dropout()
-    model.add(drop)
-    fc2 = Dense(1)
-    model.add(fc2)
-    model.compile(Optimize(GDOptimizer, SGDOptimizer, op_params=(0.1,)), MSELoss, MeanSquareError())
-    print(model.summary())
-    model.fit(np.random.uniform(size=[10000, 10]), np.ones(shape=[10000, 1]), batch_size=64, epoch=20)
-    print(model.summary())
-    model.compile(Optimize(GAOptimizer, SGDOptimizer), MSELoss, MeanSquareError())
-    model.fit(np.random.uniform(size=[10000, 10]), np.ones(shape=[10000, 1]), batch_size=640, epoch=1)
