@@ -1,5 +1,5 @@
 from nn.interface import IOptimizer, IValue
-from nn.optimizer import IGradientDescent
+from nn.gradient_descent.interface import IGradientDescent
 
 
 class GAOptimizer(IOptimizer):

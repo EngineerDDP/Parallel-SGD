@@ -1,7 +1,5 @@
 from abc import abstractmethod, ABCMeta
 
-from nn.interface import IValue
-
 
 class IGradientDescent(metaclass=ABCMeta):
 

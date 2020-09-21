@@ -1,6 +1,6 @@
 import numpy as np
 
-from nn.optimizer.interface import IGradientDescent
+from nn.gradient_descent.interface import IGradientDescent
 
 
 class ADAMOptimizer(IGradientDescent):

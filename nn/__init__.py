@@ -5,3 +5,4 @@ from nn.loss.abstract import ILoss
 from nn.metric.interface import IMetric
 from nn.model.interface import IModel
 from nn.optimizer import IOptimizer
+from nn.activation.interface import IActivation

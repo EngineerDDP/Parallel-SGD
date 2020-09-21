@@ -1,5 +1,4 @@
-from nn.interface import IOptimizer, IValue
-from nn.optimizer.interface import IGradientDescent
+from nn.interface import IOptimizer
 
 
 class Optimize(IOptimizer):
@@ -27,5 +26,3 @@ class Optimize(IOptimizer):
 # for general usage
 from nn.optimizer.gradient_descent import GDOptimizer
 from nn.optimizer.gradient_ascent import GAOptimizer
-from nn.optimizer.adam import ADAMOptimizer
-from nn.optimizer.sgd import SGDOptimizer
