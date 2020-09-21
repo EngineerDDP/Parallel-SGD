@@ -18,6 +18,13 @@ class OperandHelper(IOperator):
         from nn.operation.add import Add
         return Add(self, other)
 
+    def __sub__(self, other: IOperator):
+        """
+            OP helper
+        """
+        from nn.operation.sub import Sub
+        return Sub(self, other)
+
     def __pow__(self, power, modulo=None):
         """
             OP helper
