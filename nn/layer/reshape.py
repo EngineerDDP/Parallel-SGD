@@ -1,14 +1,14 @@
 import numpy as np
 
-
 from typing import List, Tuple
 from nn.interface import IOperator
 from nn.layer.abstract import Weights, AbsLayer
 from nn.activation.interface import IActivation
 
+
 class Reshape(AbsLayer):
 
-    def __init__(self, shape: [List[int], Tuple[int]], activation:IActivation=None, input:IOperator=None):
+    def __init__(self, shape: [List[int], Tuple[int]], activation: IActivation = None, input: IOperator = None):
         super().__init__(input, activation)
         self.__shape_out: [List[int], Tuple[int]] = shape
         self.__shape_in: [List[int], Tuple[int]] = input.output_shape()
@@ -30,7 +30,7 @@ class Reshape(AbsLayer):
         pass
 
     def backward_propagate(self, grad):
-        return np.reshape(grad,self.__shape_in)
+        return np.reshape(grad, self.__shape_in), np.reshape(grad, self.__shape_in)
 
     def output_shape(self) -> [list, tuple, None]:
         return self.__shape_out
