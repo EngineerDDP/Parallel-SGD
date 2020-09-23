@@ -1,17 +1,28 @@
-from nn.interface import IOperator
-from nn.operation.abstract import AbsBinaryOperator
+from numpy import ndarray
+from nn.abstract import AbsFlexibleBinaryNode
+import tensorflow as tf
 
+class Conv2D(AbsFlexibleBinaryNode):
+    def __init__(self, strides, padding):
+        super().__init__()
+        self.__grad = 0
+        self.__strides = strides
+        self.__padding = padding
+        self.__out_shape = 0
 
-class Conv2D(AbsBinaryOperator):
+    def do_forward(self, left: [float, ndarray], right: [float, ndarray], training: bool = True) -> [float, ndarray]:
+        left = tf.constant(left, dtype=tf.float32)
+        right = tf.Variable(tf.constant(right, dtype=tf.float32))
+        with tf.GradientTape() as tape:
+            out = tf.nn.conv2d(left, right, self.__strides, self.__padding)
+        self.__grad = tape.gradient(out, right)
+        self.__out_shape = out.numpy().shape
+        return out
 
-    def __init__(self, op1, op2, padding, strike):
-        super().__init__(op1, op2)
+    def do_backward(self, left: [float, ndarray], right: [float, ndarray], grad: [float, ndarray]) -> (ndarray, ndarray):
 
-    def do_forward(self, arg1, arg2):
-        pass
-
-    def do_backward(self, grad):
-        pass
+        return self.__grad.numpy() * grad
 
     def output_shape(self) -> [list, tuple, None]:
-        pass
+
+        return self.__out_shape
