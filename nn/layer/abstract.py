@@ -15,18 +15,18 @@ class Weights(AbsValue, ITrainable):
         super().__init__()
         self.__content = None
         self.__content_gradient = None
-        self.__optimizer:[IOptimizer] = None
+        self.__optimizer: [IOptimizer] = None
 
     def get_shape(self) -> list:
         return self.__content.shape
 
-    def get_value(self):
+    def get_value(self) -> ndarray:
         return self.__content
 
     def set_value(self, val) -> None:
         self.__content = val
 
-    def get_gradient(self):
+    def get_gradient(self) -> ndarray:
         return self.__content_gradient
 
     def adjust(self, val):

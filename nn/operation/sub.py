@@ -5,7 +5,7 @@ from nn.abstract import AbsFlexibleBinaryNode
 
 class Sub(AbsFlexibleBinaryNode):
 
-    def __init__(self, op1:IOperator, op2:IOperator):
+    def __init__(self, op1: IOperator, op2: IOperator):
         super().__init__(op1, op2)
 
     def output_shape(self) -> [list, tuple, None]:
