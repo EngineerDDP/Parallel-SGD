@@ -22,9 +22,9 @@ class Conv2D(AbsFlexibleBinaryNode):
         right = tf.Variable(tf.constant(right, dtype=tf.float32))
         with tf.GradientTape() as tape:
             out = tf.nn.conv2d(left, right, self.__strides, self.__padding)
-        self.__grad_left, self.__grad_right = tape.gradient(out, left, right)
+        self.__grad_left, self.__grad_right = tape.gradient(out, (left, right))
         self.__out_shape = out.numpy().shape
-        return out
+        return out.numpy()
 
     def do_backward(self, left: [float, ndarray], right: [float, ndarray], grad: [float, ndarray]) -> (ndarray, ndarray):
         return np.multiply(self.__grad_left.numpy(), grad), np.multiply(self.__grad_right.numpy(), grad)
@@ -34,8 +34,23 @@ class Conv2D(AbsFlexibleBinaryNode):
 
 
 if __name__ == '__main__':
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     from nn.value import Variable
-    x = Variable(shape=(1,64,64,3))
+    x = Variable(shape=(1,5,5,1))
     w = Variable(shape=(2,2,1,2))
-    y = Conv2D(x,w,[1,1,1,1],"VALID")
+    y = Conv2D(x, w ,[1,1,1,1],"VALID")
     print(y.F())
+    # x_in = np.array([[
+    #     [[2], [1], [2], [0], [1]],
+    #     [[1], [3], [2], [2], [3]],
+    #     [[1], [1], [3], [3], [0]],
+    #     [[2], [2], [0], [1], [1]],
+    #     [[0], [0], [3], [1], [2]], ]])
+    # kernel_in = np.array([
+    #     [[[2, 0.1]], [[3, 0.2]]],
+    #     [[[0, 0.3]], [[1, 0.4]]], ])
+    # x = tf.constant(x_in, dtype=tf.float32)
+    # kernel = tf.constant(kernel_in, dtype=tf.float32)
+    # print(tf.nn.conv2d(x, kernel, strides=[1, 1, 1, 1], padding='VALID'))
+

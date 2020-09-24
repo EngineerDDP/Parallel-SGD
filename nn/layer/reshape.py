@@ -30,7 +30,13 @@ class Reshape(AbsLayer):
         pass
 
     def backward_propagate(self, grad):
-        return np.reshape(grad, self.__shape_in), np.reshape(grad, self.__shape_in)
+        return np.reshape(grad, self.__shape_in)
 
     def output_shape(self) -> [list, tuple, None]:
         return self.__shape_out
+
+    def __str__(self):
+        return "<ReShape Layer, shape: {}>".format(self.__shape_out)
+
+    def __repr__(self):
+        print(self.__str__())

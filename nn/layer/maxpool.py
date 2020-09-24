@@ -69,7 +69,13 @@ class MaxPool(AbsLayer):
                 # save
                 result[row_start:row_end, col_start:col_end][idx] = grad[i, j]
 
-        return result, result
+        return result
 
     def output_shape(self) -> [list, tuple, None]:
         return self.__shape_out
+
+    def __str__(self):
+        return "<MaxPool Layer, filter_size: {}>".format(self.__filter_size)
+
+    def __repr__(self):
+        print(self.__str__())
