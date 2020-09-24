@@ -1,12 +1,20 @@
 import time
+from typing import List
 
 import pandas as pd
 
-from codec import build_tags, GlobalSettings
-from executor.abstract import AbsExecutor, Settings, IServerModel, IDataset, ICommunication_Controller
-from models.trans import Req
-from nn.model_deprecated import SequentialModel_v2
-from psgd.transfer import NTransfer
+from codec import GlobalSettings
+from dataset.interfaces import IDataset
+from executor.abstract import AbsExecutor
+from executor.psgd.net_package import IPSGDOptimize, misc_package, Requests, Req
+from executor.psgd.net_package import net_model, net_setting
+from models import IRequestPackage
+from network import ICommunication_Controller
+from nn import IModel
+from nn.data import PSGDBlockDataFeeder
+from profiles import ISetting
+from profiles.interface import IBatchIter
+from psgd.interface import ITransfer
 from utils.log import Logger
 
 
@@ -17,106 +25,106 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__log = Logger('Fit-{}'.format(node_id), log_to_file=True)
         self.__trace_filename = [self.__log.File_Name]
         # waiting for those
-        self.__model : SequentialModel_v2 = None
-        self.__setting : Settings = None
-        self.__essential : IServerModel = None
-        self.__data : IDataset = None
-        self.__done : bool = False
+        self.__model: [IModel] = None
+        self.__optimizer: [IPSGDOptimize] = None
+        self.__setting: [ISetting] = None
+        self.__batch_iter: [IBatchIter] = None
+        self.__trans: [ITransfer] = None
+        self.__data: [IDataset] = None
+        self.__misc: [misc_package] = None
+        self.__done: bool = False
 
-    def requests(self) -> list:
-        return [Req.Dataset, Req.GlobalSettings, Req.Weights_And_Layers]
+    def requests(self) -> List[IRequestPackage]:
+        return [Requests(Req.Setting), Requests(Req.Model), Requests(Req.Optimizer),
+                Requests(Req.Transfer), Requests(Req.Data_Package), Requests(Req.Other_Stuff)]
 
     def satisfy(self, reply:list) -> list:
         unsatisfied = []
         # check list
         for obj in reply:
 
+            if isinstance(obj, net_setting):
+                GlobalSettings.deprecated_default_settings = obj.setting()
+
+            if isinstance(obj, net_model):
+                self.__model = obj.model
+                self.__batch_iter = obj.batch_iter
+
+            if isinstance(obj, IPSGDOptimize):
+                self.__optimizer = obj
+
+            if isinstance(obj, ITransfer):
+                self.__trans = obj
+
+            if isinstance(obj, misc_package):
+                self.__misc = obj
+
             if isinstance(obj, IDataset):
                 if not obj.check():
-                    unsatisfied.append(Req.Samples)
+                    unsatisfied.append(Requests(Req.Data_Content))
                 else:
-                    self.__add_data(obj)
-
-            if isinstance(obj, Settings):
-                self.__add_setting(obj)
-
-            if isinstance(obj, IServerModel):
-                self.__add_info(obj)
+                    self.__data = obj
 
         return unsatisfied
 
-    def __add_info(self, obj:IServerModel):
-        self.__essential = obj
-        self.__model = SequentialModel_v2(obj.get_nn(), self.__log)
-
-    def __add_data(self, obj:IDataset):
-        self.__data = obj
-
-    def __add_setting(self, obj:Settings):
-        self.__setting = obj
-        # register global settings
-        GlobalSettings.deprecated_default_settings = obj
-
     def ready(self) -> bool:
-        return self.__model is not None \
-               and self.__setting is not None \
-               and self.__essential is not None \
-               and self.__data is not None
+        return self.__model and self.__optimizer and self.__trans and self.__misc \
+                and self.__data and GlobalSettings.deprecated_default_settings
 
     def done(self) -> bool:
         return self.__done
 
     def start(self, com:ICommunication_Controller) -> None:
-        # build layer updater
-        sgd_type = self.__essential.psgd_type
-        iterator = range(len(self.__essential.codec_ctrl))
-        codec_type = self.__essential.codec_ctrl
-        weights_updater = [
-            {w:sgd_type(self.node_id, i, codec_type[i]) for w in self.__essential.weights_types} for i in iterator
-        ]
-        # build transfer thread
-        transfer = NTransfer(weights_updater, com, next(iter(self.group)), self.__log)
-        # get batch size
-        batch_size = self.__setting.batch.batch_size
-        # build tags
-        tags = build_tags(self.node_id, self.__setting)
-        # build optimizer
-        optimizer = self.__essential.optimizer_type(tags=tags, batch_size=batch_size, com=transfer, learn_rate=self.__essential.learn_rate)
-        # compile model
-        self.__model.compile(optimizer=optimizer, loss=self.__essential.loss_type(), metrics=self.__essential.metric)
-        # summary
-        self.__model.summary()
-        trace_head = 'N({})-R({})-ID({})-CODEC({})'.format(self.__setting.node_count, self.__setting.redundancy,
-                                                           self.node_id, ''.join([cc.__name__[0] for cc in self.__essential.codec_ctrl]))
-        self.__log.log_message('Model set to ready.')
+        # type assertions.
+        assert isinstance(self.__optimizer, IPSGDOptimize) and \
+               isinstance(self.__model, IModel) and \
+               isinstance(self.__data, IDataset) and \
+               isinstance(self.__setting, ISetting) and \
+               isinstance(self.__trans, ITransfer) and \
+               isinstance(self.__batch_iter, IBatchIter)
         # get dataset
         train_x, train_y, test_x, test_y = self.__data.load()
-
         self.__log.log_message('Dataset is ready, type: ({})'.format(self.__data))
+        # build data feeder
+        feeder = PSGDBlockDataFeeder(train_x, train_y, batch_iter=self.__batch_iter, block_ids=self.__setting.blocks)
+        # assemble optimizer
+        self.__optimizer.assemble(transfer=self.__trans, block_mgr=feeder)
+        # compile model
+        self.__model.compile(self.__optimizer)
+        # summary
+        summary = self.__model.summary()
+        self.__log.log_message(summary)
+        trace_head = '{}-N({})'.format(self.__misc.mission_title, self.node_id)
+        self.__log.log_message('Model set to ready.')
+
         log_head = self.__log.Title
         # start !
-        transfer.start_transfer()
+        GlobalSettings.deprecated_global_logger = self.__log
+        self.__trans.start_transfer(com, group_offset=self.group[0], printer=self.__log)
         # record data
         time_start = time.time()
         data_send_start = com.Com.bytes_sent
         data_recv_start = com.Com.bytes_read
 
         evaluation_history = []
+        title = []
         # do until reach the target accuracy
-        for i in range(self.__essential.epoches):
+        for i in range(self.__misc.epoch):
             # change title
             self.__log.Title = log_head + "-Epo-{}".format(i + 1)
-            self.__model.fit(train_x, train_y, epochs=1, batch_size=batch_size)
+            history = self.__model.fit(feeder, epoch=1, printer=self.__log)
             # do tests
             r = self.__model.evaluate(test_x, test_y)
-            self.__log.log_message('Evaluate result: {}'.format(dict(zip(self.__model.History_Title[-len(r):], r))))
-            evaluation_history.append(r)
+            title = r.keys()
+            row = r.values()
+            self.__log.log_message('Evaluate result: {}'.format(r))
+            evaluation_history.append(row)
 
-            if self.__essential.target_acc is not None:
+            if self.__misc.target_acc is not None:
                 # only one metric in model metrics list.
                 # evaluation[0] refers to loss
                 # evaluation[1] refers to accuracy.
-                if r[1] > self.__essential.target_acc:
+                if r[1] > self.__misc.target_acc:
                     break
 
         # record data
@@ -124,14 +132,14 @@ class PSGDWorkerExecutor(AbsExecutor):
         data_sent_end = com.Com.bytes_sent
         data_recv_end = com.Com.bytes_read
 
-        training_history = self.__model.History
+        training_history = self.__model.fit_history()
         # save training history data
         training_name = "TR-" + trace_head + ".csv"
-        training_trace = pd.DataFrame(training_history, columns=self.__model.History_Title)
+        training_trace = pd.DataFrame(training_history.history, columns=training_history.title)
         training_trace.to_csv(training_name, index=False)
         # save evaluation history data
         evaluation_name = "EV-" + trace_head + ".csv"
-        evaluation_trace = pd.DataFrame(evaluation_history, columns=self.__model.Evaluation_Title)
+        evaluation_trace = pd.DataFrame(evaluation_history, columns=title)
         evaluation_trace.to_csv(evaluation_name, index=False)
         self.__trace_filename.append(training_name)
         self.__trace_filename.append(evaluation_name)
