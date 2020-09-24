@@ -118,31 +118,10 @@ class IValue(metaclass=ABCMeta):
         pass
 
 
-class IOptimizer(metaclass=ABCMeta):
-
-    @abstractmethod
-    def optimize(self, *variables):
-        """
-            Register and optimize those parameters.
-        :param variables: tuple contains var number of Variables.
-        :return: None
-        """
-        pass
-
-    @abstractmethod
-    def set_batch_size(self, batch_size:int):
-        """
-            Set batch size for optimizer to optimize
-        :param batch_size:
-        :return:
-        """
-        pass
-
-
 class ITrainable(IValue):
 
     @abstractmethod
-    def attach_optimizer(self, optimizer:IOptimizer) -> None:
+    def attach_optimizer(self, optimizer) -> None:
         """
             Attach a designated optimizer, replace the old one if possible.
         :param optimizer: new optimizer
@@ -156,5 +135,26 @@ class ITrainable(IValue):
             Initialize variable with given shape.
         :param shape: list
         :return: None
+        """
+        pass
+
+
+class IOptimizer(metaclass=ABCMeta):
+
+    @abstractmethod
+    def optimize(self, variables: ITrainable):
+        """
+            Register and optimize those parameters.
+        :param variables: tuple contains var number of Variables.
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def set_batch_size(self, batch_size:int):
+        """
+            Set batch size for optimizer to optimize
+        :param batch_size:
+        :return:
         """
         pass

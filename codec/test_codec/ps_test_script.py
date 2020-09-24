@@ -1,5 +1,5 @@
 # import test codec
-from codec.essential import Block_Weight
+from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
 # import np
@@ -58,7 +58,7 @@ for i in range(TEST_ROUNDS):
         # get random
         arr = np.random.random(size=WEIGHTS_SHAPE)
         # build BlockWeight
-        blockweight = Block_Weight(LAYER, i, node_id, {node_id}, content=arr)
+        blockweight = BlockWeight(LAYER, i, node_id, {node_id}, content=arr)
         # send consensus package
         pkg = slave.update_blocks(blockweight)
         if isinstance(pkg, netEncapsulation):

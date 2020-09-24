@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 
 from abc import abstractmethod
@@ -67,7 +69,7 @@ class AbsLayer(IOperator, ILazyInitialization):
 
     @property
     @abstractmethod
-    def variables(self) -> tuple:
+    def variables(self) -> Tuple[ITrainable]:
         """
             Trainable units within this scope.
         :return: tuple

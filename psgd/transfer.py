@@ -1,7 +1,10 @@
 from threading import Thread
-
+from typing import Dict, Sequence
+from numpy import ndarray
 from network import ICommunication_Controller
-from psgd.interfaces import ITransfer, ReadTimeOut
+from psgd.interface import ITransfer
+from psgd.sync.interface import ReadTimeOut, IParallelSGD
+from utils.log import IPrinter
 
 
 class NTransfer(ITransfer):
@@ -9,12 +12,11 @@ class NTransfer(ITransfer):
         string identifier used in this class.
         identifier used for json key tag.
         wrote and solved only within this code scope.
+        Call start_transfer() first before send and get items.
     """
     STR_LAYER_NO = 'NLayer_NO'
-    STR_W_TYPE = 'NW_Type'
-    INT_RETRY_LIMIT = 5
 
-    def __init__(self, weights_ctrl, com: ICommunication_Controller, group_offset:int, logger):
+    def __init__(self, weights_ctrl: Dict[int, IParallelSGD]):
         """
             build a transfer controller for transferring data between local ML process and
             remote server process.
@@ -24,50 +26,55 @@ class NTransfer(ITransfer):
         """
 
         # formatted as weights_initial
-        self.type_weights_controller = weights_ctrl
-        self.communication_process = com
+        self.__type_weights_controller: Dict[int, IParallelSGD] = weights_ctrl
+        self.__communication_process: [ICommunication_Controller] = None
 
-        self.working_thread = Thread(name='Transfer thread for node {}.' .format(com.Node_Id), target=self.__run)
-        self.__group_offset = group_offset
-        self.__log = logger
+        self.__group_offset: int = 0
+        self.__log: [IPrinter] = None
 
-    def put_weights(self, content, tag, w_type='w'):
+    def put_weights(self, content: ndarray, var_id: int, batch_no: int, block_id: int):
         """
-            Put weights instantly
-            No waiting
+            Put weights instantly.
+            Async I/O interface was called after data is ready.
         """
         # Copy tag
-        update_packs = self.type_weights_controller[tag.Layer_No][w_type].update_weights(content, tag)
+        update_packs = self.__type_weights_controller[var_id].update_weights(content, batch_no, block_id)
         for update_pack in update_packs:
             sender, dic = update_pack
-            self.__send(sender, dic, tag.Layer_No, w_type)
+            self.__send(sender, dic, layer_no=var_id)
 
-    def get_weights(self, tag, w_type='w'):
+    def get_weights(self, var_id: int, batch_no: int) -> ndarray:
         """
-            Acquire weights instantly
-            No waiting
+            Acquire weights.
+            Blocking method will wait until result is available or time limit exceed.
         """
         try:
-            return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
+            return self.__type_weights_controller[var_id].require_weights(batch_no)
         except ReadTimeOut as e:
             if e.retry() is None:
                 self.__log.log_error('Time out while getting result, retry not available.')
                 raise TimeoutError('Time out while get weights.')
             for sender, dic in e.retry():
-                self.__send(sender, dic, tag.Layer_No, w_type)
+                self.__send(sender, dic, layer_no=var_id)
                 self.__log.log_error('Message retry to node {}'.format(sender))
-            return self.type_weights_controller[tag.Layer_No][w_type].require_weights(tag)
+            return self.__type_weights_controller[var_id].require_weights(batch_no)
 
 
-    def start_transfer(self):
+    def start_transfer(self, com: ICommunication_Controller,  group_offset: int, printer: IPrinter):
         """
             Start transferring data between psgd controller and communication process.
             reference call (IParallelSGD.accept_data()) without sync check, is not thread safe call.
-        :return: None
+        :param com: Communication process controller.
+        :param printer: Printer class.
         """
-        self.working_thread.start()
+        # acquire com
+        self.__communication_process = com
+        self.__log = printer
+        self.__group_offset = group_offset
+        working_thread = Thread(name="Transfer({})".format(com.Node_Id), target=self.__run, daemon=True)
+        working_thread.start()
 
-    def __send(self, target, dic, layer_no, w_type):
+    def __send(self, target: Sequence[int], dic: dict, layer_no: int):
         """
             Write tag and send
         """
@@ -78,8 +85,7 @@ class NTransfer(ITransfer):
         target = [i + self.__group_offset if i >= 0 else i for i in target]
         # write tag
         dic[NTransfer.STR_LAYER_NO] = layer_no
-        dic[NTransfer.STR_W_TYPE] = w_type
-        self.communication_process.send_one(target, dic)
+        self.__communication_process.send_one(target, dic)
 
     def __run(self):
         """
@@ -88,23 +94,22 @@ class NTransfer(ITransfer):
         :return: None
         """
         try:
-            while not self.communication_process.is_closed():
-                _, dic = self.communication_process.get_one()
+            while not self.__communication_process.is_closed():
+                _, dic = self.__communication_process.get_one()
                 # blocking other format
                 if not isinstance(dic, dict):
                     continue
                 # quit processing if the object is not sent by the class instance like NTransfer
                 try:
-                    layer_no = dic[NTransfer.STR_LAYER_NO]
-                    w_type = dic[NTransfer.STR_W_TYPE]
-                    update_packs = self.type_weights_controller[layer_no][w_type].accept_data(dic)
+                    var_no = dic[NTransfer.STR_LAYER_NO]
+                    update_packs = self.__type_weights_controller[var_no].accept_data(dic)
                     # self.Log.log_message('Message accepted.')
                     if update_packs is None:
                         continue
 
                     for update_pack in update_packs:
                         sender, dic = update_pack
-                        self.__send(sender, dic, layer_no, w_type)
+                        self.__send(sender, dic, var_no)
                         # self.Log.log_message('Message back to node {}'.format(sender))
                 except KeyError as e:
                     # print DEBUG message

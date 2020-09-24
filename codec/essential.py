@@ -1,22 +1,14 @@
-class BatchWeight:
-
-    def __init__(self, batch_id, layer_id, content):
-        self.Batch_ID = batch_id
-        self.Layer_ID = layer_id
-        self.Content = content
+from numpy import ndarray
+from typing import Set
 
 
-class Block_Weight:
+class BlockWeight:
     """
         Weights calculated using one block
     """
 
-    def __init__(self, layer_id, batch_id, block_id, company_id, content, adv_id=None):
-        if adv_id is None:
-            adv_id = set()
-        self.Layer_ID = layer_id
-        self.Batch_ID = batch_id
-        self.Block_ID = block_id
-        self.Company_ID = company_id
-        self.Adversary_ID = adv_id
-        self.Content = content
+    def __init__(self, content: ndarray, block_id: int, company_ids: Set[int], adversary_ids: Set[int]):
+        self.block_id = block_id
+        self.company = company_ids
+        self.adversary = adversary_ids
+        self.content = content

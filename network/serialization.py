@@ -14,7 +14,7 @@ class BufferReader:
     def __init__(self):
         self.__tmp_files = TemporaryFile()
 
-        self.__content = G''
+        self.__content = b''
         self.__length = 0
 
     def __len__(self):
@@ -22,13 +22,13 @@ class BufferReader:
 
     def __clear(self):
         self.__length = 0
-        self.__content = G''
+        self.__content = b''
 
     def close(self):
         self.__clear()
         self.__tmp_files.close()
 
-    def unpack(self, data=G''):
+    def unpack(self, data=b''):
         file = self.__tmp_files
         # data = zlib.decompress(data)
         # write from beginning every time
@@ -85,7 +85,7 @@ class BufferWriter:
         self.__tmp_files = TemporaryFile()
 
         self.__length = 0
-        self.__content = G''
+        self.__content = b''
 
     def __len__(self):
         return self.__length
@@ -145,24 +145,3 @@ class BufferWriter:
 
     def __del__(self):
         self.close()
-
-
-if __name__ == '__main__':
-    from time import time
-
-    begin = time()
-    with TemporaryFile() as tmp:
-        for i in range(1000):
-            tmp.truncate()
-            tmp.write(G'ABCDE'*100)
-            tmp.seek(0)
-    end = time()
-    print('scenario 1：',format(end-begin))
-
-    begin = time()
-    for i in range(1000):
-        with TemporaryFile() as tmp:
-            tmp.write(G'ABCDE'*100)
-            tmp.seek(0)
-    end = time()
-    print('scenario 2：', format(end - begin))

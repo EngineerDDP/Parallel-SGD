@@ -1,6 +1,6 @@
 import numpy as np
 
-from dataset.transforms.__init__ import AbsTransformer
+from dataset.transforms.abstract import AbsTransformer
 
 
 class Make_Non_IID(AbsTransformer):
@@ -22,7 +22,7 @@ class Make_Non_IID(AbsTransformer):
 
     @property
     def params(self):
-        return (self.__batch_size, )
+        return self.__batch_size,
 
     def run(self, x, y, test_x, test_y) -> tuple:
         # get total sample count
@@ -42,11 +42,3 @@ class Make_Non_IID(AbsTransformer):
         idx = idx[indicator]
         # sampling read data
         return x[idx], y[idx], test_x, test_y
-
-
-if __name__ == '__main__':
-    from dataset.simdata import load
-    x, y, _, _ = load()
-    trans = Make_Non_IID(64)
-    x, y = trans(x, y, 0, 0)
-    print(y[:128])

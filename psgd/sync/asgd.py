@@ -1,5 +1,4 @@
-from codec.essential import Block_Weight
-from psgd.ssgd import SynchronizedSGD, iterator_helper
+from psgd.sync.ssgd import SynchronizedSGD, iterator_helper
 
 
 class AsynchronizedSGD(SynchronizedSGD):
@@ -11,9 +10,8 @@ class AsynchronizedSGD(SynchronizedSGD):
 
     INT_BATCH_SKIP = -1
 
-    def __init__(self, node_id, layer_id, codec):
-
-        super().__init__(node_id, layer_id, codec)
+    def __init__(self, codec):
+        super().__init__(codec)
 
     def release_memory(self):
         """
@@ -32,7 +30,7 @@ class AsynchronizedSGD(SynchronizedSGD):
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
             # get package iterable
-            pack_to_sends = iterator_helper(self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA]))
+            pack_to_sends = iterator_helper(self.__batch_updater.receive_blocks(obj[SynchronizedSGD.DATA]))
 
             # iterate package
             for pack_to_send in pack_to_sends:
@@ -46,4 +44,4 @@ class AsynchronizedSGD(SynchronizedSGD):
                 yield target, pkg
 
     def require_weights(self, tag):
-        return self.batch_updater.get_result()
+        return self.__batch_updater.get_result()
