@@ -13,7 +13,7 @@ class ReLU(AbsActivation):
         return self.op_child.output_shape()
 
     def do_forward(self, x, training=True):
-        r = x.copy
+        r = x.copy()
         r[r < 0] = 0
         return r
 

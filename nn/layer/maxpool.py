@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 from typing import List, Tuple
 from nn.interface import IOperator
@@ -7,12 +8,14 @@ from nn.activation.interface import IActivation
 
 
 class MaxPool(AbsLayer):
-    def __init__(self, filter_size: [List[int], Tuple[int]], strikes: [List[int], Tuple[int]], activation:IActivation=None, input:IOperator=None):
+
+    def __init__(self, strides: [List[int], Tuple[int]], padding: [List[int], Tuple[int], str], size: [List[int], Tuple[int]], activation:IActivation=None, input:IOperator=None):
         super().__init__(input, activation)
-        self.__strikes: [List[int], Tuple[int]] = strikes
-        self.__filter_size: [List[int], Tuple[int]] = filter_size
-        self.__shape_out: [List[int], Tuple[int]] = None
-        self.__x: [List[int], Tuple[int]] = None
+        self.__strides: [List[int], Tuple[int]] = strides
+        self.__padding: [List[int], Tuple[int], str] = padding
+        self.__size: [List[int], Tuple[int]] = size
+        self.__grad_left = None
+        self.__out_shape = None
 
     @property
     def variables(self) -> tuple:
@@ -22,27 +25,12 @@ class MaxPool(AbsLayer):
         pass
 
     def do_forward_predict(self, x):
-        # build buffer for result
-        self.__x = x
-        result_height = x.shape[0] // self.__strikes[0]
-        result_width = x.shape[1] // self.__strikes[1]
-        self.__shape_out = (result_height, result_width)
-        result = np.zeros(shape=[result_height, result_width])
-        # calculate result
-        for i in range(result_height):
-            for j in range(result_width):
-                # pooling window up
-                row_start = i * self.__strikes[0]
-                # pooling window bottom
-                row_end = row_start + self.__filter_size[0]
-                # window left
-                col_start = j * self.__strikes[1]
-                # window right
-                col_end = col_start + self.__filter_size[1]
-                # pooling with specified action
-                result[i, j] = np.max(x[row_start:row_end, col_start:col_end])
-
-        return result
+        left = tf.Variable(tf.constant(x, dtype=tf.float32))
+        with tf.GradientTape() as tape:
+            out = tf.nn.max_pool2d(left, self.__size, self.__strides, self.__padding)
+        self.__grad_left = tape.gradient(out, left)
+        self.__out_shape = out.numpy().shape
+        return out.numpy()
 
     def do_forward_train(self, x):
         return self.do_forward_predict(x)
@@ -51,31 +39,22 @@ class MaxPool(AbsLayer):
         pass
 
     def backward_propagate(self, grad):
-        # build result
-        result = np.zeros_like(self.__x)
-        # do up-sampling
-        for i in range(grad.shape[0]):
-            for j in range(grad.shape[1]):
-                # pooling window up
-                row_start = i * self.__strikes[0]
-                # pooling window bottom
-                row_end = row_start + self.__filter_size[0]
-                # window left
-                col_start = j * self.__strikes[1]
-                # window right
-                col_end = col_start + self.__filter_size[1]
-                # get arg max
-                idx = np.max(self.__x[row_start:row_end, col_start:col_end])
-                # save
-                result[row_start:row_end, col_start:col_end][idx] = grad[i, j]
-
-        return result
+        return np.multiply(self.__grad_left.numpy(), grad)
 
     def output_shape(self) -> [list, tuple, None]:
-        return self.__shape_out
+        return self.__out_shape
 
     def __str__(self):
-        return "<MaxPool Layer, filter_size: {}>".format(self.__filter_size)
+        return "<MaxPool Layer, filter_size: {}>".format(self.__size)
 
     def __repr__(self):
         print(self.__str__())
+
+
+if __name__ == '__main__':
+    from nn.value import Variable
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    x = Variable(shape=(2, 5, 5, 1))
+    y = MaxPool([1,1,1,1],"VALID", (2,2),input=x)
+    print(y.F())

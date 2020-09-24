@@ -11,14 +11,14 @@ class Reshape(AbsLayer):
     def __init__(self, shape: [List[int], Tuple[int]], activation: IActivation = None, input: IOperator = None):
         super().__init__(input, activation)
         self.__shape_out: [List[int], Tuple[int]] = shape
-        self.__shape_in: [List[int], Tuple[int]] = input.output_shape()
+        self.__shape_in: [List[int], Tuple[int]] = None
 
     @property
     def variables(self) -> tuple:
         return ()
 
     def initialize_parameters(self, x) -> None:
-        pass
+        self.__shape_in = x.shape
 
     def do_forward_predict(self, x):
         return np.reshape(x, self.__shape_out)
@@ -40,3 +40,10 @@ class Reshape(AbsLayer):
 
     def __repr__(self):
         print(self.__str__())
+
+
+if __name__ == '__main__':
+    from nn.value import Variable
+    x = Variable(shape=(2, 5, 5, 1))
+    y = Reshape([-1,1,25,1],input=x)
+    print(y.F())

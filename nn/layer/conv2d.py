@@ -37,7 +37,7 @@ class Conv2DLayer(AbsLayer):
         return out.numpy()
 
     def do_forward_train(self, x):
-        return self.do_forward_train(x)
+        return self.do_forward_predict(x)
 
     def backward_adjust(self, grad) -> None:
         gw = np.multiply(self.__grad_right.numpy(), grad)
@@ -50,7 +50,16 @@ class Conv2DLayer(AbsLayer):
         return self.__out_shape
 
     def __str__(self):
-        return "<Conv2D Layer, Size: {}>".format(self.__size)
+        return "<Conv2D Layer, kernel: {}>".format(self.__size)
 
     def __repr__(self):
         print(self.__str__())
+
+if __name__ == '__main__':
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    from nn.value import Variable
+    x = Variable(shape=(1,5,5,1))
+    y = Conv2DLayer([1,1,1,1], "VALID", (2,2,1,2),input=x)
+
+    print(y.F())
