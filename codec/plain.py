@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import Dict, Optional, Iterable, Tuple
+from typing import Dict, Optional, Iterable, Tuple, Union
 from numpy import ndarray
 
 from codec import GlobalSettings
@@ -30,7 +30,7 @@ class PlainCommunicationCtrl(Codec):
         self.check_for_combine()
         return netEncapsulation(block_weight.adversary, (block_weight.block_id, block_weight.content))
 
-    def receive_blocks(self, content: Tuple[int, ndarray]) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+    def receive_blocks(self, content: Tuple[int, ndarray]) -> None:
         """
             Try collect all blocks.
         """

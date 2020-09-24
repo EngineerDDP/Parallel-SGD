@@ -1,4 +1,4 @@
-from typing import Iterable, Optional, Tuple, Dict
+from typing import Iterable, Optional, Tuple, Dict, Union
 
 import numpy as np
 
@@ -28,7 +28,7 @@ class DCASGDServerCodec(GradDiffPS):
         self.Mean_Square_Epsilon = 1e-7
         self.Mean_Square_M = 0.95
 
-    def receive_blocks(self, content: Tuple[int, np.ndarray]) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+    def receive_blocks(self, content: Tuple[int, np.ndarray]) -> Union[Iterable[netEncapsulation], netEncapsulation]:
         """
             Adaptive DC-ASGD algorithm.
         """
