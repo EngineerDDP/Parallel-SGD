@@ -1,11 +1,11 @@
 import numpy as np
 
-from codec.essential import Block_Weight
-from codec.interfaces import ICommunication_Ctrl, netEncapsulation
+from codec.essential import BlockWeight
+from codec.interfaces import Codec, netEncapsulation
 from utils.constants import Parameter_Server
 
 
-def q1(arr):
+def q1(arr: np.ndarray):
     std = np.std(arr)
     weights = arr.copy()
     weights[np.abs(weights) < std] = 0
@@ -13,7 +13,7 @@ def q1(arr):
     return weights, std
 
 
-def q2(arr):
+def q2(arr: np.ndarray):
     std = np.std(arr)
     weights = (arr - np.mean(arr)) / std
     # be aware, this will change the value of referenced object.
@@ -38,18 +38,17 @@ class QuantizedPack:
         return QuantizedPack(content[0], content[1], content[2])
 
 
-class Quantization1BitPSCodec(ICommunication_Ctrl):
+class Quantization1BitPSCodec(Codec):
 
     def __init__(self, node_id):
-        super().__init__()
-        self.__node_id = node_id
+        super().__init__(node_id)
         self.epsilon = 0.01
 
     def dispose(self):
         pass
 
     def update_blocks(self, block_weight):
-        weights, std = q1(block_weight.Content)
+        weights, std = q1(block_weight.content)
         weights = weights.astype('int8')
 
         yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
@@ -59,12 +58,11 @@ class Quantization1BitPSCodec(ICommunication_Ctrl):
         self.set_result(content.content)
 
 
-class Quantization2BitPSCodec(ICommunication_Ctrl):
+class Quantization2BitPSCodec(Codec):
 
     def __init__(self, node_id):
-        super().__init__()
+        super().__init__(node_id)
 
-        self.__node_id = node_id
         self.epsilon = 0.1
 
         self.Block_Weights_Std = 0
@@ -74,7 +72,7 @@ class Quantization2BitPSCodec(ICommunication_Ctrl):
         pass
 
     def update_blocks(self, block_weight):
-        weights, std = q2(block_weight.Content)
+        weights, std = q2(block_weight.content)
         weights = weights.astype('int8')
 
         yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
@@ -84,16 +82,16 @@ class Quantization2BitPSCodec(ICommunication_Ctrl):
         self.set_result(content.content)
 
 
-class FPWParaServer(ICommunication_Ctrl):
+class FPWParaServer(Codec):
 
     def __init__(self, node_id):
-        super().__init__()
+        super().__init__(node_id)
         self.__global_weights = 0
 
     def dispose(self):
         pass
 
-    def update_blocks(self, block_weight: Block_Weight):
+    def update_blocks(self, block_weight: BlockWeight):
         pass
 
     def receive_blocks(self, content: list):
@@ -102,7 +100,7 @@ class FPWParaServer(ICommunication_Ctrl):
         yield netEncapsulation(content.node_id, QuantizedPack(Parameter_Server, self.__global_weights, 1).pack())
 
 
-class LPWParaServer(ICommunication_Ctrl):
+class LPWParaServer(Codec):
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -111,7 +109,7 @@ class LPWParaServer(ICommunication_Ctrl):
     def dispose(self):
         pass
 
-    def update_blocks(self, block_weight:Block_Weight):
+    def update_blocks(self, block_weight:BlockWeight):
         pass
 
     def receive_blocks(self, content:list):
@@ -120,7 +118,7 @@ class LPWParaServer(ICommunication_Ctrl):
         return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, self.__global_weights.astype('float16'), 1).pack())
 
 
-class Q2WParaServer(ICommunication_Ctrl):
+class Q2WParaServer(Codec):
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -129,7 +127,7 @@ class Q2WParaServer(ICommunication_Ctrl):
     def dispose(self):
         pass
 
-    def update_blocks(self, block_weight:Block_Weight):
+    def update_blocks(self, block_weight:BlockWeight):
         pass
 
     def receive_blocks(self, content:list):
@@ -140,7 +138,7 @@ class Q2WParaServer(ICommunication_Ctrl):
         return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, weights, std).pack())
 
 
-class Q1WParaServer(ICommunication_Ctrl):
+class Q1WParaServer(Codec):
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -149,10 +147,10 @@ class Q1WParaServer(ICommunication_Ctrl):
     def dispose(self):
         pass
 
-    def update_blocks(self, block_weight:Block_Weight):
+    def update_blocks(self, block_weight: BlockWeight):
         pass
 
-    def receive_blocks(self, content:list):
+    def receive_blocks(self, content: list):
         pkg = QuantizedPack.unpack(content)
         self.__global_weights -= pkg.content.astype('double') * pkg.std
         weights, std = q1(self.__global_weights)

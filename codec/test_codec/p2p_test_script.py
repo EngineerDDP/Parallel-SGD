@@ -1,4 +1,4 @@
-from codec.essential import Block_Weight
+from codec.essential import BlockWeight
 from profiles.settings import GlobalSettings
 
 # import np
@@ -56,7 +56,7 @@ for i in range(TEST_ROUNDS):
             # get random
             arr = np.random.random(size=WEIGHTS_SHAPE)
             # build blockweights
-            blockweight = Block_Weight(LAYER, i, block_id, Default.block_assignment.block_2_node[block_id], arr)
+            blockweight = BlockWeight(LAYER, i, block_id, Default.block_assignment.block_2_node[block_id], arr)
             # send consensus package
             for package in slave.update_blocks(blockweight):
                 # get proper receiver
