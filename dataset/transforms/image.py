@@ -1,6 +1,6 @@
 import numpy as np
 
-from dataset.transforms.__init__ import AbsTransformer
+from dataset.transforms.abstract import AbsTransformer
 
 
 class ImageCls(AbsTransformer):
@@ -9,7 +9,7 @@ class ImageCls(AbsTransformer):
         super().__init__()
 
     def __repr__(self):
-        return "<Scale to 1.0 and make onehot label>"
+        return "<Scale to 1.0 and make one-hot label>"
 
     @property
     def params(self):
