@@ -6,7 +6,7 @@ from nn.interface import IOperator
 
 class Sigmoid(AbsActivation):
 
-    def __init__(self, delta=0.0, op: IOperator=None):
+    def __init__(self, delta=0.0, op: IOperator = None):
         super().__init__(op)
         self.__delta = delta
         self.__ref_output = None
@@ -24,8 +24,8 @@ class Sigmoid(AbsActivation):
 
 class SigmoidNoGrad(Sigmoid):
 
-    def __init__(self, delta=0.0, op: IOperator=None):
+    def __init__(self, delta=0.0, op: IOperator = None):
         super().__init__(delta, op)
 
-    def do_backward(self, grad):
+    def do_backward(self, x, grad):
         return grad
