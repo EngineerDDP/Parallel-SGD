@@ -55,7 +55,7 @@ class Quantization1BitPSCodec(Codec):
 
     def receive_blocks(self, content: list):
         content = QuantizedPack.unpack(content)
-        self.set_result(content.content)
+        self.set_result(content.content * content.std)
 
 
 class Quantization2BitPSCodec(Codec):
@@ -79,7 +79,7 @@ class Quantization2BitPSCodec(Codec):
 
     def receive_blocks(self, content: list):
         content = QuantizedPack.unpack(content)
-        self.set_result(content.content)
+        self.set_result(content.content * content.std)
 
 
 class FPWParaServer(Codec):

@@ -54,7 +54,7 @@ class TQNPackage:
         res = dict()
         res['TQNNode_ID'] = self.node_id
         res['TQNALPHA'] = self.__alpha
-        res['TQNBETA'] = self.__beta
+        res['TQNBETA'] = self.__beta.astype('int8')
         return res
 
     @staticmethod
@@ -66,7 +66,7 @@ class TQNPackage:
         """
         pkg = TQNPackage(None, dic['TQNNode_ID'])
         pkg.__alpha = dic['TQNALPHA']
-        pkg.__beta = dic['TQNBETA']
+        pkg.__beta = dic['TQNBETA'].astype('float64')
         return pkg
 
 
