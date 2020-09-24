@@ -1,21 +1,22 @@
 import numpy as np
 
-from profiles.blockassignment.interfaces import IBlockAssignment
+from profiles.blockassignment.abstract import AbsBlockAssignment
 
 
-class DuplicateAssignment(IBlockAssignment):
+class DuplicateAssignment(AbsBlockAssignment):
     """
         Full duplicated block assignment strategy.
         Every r nodes have the same blocks.
     """
 
-    def __init__(self, node_count, redundancy):
+    def __init__(self, node_count: int, redundancy: int):
 
+        super().__init__(node_count, redundancy)
         self.__block_count = node_count // redundancy
         self.__block_ids = list(range(self.__block_count))
 
-        node_ids = np.arange(0, node_count, 1)
-        self.__block_2_node = np.split(node_ids, self.__block_count)
+        self.__node_ids = np.arange(0, node_count, 1)
+        self.__block_2_node = np.split(self.__node_ids, self.__block_count)
         self.__node_2_block = [[block_id] for block_id in self.__block_ids for _ in range(redundancy)]
 
     @property

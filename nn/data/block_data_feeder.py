@@ -1,8 +1,10 @@
-from typing import Tuple
-from numpy import ndarray
 from abc import ABCMeta, abstractmethod
+from typing import List
+
+from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
+from profiles.interface import IBatchIter
 
 
 class IPSGDBlockMgr(metaclass=ABCMeta):
@@ -12,22 +14,40 @@ class IPSGDBlockMgr(metaclass=ABCMeta):
     def current_block_id(self):
         pass
 
+    @property
+    @abstractmethod
+    def batch_id(self):
+        pass
+
+    @property
+    @abstractmethod
+    def end(self):
+        pass
+
 
 class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
 
-    def __init__(self, x: Tuple[ndarray], y: Tuple[ndarray], batch_size:int, block_ids:Tuple[int]):
-        self.__iter_x:Tuple[ndarray] = x
-        self.__iter_y:Tuple[ndarray] = y
-        self.__total_blocks:Tuple[int] = block_ids
-        self.__iter:int = 0
-        self.__batches:int = 0
-        self.__block:int = 0
-        self.__batch_size:int = min(batch_size, len(x))
-        self.__batches:int = len(x) // batch_size
+    def __init__(self, x: ndarray, y: ndarray, batch_iter:IBatchIter, block_ids:List[int]):
+        self.__x: ndarray = x
+        self.__y: ndarray = y
+        self.__total_blocks: List[int] = block_ids
+        self.__cur_block: int = self.__total_blocks[0]
+        self.__iter: int = 0
+        self.__batch_id: int = 0
+        self.__end: bool = False
+        assert batch_iter.batch_size > len(x), \
+            "Number of input samples is too small. P-SGD requires {} at least.".format(batch_iter.batch_size)
+        self.__batch_size: int = batch_iter.batch_size
+        self.__batch_iter: IBatchIter = batch_iter
+        self.__batches: int = len(x) // self.__batch_size
 
     @property
     def position(self):
         return self.__iter
+
+    @property
+    def batch_id(self):
+        return self.__batch_id
 
     @property
     def length(self):
@@ -35,21 +55,22 @@ class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
 
     @property
     def current_block_id(self):
-        return self.__block
+        return self.__cur_block
 
     def __iter__(self):
-        for self.__iter in range(self.__batches):
-            for b_id, b_x, b_y in zip(self.__total_blocks, self.__iter_x, self.__iter_y):
-                start = self.__iter * self.__batch_size % (len(self.__iter_x) - self.__batch_size + 1)
-                end = start + self.__batch_size
-                self.__block = b_id
-                part_x = b_x[start:end]
-                part_y = b_y[start:end]
+        for self.__batch_id in range(self.__batches):
+            self.__end = False
+            for b_id in self.__total_blocks:
+                self.__cur_block = b_id
                 self.__iter += 1
+                self.__end = b_id == self.__total_blocks[-1]
+                sli = self.__batch_iter.iter(self.__batch_id, b_id)
+                part_x = self.__x[sli]
+                part_y = self.__y[sli]
                 yield part_x, part_y
 
     def __repr__(self):
         print(self.__str__())
 
     def __str__(self):
-        return "<P-SGD data iterator, current batch: {} in block: {}, total: {}.".format(self.__iter, self.__block, self.__batches)
+        return "<P-SGD data iterator, current batch: {} in block: {}, total: {}.".format(self.__iter, self.__cur_block, self.__batches)

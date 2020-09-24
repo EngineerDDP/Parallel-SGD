@@ -1,27 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
+from dataset.transforms.interface import ITransformer
 
-class ITransformer(metaclass=ABCMeta):
-
-    @property
-    @abstractmethod
-    def params(self):
-        """
-            Parameters used for rebuild this transformer.
-        """
-        pass
-
-    @abstractmethod
-    def __call__(self, train_x, train_y, test_x, test_y) -> tuple:
-        """
-            Transform dataset.
-        :return: new dataset, train_x, train_y, test_x, test_y
-        """
-        pass
-
-    @abstractmethod
-    def add(self, trans):
-        pass
 
 class AbsTransformer(ITransformer):
 
@@ -35,7 +15,7 @@ class AbsTransformer(ITransformer):
     def __repr__(self):
         cur = self.__next
         res = []
-        while cur != None:
+        while cur is not None:
             res.append(str(cur))
             cur = cur.__next
         return "<Transformation: ({})>".format(','.join(res))

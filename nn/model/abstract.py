@@ -10,6 +10,7 @@ from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.model.interface import IModel
 from nn.model.utils import FitResultHelper
+from nn.optimizer import IOptimize
 from nn.value.placeholder import Placeholder
 from utils.log import IPrinter
 
@@ -32,7 +33,7 @@ class Model(IModel):
     def call(self, x:IOperator) -> IOperator:
         pass
 
-    def compile(self, optimizer:IOptimizer, loss:ILoss, *metrics:IMetric):
+    def setup(self, loss:ILoss, *metrics:IMetric):
         self.__ref_output = self.call(self.__placeholder_input)
         # validate model
         if self.__placeholder_input.get_shape() is not None:
@@ -52,9 +53,11 @@ class Model(IModel):
 
         # set title
         self.__fit_history.set_fit_title(title)
+
+    def compile(self, optimizer:IOptimize):
         # set optimizer
         self.__optimizer = optimizer
-        self.__optimizer.optimize(self.trainable_variables())
+        self.__optimizer.optimize(*self.trainable_variables())
 
     def __evaluate_metrics(self, y, label) -> list:
         return [metric.metric(y, label) for metric in self.__metrics]
@@ -90,6 +93,9 @@ class Model(IModel):
 
         return self.__fit_history
 
+    def fit_history(self) -> FitResultHelper:
+        return self.__fit_history
+
     def evaluate(self, x:ndarray, label:ndarray):
         # set placeholder
         self.__placeholder_input.set_value(x)
@@ -113,3 +119,6 @@ class Model(IModel):
     def clear(self):
         for var in self.trainable_variables():
             var.reset()
+
+    def summary(self) -> str:
+        return "No summary available for this model."

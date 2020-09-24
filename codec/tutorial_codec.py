@@ -1,43 +1,41 @@
-from codec.interfaces import ICommunication_Ctrl
-from codec.essential import Block_Weight
+from codec import GlobalSettings
+from codec.essential import BlockWeight
+from codec.interfaces import Codec
 from codec.interfaces import netEncapsulation
 
-from codec import GlobalSettings
 
-
-class myComCtrl(ICommunication_Ctrl):
+class MyComCtrl(Codec):
     def __init__(self, node_id):
-        super().__init__()
-        # 保存并记录本节点编号信息，除此之外再也没有其他地方可以获取该信息
-        self.__node_id = node_id
+        super().__init__(node_id)
         self.__global_weights = 0
         self.__current_recv = 0
 
     def dispose(self):
-        print('my communication controller is disposed.')
+        # 使用 record 方法记录信息到 P-SGD 的 log 文件中
+        self.record('my communication controller is disposed.')
 
-    def update_blocks(self, block_weight: Block_Weight):
-        print('Weights delta received.')
-        print('from block: {}'.format(block_weight.Block_ID))
-        print('It has a content with shape: {}'.format(block_weight.Content.shape))
+    def update_blocks(self, block_weight: BlockWeight):
+        self.record('Weights delta received.')
+        self.record('from block: {}'.format(block_weight.block_id))
+        self.record('It has a content with shape: {}'.format(block_weight.content.shape))
 
         # 获取没有该数据的节点
-        send_to = block_weight.Adversary_ID
+        send_to = block_weight.adversary
         # 我们使用 'data' 字符串来标记我们的梯度内容
         pkg = {
-            'data': block_weight.Content
+            'data': block_weight.content
         }
         # 记录本机梯度
-        self.__global_weights += block_weight.Content
+        self.__global_weights += block_weight.content
         self.__current_recv += 1
         # 检查是否接受完所有数据
         self.__do_grad_average()
         # 发送梯度
-        yield netEncapsulation(send_to, pkg)
+        return netEncapsulation(send_to, pkg)
 
     def receive_blocks(self, content: dict):
-        print('I have received an package.')
-        print('It has a content with shape: {}'.format(content['data'].shape))
+        self.record('I have received an package.')
+        self.record('It has a content with shape: {}'.format(content['data'].shape))
         # 记录梯度内容
         self.__global_weights += content['data']
         # 记录已经接收到多少个梯度了

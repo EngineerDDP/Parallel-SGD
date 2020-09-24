@@ -1,20 +1,21 @@
 import numpy as np
 
-#custmized module
+# customized module
 from utils.huffman import codec
 
 from codec.interfaces import netEncapsulation
-from codec.interfaces import ICommunication_Ctrl
-from codec.essential import Block_Weight
+from codec.interfaces import Codec
+from codec.essential import BlockWeight
 from utils.log import Logger
 from utils.constants import Parameter_Server
 
 from codec import GlobalSettings
 
+
 # based on paper SGQ chapter 3.1
-def build_quantization_space(states:int) -> list:
-    k_max = (states) // 2
-    theta = lambda k : 1 / (np.tan(k * np.pi / 4))
+def build_quantization_space(states: int) -> list:
+    k_max = states // 2
+    def theta(k): return 1 / (np.tan(k * np.pi / 4))
     space_pos = [theta(k / k_max) for k in range(k_max, 0, -1)]
     space_neg = [-i for i in space_pos]
     space_neg.reverse()
@@ -45,7 +46,7 @@ def quantize(arr, space, epsilon=1e-9):
     return a, b
 
 
-def stochastic_quantization(arr:np.ndarray, space:list):
+def stochastic_quantization(arr: np.ndarray, space: list):
     if len(space) == 3:
         return stochastic_ternarization(arr)
     sign = np.sign(arr)
@@ -61,7 +62,7 @@ def stochastic_quantization(arr:np.ndarray, space:list):
                 break
 
         rnd = np.random.uniform(lo, hi)
-        if (rnd > x):
+        if rnd > x:
             x[...] = lo
         else:
             x[...] = hi
@@ -69,22 +70,19 @@ def stochastic_quantization(arr:np.ndarray, space:list):
     return sign * arr_in
 
 
-class SGQClient(ICommunication_Ctrl):
+class SGQClient(Codec):
 
-    def __init__(self, node_id, logger=Logger('None')):
+    def __init__(self, node_id):
+        super().__init__(node_id)
 
-        super().__init__()
-        self.Node_id = node_id
-        self.Logger = logger
-
-    def update_blocks(self, block_weight:Block_Weight):
+    def update_blocks(self, block_weight: BlockWeight):
         """
             Update weights to parameter server
         :param block_weight:
         :return:
         """
-        content = block_weight.Content
-        pkg = SGQPackage(content, self.Node_id)
+        content = block_weight.content
+        pkg = SGQPackage(content, self.node_id)
         return netEncapsulation(Parameter_Server, pkg.encode())
 
     def dispose(self):
@@ -93,7 +91,7 @@ class SGQClient(ICommunication_Ctrl):
         """
         pass
 
-    def receive_blocks(self, content:dict):
+    def receive_blocks(self, content: dict):
         """
             Receive a sgq package and set it to result buffer
         :param content:
@@ -103,22 +101,19 @@ class SGQClient(ICommunication_Ctrl):
         self.set_result(pkg.content())
 
 
-class SGQServer(ICommunication_Ctrl):
-
+class SGQServer(Codec):
     __max_error = 0
 
-    def __init__(self, node_id, logger=Logger('None')):
+    def __init__(self, node_id):
 
-        super().__init__()
-        self.Node_Id = node_id
-        self.Logger = logger
+        super().__init__(node_id)
 
         self.Global_State = 0
         self.Weights_Last_Received = {}
         for key in GlobalSettings.get_default().nodes:
             self.Weights_Last_Received[key] = 0
 
-    def receive_blocks(self, content:dict):
+    def receive_blocks(self, content: dict):
         """
             SGQ receive a quantized matrix and returns the grad diff for the client
         :param content:
@@ -144,7 +139,6 @@ class SGQServer(ICommunication_Ctrl):
         # return
         return netEncapsulation(data.node_id, data_rtn.encode())
 
-
     def update_blocks(self, block_weight):
         """
             SGQ server codec cannot receive data
@@ -160,13 +154,12 @@ class SGQServer(ICommunication_Ctrl):
 
 
 class SGQPackage:
-
     __quant_states = 3
     __quant_codec = None
     __quant_code = None
     __quant_space = None
 
-    def __init__(self, content, node_id = -2):
+    def __init__(self, content, node_id=-2):
         """
             Build SGQ transmitting package
         :param content: weights delta content
@@ -207,8 +200,8 @@ class SGQPackage:
         return SGQPackage.__quant_codec.encode(arr.reshape(-1).astype(int))
 
     @staticmethod
-    def __decode(bytes, len):
-        arr = np.asarray(SGQPackage.__quant_codec.decode(bytes)[:len])
+    def __decode(_bytes, _len):
+        arr = np.asarray(SGQPackage.__quant_codec.decode(_bytes)[:_len])
         it = iter(SGQPackage.__quant_code)
         for v in SGQPackage.__quant_space:
             arr[arr == next(it)] = v
@@ -255,4 +248,4 @@ if __name__ == '__main__':
     source = a.content()
     target = SGQPackage.decode(a.encode()).content()
 
-    print(np.abs(source - target).sum())
+    print(np.abs(rand - target).sum())

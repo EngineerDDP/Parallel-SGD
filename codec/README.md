@@ -27,7 +27,7 @@
 　　运行以下代码导入编码控制器抽象。
 
 ```python
-from codec.interfaces import ICommunication_Ctrl
+from codec.interfaces import Codec
 ```
 
 ## 参数
@@ -36,9 +36,9 @@ from codec.interfaces import ICommunication_Ctrl
 　　您可以选择接受并记录该参数，也可以选择抛弃该参数，该参数只会在创建的时候传递，之后也没有与该参数关联的接口，无需做过多的处理。
 
 ```python
-from codec.interfaces import ICommunication_Ctrl
+from codec.interfaces import Codec
 
-class myComCtrl(ICommunication_Ctrl):
+class myComCtrl(Codec):
     def __init__(self, node_id):
         super().__init__()
         # save it if you need it
@@ -50,9 +50,9 @@ class myComCtrl(ICommunication_Ctrl):
 　　当 P-SGD Transfer 终止一个编码控制器的生命周期时，调用 dispose() 接口执行释放，需要在您的类中实现该接口以正确配置资源释放。
 
 ```python
-from codec.interfaces import ICommunication_Ctrl
+from codec.interfaces import Codec
 
-class myComCtrl(ICommunication_Ctrl):
+class myComCtrl(Codec):
     def __init__(self, node_id):
         super().__init__()
         # save it if you need it
@@ -83,10 +83,10 @@ class myComCtrl(ICommunication_Ctrl):
 
 　　下面的代码接收了梯度平均化方法的参数提交：
 ```python
-from codec.interfaces import ICommunication_Ctrl
-from codec.essential import Block_Weight
+from codec.interfaces import Codec
+from codec.essential import BlockWeight
 
-class myComCtrl(ICommunication_Ctrl):
+class myComCtrl(Codec):
     def __init__(self, node_id):
         super().__init__()
         # save it if you need it
@@ -95,10 +95,10 @@ class myComCtrl(ICommunication_Ctrl):
     def dispose(self):
         print('my communication controller is disposed.')
 
-    def update_blocks(self, block_weight:Block_Weight):
+    def update_blocks(self, block_weight:BlockWeight):
         print('Weights delta received.')
-        print('from block: {}'.format(block_weight.Block_ID))
-        print('has content: {}'.format(block_weight.Content))
+        print('from block: {}'.format(block_weight.block_id))
+        print('has content: {}'.format(block_weight.content))
 ```
 
 　　当您需要将数据发送到网络上时，您需要几个特别的参数。首先，您需要知道您的数据要送给哪些节点。要获取全局已申请的节点编号，调用以下代码：
@@ -111,11 +111,11 @@ print('Workers in current job: {}'.format(GlobalSettings.get_default().nodes))
 　　要将您的数据返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。依照梯度平均化编码控制器的任务提交逻辑，应当将本节点计算所得的梯度传输给参数服务器或其他没有该数据的执行节点，我们先实现一个无参数服务器的简单模型，代码如下：  
 
 ```python
-from codec.interfaces import ICommunication_Ctrl
-from codec.essential import Block_Weight
+from codec.interfaces import Codec
+from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
-class myComCtrl(ICommunication_Ctrl):
+class myComCtrl(Codec):
     def __init__(self, node_id):
         super().__init__()
         # save it if you need it
@@ -124,14 +124,14 @@ class myComCtrl(ICommunication_Ctrl):
     def dispose(self):
         print('my communication controller is disposed.')
 
-    def update_blocks(self, block_weight:Block_Weight):
+    def update_blocks(self, block_weight:BlockWeight):
         print('Weights delta received.')
-        print('from block: {}'.format(block_weight.Block_ID))
-        print('has content: {}'.format(block_weight.Content))
+        print('from block: {}'.format(block_weight.block_id))
+        print('has content: {}'.format(block_weight.content))
         
-        send_to = block_weight.Adversary_ID
+        send_to = block_weight.adversary
         pkg = {
-            'data': block_weight.Content
+            'data': block_weight.content
         }
         
         yield netEncapsulation(send_to, pkg)
@@ -147,14 +147,14 @@ class myComCtrl(ICommunication_Ctrl):
 　　当您完成一批数据的处理时，调用 set_result 方法来提交您的结果，当神经网络端需要更新权值时，会调用 get_result 方法直接获取数据，如果获取不到数据则会进行超时计数，超过一个SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，ISync-SGD 会尝试调用编码器的do_something_to_save_yourself 方法试图恢复集群的稳定状态，当超出两个 SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，P-SGD Transfer 就会报告超时错误，与集群的连接就会断开。  
 　　当有消息需要处理时，P-SGD Transfer 会调用 receive_blocks 方法，实现该方法并与您的 update_blocks 匹配，就可以完成一次任务的转发。要注意的是，节点不一定会在接收消息的时候完成参数的归一，可能会有其他比较快的计算节点抢先完成计算，本节点在自己计算完成并提交之后才完成参数的归一，因此我们要在参数提交和参数接收两个方法中都定义归一操作。利用全局节点总数来判断我们是否需要进行梯度平均化操作，实现如下：  
 ```python
-from codec.interfaces import ICommunication_Ctrl
-from codec.essential import Block_Weight
+from codec.interfaces import Codec
+from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
 from profiles.settings import GlobalSettings
 
 
-class myComCtrl(ICommunication_Ctrl):
+class myComCtrl(Codec):
     def __init__(self, node_id):
         super().__init__()
         # 保存并记录本节点编号信息，除此之外再也没有其他地方可以获取该信息
@@ -179,14 +179,14 @@ class myComCtrl(ICommunication_Ctrl):
 　　完整的代码如下：
 
 ```python
-from codec.interfaces import ICommunication_Ctrl
-from codec.essential import Block_Weight
+from codec.interfaces import Codec
+from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
 from profiles.settings import GlobalSettings
 
 
-class myComCtrl(ICommunication_Ctrl):
+class myComCtrl(Codec):
     def __init__(self, node_id):
         super().__init__()
         # 保存并记录本节点编号信息，除此之外再也没有其他地方可以获取该信息
@@ -197,19 +197,19 @@ class myComCtrl(ICommunication_Ctrl):
     def dispose(self):
         print('my communication controller is disposed.')
 
-    def update_blocks(self, block_weight:Block_Weight):
+    def update_blocks(self, block_weight:BlockWeight):
         print('Weights delta received.')
-        print('from block: {}'.format(block_weight.Block_ID))
-        print('It has a content with shape: {}'.format(block_weight.Content.shape))
+        print('from block: {}'.format(block_weight.block_id))
+        print('It has a content with shape: {}'.format(block_weight.content.shape))
         
         # 获取没有该数据的节点
-        send_to = block_weight.Adversary_ID
+        send_to = block_weight.adversary
         # 我们使用 'data' 字符串来标记我们的梯度内容
         pkg = {
-            'data': block_weight.Content
+            'data': block_weight.content
         }
         # 记录本机梯度
-        self.__global_weights += block_weight.Content
+        self.__global_weights += block_weight.content
         self.__current_recv += 1
         # 检查是否接受完所有数据
         self.__do_grad_average()

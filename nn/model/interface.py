@@ -3,9 +3,9 @@ from abc import ABCMeta, abstractmethod
 from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
-from nn.interface import IOptimizer
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
+from nn.optimizer import IOptimize
 from utils.log import IPrinter
 from nn.model.utils import FitResultHelper
 
@@ -13,12 +13,20 @@ from nn.model.utils import FitResultHelper
 class IModel(metaclass=ABCMeta):
 
     @abstractmethod
-    def compile(self, optimizer:IOptimizer, loss:ILoss, *metrics:IMetric):
+    def setup(self, loss:ILoss, *metrics:IMetric):
         """
-            Compile model with given optimizer, loss and metrics
-        :param optimizer: IOptimizer
+             loss and metrics
         :param loss: ILoss
         :param metrics: IMetric
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def compile(self, optimizer:IOptimize):
+        """
+            Compile model with given optimizer
+        :param optimizer: IOptimizer
         :return: None
         """
         pass
@@ -37,6 +45,14 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def fit_history(self) -> FitResultHelper:
+        """
+            Get all history records.
+        :return:
+        """
+        pass
+
+    @abstractmethod
     def evaluate(self, x:ndarray, label:ndarray):
         """
             Evaluate this model with given metric.
@@ -47,7 +63,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def predict(self, x:ndarray):
+    def predict(self, x:ndarray) -> ndarray:
         """
             Predict give input
         :param x: input samples
@@ -60,5 +76,13 @@ class IModel(metaclass=ABCMeta):
         """
             Clear and reset model parameters.
         :return:
+        """
+        pass
+
+    @abstractmethod
+    def summary(self) -> str:
+        """
+            Return the summary string for this model.
+        :return: String
         """
         pass

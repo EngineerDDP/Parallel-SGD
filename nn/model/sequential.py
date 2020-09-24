@@ -1,107 +1,41 @@
+from typing import List, Tuple
+
 from numpy import ndarray
 
 from nn.model.interface import IModel
-from nn import IOperator, IOptimizer, IMetric, ILoss, AbsLayer
+from nn import IOperator, IOptimizer, IMetric, ILoss, AbsLayer, ITrainable
 from nn.data.interface import IDataFeeder
 from nn.data.numpy_data_feeder import NumpyDataFeeder
+from nn.optimizer import IOptimize
 from utils.log import IPrinter
 from nn.value.placeholder import Placeholder
-from nn.model.abstract import FitResultHelper
+from nn.model.abstract import FitResultHelper, Model
 
 
-class SequentialModel(IModel):
+class SequentialModel(Model):
 
     def __init__(self, input_shape=None):
-        self.__placeholder_input = Placeholder(input_shape)
-        self.__layers = []
-        self.__variables = []
-        self.__ref_output:[AbsLayer] = self.__placeholder_input
-        self.__loss:[ILoss, None] = None
-        self.__metrics = []
-        self.__fit_history = FitResultHelper()
-        self.__optimizer:[IOptimizer] = None
+        super().__init__(input_shape=input_shape)
+        self.__layers: List[AbsLayer] = []
 
     def add(self, layer:AbsLayer):
-        layer.set_input(self.__ref_output)
-        self.__variables.extend(layer.variables)
         self.__layers.append(layer)
-        self.__ref_output = layer
 
-    def compile(self, optimizer:IOptimizer, loss:ILoss, *metrics:IMetric):
-        # validate model
-        if self.__placeholder_input.get_shape() is not None:
-            self.__placeholder_input.set_value()
-            # reset and validate
-            self.__ref_output.F()
-        # setup loss
-        self.__loss:ILoss = loss
-        # setup metric
-        self.__metrics = [self.__loss]
-        self.__metrics.extend(metrics)
-        # validate metrics and set title
-        title = ["Epochs", "Batches", "in", "Total"]
-        for metric in self.__metrics:
-            assert isinstance(metric, IMetric), "Something cannot be interpreted as metric were passed in."
-            title.append(metric.description())
+    def pop(self):
+        self.__layers.pop()
 
-        # set title
-        self.__fit_history.set_fit_title(title)
-        # set optimizer
-        self.__optimizer = optimizer
-        self.__optimizer.optimize(self.__variables)
+    def call(self, x:IOperator) -> IOperator:
+        input = x
+        for layer in self.__layers:
+            layer.set_input(input)
+            input = layer
+        return input
 
-    def __evaluate_metrics(self, y, label) -> list:
-        return [metric.metric(y, label) for metric in self.__metrics]
-
-    def fit(self, x:[ndarray, IDataFeeder], epoch:int, label:[ndarray]=None, batch_size:int=64, printer:IPrinter=None) -> FitResultHelper:
-        assert isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator), "Model hasn't complied."
-        assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."
-
-        if isinstance(x, ndarray):
-            x = NumpyDataFeeder(x, label, batch_size=batch_size)
-
-        self.__optimizer.set_batch_size(batch_size)
-
-        for j in range(epoch):
-            for part_x, part_y in x:
-                self.__placeholder_input.set_value(part_x)
-                # do forward propagation
-                y = self.__ref_output.F()
-                # get loss
-                grad_y, _ = self.__loss.gradient(y, part_y)
-                # do backward propagation from loss
-                self.__ref_output.G(grad_y)
-                # record fitting process
-                fit_rec = [j+1, x.position, x.length, self.__fit_history.count+1]
-                fit_rec.extend(self.__evaluate_metrics(y, part_y))
-
-                str_formatted = self.__fit_history.append_row(fit_rec)
-                if printer:
-                    printer.log_message(str_formatted)
-                else:
-                    print(str_formatted)
-
-        return self.__fit_history
-
-    def evaluate(self, x, label):
-        # set placeholder
-        self.__placeholder_input.set_value(x)
-        # do forward propagation
-        y = self.__ref_output.F()
-        # get lost
-        loss = self.__loss.metric(y, label)
-        # get evaluation
-        eval = self.__evaluate_metrics(y, label)
-        eval.append(loss)
-        # get title
-        title = [metric.description() for metric in self.__metrics]
-        title.append("Loss")
-        return dict(zip(title, eval))
-
-    def predict(self, x):
-        self.__placeholder_input.set_value(x)
-        y = self.__ref_output.F()
-        return y
+    def trainable_variables(self) -> Tuple[ITrainable]:
+        vars: List[ITrainable] = []
+        for layer in self.__layers:
+            vars.extend(layer.variables)
+        return tuple(vars)
 
     def summary(self):
 
@@ -122,8 +56,3 @@ class SequentialModel(IModel):
             summary += '\t------------\t\tAppendix\t\t------------\n'
         summary += '\n------------\t\tModel Summary\t\t------------\n'
         return summary
-
-    def clear(self):
-        # reset to default, do initialization process again
-        for nn in self.__layers:
-            nn.reset()
