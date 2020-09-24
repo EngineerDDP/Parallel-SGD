@@ -1,7 +1,8 @@
-from nn.interface import IOptimizer
+from nn import ITrainable
+from nn.optimizer.interface import IOptimize
 
 
-class Optimize(IOptimizer):
+class Optimize(IOptimize):
 
     def __init__(self, gradient_descent_type:type, optimizer_type:type, gd_params=tuple(), op_params=tuple()):
         self.__gd_type = gradient_descent_type
@@ -10,7 +11,7 @@ class Optimize(IOptimizer):
         self.__op_params = op_params
         self.__op_list = []
 
-    def optimize(self, variables:[list, tuple]):
+    def optimize(self, *variables: ITrainable):
         for var in variables:
             self.__op_list.append(self.__gd_type(self.__op_type(*self.__op_params), *self.__gd_params))
             var.attach_optimizer(self.__op_list[-1])
@@ -26,3 +27,6 @@ class Optimize(IOptimizer):
 # for general usage
 from nn.optimizer.gradient_descent import GDOptimizer
 from nn.optimizer.gradient_ascent import GAOptimizer
+from nn.optimizer.parallel_sgd import PSGDOptimizer
+from nn.optimizer.double_buffering import DoubleBufferingOptimizer
+from nn.optimizer.parameter_average import PAOptimizer
