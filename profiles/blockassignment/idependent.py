@@ -1,21 +1,21 @@
 import numpy as np
 
 from itertools import combinations
-from profiles.blockassignment.interfaces import IBlockAssignment
+from profiles.blockassignment.abstract import AbsBlockAssignment
 
 
-class IIDBlockAssignment(IBlockAssignment):
+class IIDBlockAssignment(AbsBlockAssignment):
 
     def __init__(self, node_count, redundancy):
 
+        super().__init__(node_count, redundancy)
         self.__block_count = int(np.math.factorial(node_count) / (
                     np.math.factorial(redundancy) * np.math.factorial(node_count - redundancy)))
 
         self.__block_ids = list(range(self.__block_count))
-        node_ids = list(range(node_count))
 
-        self.__block_2_node = list(combinations(node_ids, redundancy))
-        self.__node_2_block = [[] for _ in node_ids]
+        self.__block_2_node = list(combinations(self.nodes, redundancy))
+        self.__node_2_block = [[] for _ in self.nodes]
 
         block_id = 0
 

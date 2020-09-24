@@ -7,7 +7,7 @@
 
 　　数据分配策略类实现以下接口：  
 ```python
-from profiles.blockassignment.interfaces import IBlockAssignment
+from profiles.blockassignment.abstract import AbsBlockAssignment
 ```
 
 　　要实现一个数据分配策略，继承上述接口并实现其中的四个属性。数据分配策略由 GlobalSettings 创建
