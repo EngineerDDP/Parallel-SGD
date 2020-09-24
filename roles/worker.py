@@ -2,7 +2,7 @@ import time
 
 from executor.abstract import AbsExecutor
 
-from models.trans import IReplyPackage, RequestWorkingLog, Binary_File_Package, Done_Type, Ready_Type, SubmitJob
+from models import *
 
 from network.communications import get_repr
 from network import ICommunication_Controller, Serve
@@ -102,7 +102,7 @@ class PSGD_Worker:
                 posting_files.append(filename)
 
         # Post files
-        com.send_one(Initialization_Server, Done_Type(posting_files))
+        com.send_one(Initialization_Server, DoneType(posting_files))
 
     def init_PSGD(self, com: ICommunication_Controller, job_info: SubmitJob) -> bool:
         """
@@ -149,7 +149,7 @@ class PSGD_Worker:
                     replies.clear()
 
             # pass to sync
-            elif isinstance(data, Ready_Type):
+            elif isinstance(data, ReadyType):
                 ready_state = ready_state | data.current_ready()
 
         self.client_logger.log_message('Submit stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
@@ -176,7 +176,7 @@ class PSGD_Worker:
 
         ready_state.add(com.Node_Id)
         for id in com.available_clients:
-            com.send_one(id, Ready_Type(ready_state))
+            com.send_one(id, ReadyType(ready_state))
 
         while ready_state & total_nodes != total_nodes:
             assert timeout_clock < timeout, "Maximum waiting time exceed."
@@ -189,7 +189,7 @@ class PSGD_Worker:
 
             # check ready state
             id_from, data = com.get_one(blocking=False)
-            if isinstance(data, Ready_Type):
+            if isinstance(data, ReadyType):
                 ready_state = ready_state | data.current_ready()
 
     def do_training(self, com: ICommunication_Controller):
@@ -206,7 +206,7 @@ class PSGD_Worker:
         self.client_logger.log_message('Training stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
 
         for filename in self.__job_executor.trace_files():
-            data = Binary_File_Package(filename)
+            data = BinaryFilePackage(filename)
             com.send_one(Initialization_Server, data)
 
         self.client_logger.log_message('Try post training log to coordinator.')
