@@ -5,7 +5,7 @@ if __name__ == '__main__':
     # 导入请求处理
     from network import Request
     # 导入自定义执行类型，注意：自定义类型不能和下面的代码放在一起
-    from myExe import myExecutor
+    from executor.myexe.myExe import myExecutor
 
     # 添加一个ip作为Worker
     nodes = NodeAssignment()
@@ -25,4 +25,3 @@ if __name__ == '__main__':
         master.submit_group(myExecutor, package_size=18000)
         # 等待执行完成
         master.join()
-
