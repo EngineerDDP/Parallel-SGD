@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from typing import List, Tuple
+from typing import List, Tuple, Iterable, Union
 from nn.interface import IOperator
 from nn.layer.abstract import Weights, AbsLayer
 from nn.activation.interface import IActivation
@@ -9,8 +9,9 @@ from nn.activation.interface import IActivation
 
 class Conv2DLayer(AbsLayer):
 
-    def __init__(self, strides: [List[int], Tuple[int]], padding: [List[int], Tuple[int], str], size: [List[int], Tuple[int]], activation:IActivation=None, input:IOperator=None):
-        super().__init__(input, activation)
+    def __init__(self, strides: Iterable[int], padding: Union[Iterable[int], str],
+                 size: Iterable[int], activation: IActivation = None, inputs: IOperator = None):
+        super().__init__(inputs, activation)
         self.__kernal = Weights()
         self.__strides: [List[int], Tuple[int]] = strides
         self.__padding: [List[int], Tuple[int], str] = padding
@@ -55,11 +56,14 @@ class Conv2DLayer(AbsLayer):
     def __repr__(self):
         print(self.__str__())
 
+
 if __name__ == '__main__':
     import os
+
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     from nn.value import Variable
-    x = Variable(shape=(1,5,5,1))
-    y = Conv2DLayer([1,1,1,1], "VALID", (2,2,1,2),input=x)
+
+    x = Variable(shape=(1, 5, 5, 1))
+    y = Conv2DLayer([1, 1, 1, 1], "VALID", (2, 2, 1, 2), inputs=x)
 
     print(y.F())

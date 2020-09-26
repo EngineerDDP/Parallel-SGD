@@ -9,8 +9,9 @@ from nn.activation.interface import IActivation
 
 class MaxPool(AbsLayer):
 
-    def __init__(self, strides: [List[int], Tuple[int]], padding: [List[int], Tuple[int], str], size: [List[int], Tuple[int]], activation:IActivation=None, input:IOperator=None):
-        super().__init__(input, activation)
+    def __init__(self, strides: [List[int], Tuple[int]], padding: [List[int], Tuple[int], str],
+                 size: [List[int], Tuple[int]], activation: IActivation = None, inputs: IOperator = None):
+        super().__init__(inputs, activation)
         self.__strides: [List[int], Tuple[int]] = strides
         self.__padding: [List[int], Tuple[int], str] = padding
         self.__size: [List[int], Tuple[int]] = size
@@ -54,7 +55,8 @@ class MaxPool(AbsLayer):
 if __name__ == '__main__':
     from nn.value import Variable
     import os
+
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     x = Variable(shape=(2, 5, 5, 1))
-    y = MaxPool([1,1,1,1],"VALID", (2,2),input=x)
+    y = MaxPool([1, 1, 1, 1], "VALID", (2, 2), inputs=x)
     print(y.F())

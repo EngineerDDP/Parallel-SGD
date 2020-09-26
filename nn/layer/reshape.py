@@ -8,8 +8,8 @@ from nn.activation.interface import IActivation
 
 class Reshape(AbsLayer):
 
-    def __init__(self, shape: [List[int], Tuple[int]], activation: IActivation = None, input: IOperator = None):
-        super().__init__(input, activation)
+    def __init__(self, shape: [List[int], Tuple[int]], activation: IActivation = None, inputs: IOperator = None):
+        super().__init__(inputs, activation)
         self.__shape_out: [List[int], Tuple[int]] = shape
         self.__shape_in: [List[int], Tuple[int]] = None
 
@@ -45,5 +45,5 @@ class Reshape(AbsLayer):
 if __name__ == '__main__':
     from nn.value import Variable
     x = Variable(shape=(2, 5, 5, 1))
-    y = Reshape([-1,1,25,1],input=x)
+    y = Reshape([-1,1,25,1],inputs=x)
     print(y.F())
