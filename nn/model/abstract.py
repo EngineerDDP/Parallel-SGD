@@ -70,7 +70,7 @@ class Model(IModel):
         if isinstance(x, ndarray):
             x = NumpyDataFeeder(x, label, batch_size=batch_size)
 
-        self.__optimizer.set_batch_size(batch_size)
+        self.__optimizer.set_batch_size(x.batch_size)
 
         for j in range(epoch):
             for part_x, part_y in x:
@@ -79,11 +79,10 @@ class Model(IModel):
                 y = self.__ref_output.F()
                 # get loss
                 grad_y, _ = self.__loss.gradient(y, part_y)
-                loss = self.__loss.metric(y, part_y)
                 # do backward propagation from loss
                 self.__ref_output.G(grad_y)
                 # record fitting process
-                fit_rec = [j + 1, x.position, x.length, self.__fit_history.count + 1, loss]
+                fit_rec = [j + 1, x.position, x.length, self.__fit_history.count + 1]
                 fit_rec.extend(self.__evaluate_metrics(y, part_y))
 
                 str_formatted = self.__fit_history.append_row(fit_rec)

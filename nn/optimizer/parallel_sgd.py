@@ -10,12 +10,13 @@ class PSGDOptimizer(IOptimizer):
         Interact with transfer.
     """
 
-    def __init__(self, gradient_descent:IGradientDescent, transfer:ITransfer, block_mgr:IPSGDBlockMgr):
+    def __init__(self, gradient_descent: IGradientDescent, transfer: ITransfer, block_mgr: IPSGDBlockMgr):
         self.__transfer = transfer
         self.__block_mgr = block_mgr
         self.__optimizer = gradient_descent
+        self.__batch_size = 1
 
-    def optimize(self, variable:ITrainable):
+    def optimize(self, variable: ITrainable):
         """
             1st order gradient based optimize algorithm.
             {arg min}_{x}{F(x)}
@@ -25,10 +26,10 @@ class PSGDOptimizer(IOptimizer):
         grad = variable.get_gradient()
         if variable.get_shape() != grad.shape:
             grad = grad.sum(axis=0)
-        delta = self.__optimizer.delta(grad / self.__batch_size)
+        delta = self.__optimizer.delta(grad)
         self.__transfer.put_weights(delta, variable.id, self.__block_mgr.batch_id, self.__block_mgr.current_block_id)
         if self.__block_mgr.end:
-            delta = self.__transfer.get_weights(variable.id, batch_no=self.__block_mgr.batch_id)
+            delta = self.__transfer.get_weights(variable.id, batch_no=self.__block_mgr.batch_id) / self.__batch_size
             variable.set_value(variable.get_value() - delta)
 
     def set_batch_size(self, batch_size: int):

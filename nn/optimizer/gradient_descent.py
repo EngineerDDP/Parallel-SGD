@@ -20,7 +20,7 @@ class GDOptimizer(IOptimizer):
             grad = grad.sum(axis=0)
         variable.set_value(variable.get_value() - self.__optimizer.delta(grad / self.__batch_size))
 
-    def set_batch_size(self, batch_size:int):
+    def set_batch_size(self, batch_size: int):
         self.__batch_size = batch_size
 
     def __str__(self):

@@ -6,7 +6,7 @@ from nn.interface import IOperator
 
 class Tanh(AbsActivation):
 
-    def __init__(self, op: IOperator=None):
+    def __init__(self, op: IOperator = None):
         super().__init__(op)
         self.__ref_output = None
 

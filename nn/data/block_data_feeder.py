@@ -27,7 +27,7 @@ class IPSGDBlockMgr(metaclass=ABCMeta):
 
 class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
 
-    def __init__(self, x: ndarray, y: ndarray, batch_iter:IBatchIter, block_ids:List[int]):
+    def __init__(self, x: ndarray, y: ndarray, batch_iter: IBatchIter, block_ids: List[int]):
         self.__x: ndarray = x
         self.__y: ndarray = y
         self.__total_blocks: List[int] = block_ids
@@ -48,6 +48,14 @@ class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
     @property
     def batch_id(self):
         return self.__batch_id
+
+    @property
+    def batch_size(self):
+        return self.__batch_size
+
+    @property
+    def end(self):
+        return self.__end
 
     @property
     def length(self):
@@ -73,4 +81,5 @@ class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
         print(self.__str__())
 
     def __str__(self):
-        return "<P-SGD data iterator, current batch: {} in block: {}, total: {}.".format(self.__iter, self.__cur_block, self.__batches)
+        return "<P-SGD data iterator, current batch: {} in block: {}, total: {}."\
+            .format(self.__iter, self.__cur_block, self.__batches)

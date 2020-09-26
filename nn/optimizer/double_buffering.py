@@ -25,13 +25,13 @@ class DoubleBufferingOptimizer(IOptimizer):
         """
         # get last update result.
         if self.__delayed_update_mark:
-            delta = self.__transfer.get_weights(variable.id, batch_no=self.__block_mgr.batch_id)
+            delta = self.__transfer.get_weights(variable.id, batch_no=self.__block_mgr.batch_id) / self.__batch_size
             variable.set_value(variable.get_value() - delta)
 
         grad = variable.get_gradient()
         if variable.get_shape() != grad.shape:
             grad = grad.sum(axis=0)
-        delta = self.__optimizer.delta(grad / self.__batch_size)
+        delta = self.__optimizer.delta(grad)
         self.__transfer.put_weights(delta, variable.id, self.__block_mgr.batch_id, self.__block_mgr.current_block_id)
         self.__delayed_update_mark = self.__block_mgr.end
 
