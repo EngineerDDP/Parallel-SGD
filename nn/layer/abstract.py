@@ -50,14 +50,14 @@ class AbsLayer(IOperator, ILazyInitialization):
         Used for lazy initialization.
     """
 
-    def __init__(self, inputs: IOperator = None, activation: IActivation = Linear()):
+    def __init__(self, inputs: IOperator = None, activation: IActivation = None):
         """
             Abstract layer class
         :param inputs: input operator, IOperator instance
         """
         self.__op_input = inputs
         self.__ref_input = None
-        self.__activation = activation
+        self.__activation = activation if activation else Linear()
         self.__initialized = False
 
     @property

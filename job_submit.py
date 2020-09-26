@@ -1,6 +1,7 @@
 import argparse
 import json
 
+from dataset import *
 from dataset.transforms import TransformerList
 from models.local.neural_models import ModelLinear
 from models.trans import Req
@@ -140,10 +141,10 @@ if __name__ == '__main__':
                 core.submit_single(PSGDPSExecutor, worker_id=Parameter_Server, package_size=dataset.estimate_size())
             core.submit_group(PSGDWorkerExecutor, worker_offset=0, worker_cnt=arg.n, package_size=dataset.estimate_size())
 
-            from models.trans.net_package import data_package, data_content, global_setting_package, essentials
+            from executor.psgd.net_package import data_package, data_content, net_setting, net_model
             core.resources_dispatch({
-                Req.GlobalSettings: global_setting_package(setting),
-                Req.Weights_And_Layers: essentials(model_parameter),
+                Req.GlobalSettings: net_setting(setting),
+                Req.Weights_And_Layers: net_model(model_parameter),
                 Req.Samples: data_content(dataset, transform),
                 Req.Dataset: data_package(dataset, transform)
             })

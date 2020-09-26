@@ -47,10 +47,6 @@ class SynchronizedSGD(IParallelSGD):
         self.__adversary_list: List[Set[int]] = []
         self.__receive_buffer: Dict[int, Queue] = {}
 
-    def initialize(self, company_list: List[Set[int]], adversary_list: List[Set[int]]):
-        self.__company_list = company_list
-        self.__adversary_list = adversary_list
-
     def release_memory(self):
         """
             release out-dated memory for local batch buffer and codec buffer.
@@ -68,15 +64,15 @@ class SynchronizedSGD(IParallelSGD):
         """
         self.__current_batch = batch_no
 
-        block = BlockWeight(content, block_id, self.__company_list[block_id], self.__adversary_list[block_id])
+        block = BlockWeight(content, block_id)
         update_packs = iterator_helper(self.__batch_updater.update_blocks(block))
 
         for update_pack in update_packs:
             sender = update_pack.target()
-            object = update_pack.content()
+            content = update_pack.content()
             pkg = {
                 SynchronizedSGD.STR_BATCH_NO: batch_no,
-                SynchronizedSGD.DATA: object
+                SynchronizedSGD.DATA: content
             }
             yield (sender, pkg)
 

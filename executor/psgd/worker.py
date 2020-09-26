@@ -1,5 +1,5 @@
 import time
-from typing import List
+from typing import List, Tuple
 
 import pandas as pd
 
@@ -27,7 +27,6 @@ class PSGDWorkerExecutor(AbsExecutor):
         # waiting for those
         self.__model: [IModel] = None
         self.__optimizer: [IPSGDOptimize] = None
-        self.__setting: [ISetting] = None
         self.__batch_iter: [IBatchIter] = None
         self.__trans: [ITransfer] = None
         self.__data: [IDataset] = None
@@ -38,7 +37,7 @@ class PSGDWorkerExecutor(AbsExecutor):
         return [Requests(Req.Setting), Requests(Req.Model), Requests(Req.Optimizer),
                 Requests(Req.Transfer), Requests(Req.Data_Package), Requests(Req.Other_Stuff)]
 
-    def satisfy(self, reply:list) -> list:
+    def satisfy(self, reply: list) -> list:
         unsatisfied = []
         # check list
         for obj in reply:
@@ -68,25 +67,38 @@ class PSGDWorkerExecutor(AbsExecutor):
         return unsatisfied
 
     def ready(self) -> bool:
-        return self.__model and self.__optimizer and self.__trans and self.__misc \
-                and self.__data and GlobalSettings.deprecated_default_settings
+        return self.__check()[0]
+
+    def __check(self) -> Tuple[bool, List[str]]:
+        status = []
+        s1 = isinstance(self.__optimizer, IPSGDOptimize)
+        status.append("Optimizer:{}".format("OK" if s1 else "ABSENT"))
+        s2 = isinstance(self.__model, IModel)
+        status.append("Model:{}".format("OK" if s2 else "ABSENT"))
+        s3 = isinstance(self.__data, IDataset)
+        status.append("Dataset:{}".format("OK" if s3 else "ABSENT"))
+        s4 = isinstance(self.__misc, misc_package)
+        status.append("Others:{}".format("OK" if s4 else "ABSENT"))
+        s5 = isinstance(self.__trans, ITransfer)
+        status.append("Transfer:{}".format("OK" if s5 else "ABSENT"))
+        s6 = isinstance(self.__batch_iter, IBatchIter)
+        status.append("Batch Iterator:{}".format("OK" if s6 else "ABSENT"))
+        s7 = isinstance(GlobalSettings.deprecated_default_settings, ISetting)
+        status.append("Settings:{}".format("OK" if s7 else "ABSENT"))
+        return s1 and s2 and s3 and s4 and s5 and s6 and s7, status
 
     def done(self) -> bool:
         return self.__done
 
-    def start(self, com:ICommunication_Controller) -> None:
-        # type assertions.
-        assert isinstance(self.__optimizer, IPSGDOptimize) and \
-               isinstance(self.__model, IModel) and \
-               isinstance(self.__data, IDataset) and \
-               isinstance(self.__setting, ISetting) and \
-               isinstance(self.__trans, ITransfer) and \
-               isinstance(self.__batch_iter, IBatchIter)
+    def start(self, com: ICommunication_Controller) -> None:
+        state, report = self.__check()
+        self.__log.log_message("Ready:{} \n\t Check List:\n\t\t--> {}".format(state, "\n\t\t--> ".join(report)))
         # get dataset
         train_x, train_y, test_x, test_y = self.__data.load()
         self.__log.log_message('Dataset is ready, type: ({})'.format(self.__data))
         # build data feeder
-        feeder = PSGDBlockDataFeeder(train_x, train_y, batch_iter=self.__batch_iter, block_ids=self.__setting.blocks)
+        block_ids = GlobalSettings.get_default().blocks
+        feeder = PSGDBlockDataFeeder(train_x, train_y, batch_iter=self.__batch_iter, block_ids=block_ids)
         # assemble optimizer
         self.__optimizer.assemble(transfer=self.__trans, block_mgr=feeder)
         # compile model
@@ -100,7 +112,7 @@ class PSGDWorkerExecutor(AbsExecutor):
         log_head = self.__log.Title
         # start !
         GlobalSettings.deprecated_global_logger = self.__log
-        self.__trans.start_transfer(com, group_offset=self.group[0], printer=self.__log)
+        self.__trans.start_transfer(com, group_offset=list(self.group)[0], printer=self.__log)
         # record data
         time_start = time.time()
         data_send_start = com.Com.bytes_sent
@@ -157,4 +169,3 @@ class PSGDWorkerExecutor(AbsExecutor):
 
     def trace_files(self) -> list:
         return self.__trace_filename
-

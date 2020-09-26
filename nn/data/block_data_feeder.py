@@ -35,7 +35,7 @@ class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
         self.__iter: int = 0
         self.__batch_id: int = 0
         self.__end: bool = False
-        assert batch_iter.batch_size > len(x), \
+        assert batch_iter.batch_size < len(x), \
             "Number of input samples is too small. P-SGD requires {} at least.".format(batch_iter.batch_size)
         self.__batch_size: int = batch_iter.batch_size
         self.__batch_iter: IBatchIter = batch_iter
@@ -59,7 +59,7 @@ class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
 
     @property
     def length(self):
-        return self.__total_blocks
+        return self.__batches
 
     @property
     def current_block_id(self):

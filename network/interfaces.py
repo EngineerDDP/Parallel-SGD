@@ -68,7 +68,7 @@ class IWorker_Register(metaclass=ABCMeta):
         pass
 
 
-class ICommunication_Process(Process, metaclass=ABCMeta):
+class AbsCommunicationProcess(Process, metaclass=ABCMeta):
     Circle_interval = 0.001
 
     def __init__(self, name: str):
@@ -138,7 +138,7 @@ class ICommunication_Controller(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def Com(self) -> ICommunication_Process:
+    def Com(self) -> AbsCommunicationProcess:
         pass
 
     @property
@@ -194,5 +194,5 @@ class ICommunication_Controller(metaclass=ABCMeta):
 class IPromoter(metaclass=ABCMeta):
 
     @abstractmethod
-    def __call__(self, para: NodeAssignment) -> ICommunication_Process:
+    def __call__(self, para: NodeAssignment) -> AbsCommunicationProcess:
         pass

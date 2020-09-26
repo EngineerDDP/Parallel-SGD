@@ -5,7 +5,7 @@ from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
 from nn.data.numpy_data_feeder import NumpyDataFeeder
-from nn.interface import IOperator, IOptimizer, ITrainable
+from nn.interface import IOperator, IOptimizer, ITrainable, ModelState
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.model.interface import IModel
@@ -17,7 +17,7 @@ from utils.log import IPrinter
 
 class Model(IModel):
 
-    def __init__(self, input_shape=None):
+    def __init__(self, input_shape: [Tuple[int]] = None):
         self.__placeholder_input = Placeholder(input_shape)
         self.__ref_output: [IOperator] = None
         self.__metrics: List[IMetric] = []
@@ -34,7 +34,8 @@ class Model(IModel):
         pass
 
     def setup(self, loss: ILoss, *metrics: IMetric):
-        self.__ref_output = self.call(self.__placeholder_input)
+        if self.__ref_output is None:
+            self.__ref_output = self.call(self.__placeholder_input)
         # validate model
         if self.__placeholder_input.get_shape() is not None:
             self.__placeholder_input.set_value()
@@ -64,7 +65,7 @@ class Model(IModel):
 
     def fit(self, x: [ndarray, IDataFeeder], epoch: int, label: [ndarray] = None, batch_size: int = 64,
             printer: IPrinter = None) -> FitResultHelper:
-        assert isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator), "Model hasn't complied."
+        assert isinstance(self.__optimizer, IOptimize), "Model hasn't complied."
         assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."
 
         if isinstance(x, ndarray):
@@ -97,23 +98,24 @@ class Model(IModel):
         return self.__fit_history
 
     def evaluate(self, x: ndarray, label: ndarray):
+        assert isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator), "Model hasn't setup."
         # set placeholder
         self.__placeholder_input.set_value(x)
         # do forward propagation
-        y = self.__ref_output.F()
+        y = self.__ref_output.F(state=ModelState.Evaluating)
         # get lost
         loss = self.__loss.metric(y, label)
         # get evaluation
-        eval = self.__evaluate_metrics(y, label)
-        eval.append(loss)
+        eval_rec = self.__evaluate_metrics(y, label)
+        eval_rec.append(loss)
         # get title
         title = [metric.description() for metric in self.__metrics]
         title.append("Loss")
-        return dict(zip(title, eval))
+        return dict(zip(title, eval_rec))
 
     def predict(self, x: ndarray):
         self.__placeholder_input.set_value(x)
-        y = self.__ref_output.F()
+        y = self.call(self.__placeholder_input).F(state=ModelState.Predicting)
         return y
 
     def clear(self):
@@ -121,4 +123,16 @@ class Model(IModel):
             var.reset()
 
     def summary(self) -> str:
-        return "No summary available for this model."
+        summary = "No structure description available for this model.\n"
+
+        if self.__loss and self.__optimizer and self.__metrics:
+            summary += '\t------------\t\tAppendix\t\t------------\n'
+            summary += '\tLoss:\n\t\t{}\n'.format(self.__loss)
+            summary += '\tOptimizer:\n\t\t{}\n'.format(self.__optimizer)
+            summary += '\tMetrics:\n'
+            for metric in self.__metrics:
+                summary += '\t\t<Metric: {}>\n'.format(metric.description())
+            summary += '\t------------\t\tAppendix\t\t------------\n'
+        summary += '\n------------\t\tModel Summary\t\t------------\n'
+
+        return summary

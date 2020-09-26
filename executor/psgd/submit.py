@@ -1,7 +1,9 @@
-from typing import Type, Tuple
+import numpy as np
+
+from typing import Type, Tuple, Optional
 
 from codec.interfaces import Codec
-from codec.plain import PlainCommunicationCtrl
+from codec.plain import Plain
 from executor.psgd.net_package import *
 from executor.psgd.parameter_server import PSGDPSExecutor
 from executor.psgd.worker import PSGDWorkerExecutor
@@ -49,9 +51,9 @@ class ParallelSGD:
                  sync_type: Type[IParallelSGD] = SynchronizedSGD,
                  gd_type: Type[IOptimizer] = PSGDOptimizer,
                  op_type: Type[IGradientDescent] = ADAMOptimizer,
-                 codec: Type[Codec] = PlainCommunicationCtrl,
+                 codec: Type[Codec] = Plain,
                  op_params: Tuple[object] = (),
-                 ps_codec: Type[Codec] = None):
+                 ps_codec: Optional[Type[Codec]] = None):
         """
             执行并行化。
         :param nodes:           由 network 模块提供的 NodeAssignment 接口，指示了当前并行化操作调用的节点数目。
@@ -84,15 +86,16 @@ class ParallelSGD:
                                 用于参数服务器进行数据处理。
         :return:
         """
-        node_count = len(nodes) - 1 if ps_codec else 0
+        node_count = len(nodes) - (1 if ps_codec else 0)
         assignment: ISetting = assignment_type(node_count, redundancy)
         setting: net_setting = net_setting(assignment_type, node_count, redundancy)
         model: net_model = net_model(self.__model, BatchIter(block_size, assignment.block_count))
         optimizer: net_optimizer = net_optimizer(gd_type, op_type, op_params=op_params)
         var_ids = [var.id for var in self.__model.trainable_variables()]
         transfer_worker: net_transfer = net_transfer(var_ids, sync_type, codec)
-        transfer_ps: net_transfer = net_transfer(var_ids, AsynchronizedSGD, ps_codec)
-        misc: misc_package = misc_package("Codec({})-PS({})".format(codec.__name__, ps_codec.__name__), epoch, None)
+        transfer_ps: [net_transfer] = net_transfer(var_ids, AsynchronizedSGD, ps_codec) if ps_codec else None
+        mission_title = "Codec({})-PS({})".format(codec.__name__, ps_codec.__name__ if ps_codec else "None")
+        misc: misc_package = misc_package(mission_title, epoch, None)
 
         replies = {
             Req.Model: model,
@@ -111,7 +114,8 @@ class ParallelSGD:
 
         with req.request(nodes) as com:
             coordinator = Coordinator(com, estimate_bandwidth=1, logger=self.__log)
-            coordinator.submit_single(PSGDPSExecutor, Parameter_Server, self.__data.estimate_size())
+            if ps_codec:
+                coordinator.submit_single(PSGDPSExecutor, Parameter_Server, self.__data.estimate_size())
             coordinator.submit_group(PSGDWorkerExecutor, assignment.nodes, self.__data.estimate_size())
 
             coordinator.resources_dispatch(lambda x: replies[x.content()])

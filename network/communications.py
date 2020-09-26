@@ -5,7 +5,7 @@ import select
 from time import sleep
 
 from network.agreements import *
-from network.interfaces import IWorker_Register, ICommunication_Process, ICommunication_Controller
+from network.interfaces import IWorker_Register, AbsCommunicationProcess, ICommunication_Controller
 from network.serialization import BufferReader
 
 
@@ -79,7 +79,7 @@ class Worker_Communication_Constructor:
 
 class Communication_Controller(ICommunication_Controller):
 
-    def __init__(self, com: ICommunication_Process):
+    def __init__(self, com: AbsCommunicationProcess):
         """
             Prepare communication module for connection.
             Change CommunicationController.static_server_address and CommunicationController.static_server_port
@@ -182,7 +182,9 @@ def get_repr():
         if addr not in {"127.0.0.1", "127.0.1.1"}:
             return addr
 
+
 if __name__ == "__main__":
     from threading import Lock
+
     a = Lock()
     a.acquire()

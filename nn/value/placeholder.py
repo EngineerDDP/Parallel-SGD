@@ -49,7 +49,7 @@ class Placeholder(OperandHelper, AbsValue):
                 "Given shape {} does't match with {}.".format(val.shape, self.output_shape())
             self.__hold = val
         else:
-            self.__hold = np.random.normal(size=[2] + self.__input_shape)
+            self.__hold = np.random.normal(size=[1] + self.__input_shape[1:])
 
     def get_value(self):
         return self.__hold

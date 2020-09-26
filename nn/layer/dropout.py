@@ -11,6 +11,7 @@ class Dropout(AbsLayer):
         super().__init__(inputs, activation)
         self.__ref_mask = None
         self.__probability = drop_out_rate
+        self.__scale = 1 / (1 - drop_out_rate)
 
     @property
     def variables(self) -> tuple:
@@ -24,13 +25,13 @@ class Dropout(AbsLayer):
 
     def do_forward_train(self, x):
         self.__ref_mask = np.random.uniform(0, 1, size=x.shape) > self.__probability
-        return np.multiply(x, self.__ref_mask)
+        return np.multiply(x, self.__ref_mask) * self.__scale
 
     def backward_adjust(self, grad) -> None:
         pass
 
     def backward_propagate(self, grad):
-        return np.multiply(grad, self.__ref_mask)
+        return np.multiply(grad, self.__ref_mask) * self.__scale
 
     def output_shape(self) -> [list, tuple, None]:
         return None

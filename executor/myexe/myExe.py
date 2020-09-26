@@ -24,7 +24,7 @@ class myExecutor(AbsSimpleExecutor):
     def satisfy(self, reply: list) -> list:
         return []
 
-    def start(self, com: ICommunication_Controller) -> None:
+    def run(self, com: ICommunication_Controller) -> None:
         """
             获取 ICommunication_Controller 控制权，开始执行任务。
         """

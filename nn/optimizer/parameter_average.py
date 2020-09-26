@@ -14,6 +14,7 @@ class PAOptimizer(IOptimizer):
         self.__transfer = transfer
         self.__block_mgr = block_mgr
         self.__optimizer = gradient_descent
+        self.__batch_size = 1
 
     def optimize(self, variable:ITrainable):
         """
@@ -25,7 +26,7 @@ class PAOptimizer(IOptimizer):
         grad = variable.get_gradient()
         if variable.get_shape() != grad.shape:
             grad = grad.sum(axis=0)
-        new_parameter = variable.get_value() + self.__optimizer.delta(grad / self.__batch_size)
+        new_parameter = variable.get_value() - self.__optimizer.delta(grad / self.__batch_size)
         self.__transfer.put_weights(new_parameter, variable.id, self.__block_mgr.batch_id, self.__block_mgr.current_block_id)
         if self.__block_mgr.end:
             new_parameter = self.__transfer.get_weights(variable.id, batch_no=self.__block_mgr.batch_id)

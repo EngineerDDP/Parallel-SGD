@@ -5,7 +5,7 @@ from multiprocessing import Array, Value
 from queue import Empty
 
 from network.agreements import *
-from network.interfaces import IWorker_Register, ICommunication_Process, IPromoter, NodeAssignment
+from network.interfaces import IWorker_Register, AbsCommunicationProcess, IPromoter, NodeAssignment
 from network.serialization import BufferReader, BufferWriter
 from utils.constants import Initialization_Server
 
@@ -205,7 +205,7 @@ class Worker_Register(IWorker_Register):
         self.__workers = Worker_Register_List()
 
 
-class Communication_Process(ICommunication_Process):
+class Communication_Process(AbsCommunicationProcess):
     """
         Operated with dictionary, serialized using numpy save
     """
@@ -322,10 +322,13 @@ class Communication_Process(ICommunication_Process):
             # if network is idle, or queue has items
             if len(active_connections) == 0 or self.send_que.qsize() > 0:
                 if isinstance(tmp_item, tuple):
-                    target, data = tmp_item # cond: (len(a) > 0 and buff is not valid and qsize > 0)
+                    target, data = tmp_item  # cond: (len(a) > 0 and buff is not valid and qsize > 0)
                     tmp_item = None
                 else:
-                    target, data = self.send_que.get() # cond: (len(a) == 0 and qsize == 0) or (qsize > 0)
+                    try:
+                        target, data = self.send_que.get(timeout=1)  # cond: (len(a) == 0 and qsize == 0) or (qsize > 0)
+                    except:
+                        continue
 
                 left = list()
                 for send_to in target:
@@ -364,7 +367,6 @@ class Communication_Process(ICommunication_Process):
                             tmp_item = None
                         except:
                             pass
-
             # do send jobs
             if len(active_connections) > 0:
                 _, writable, _ = select.select([], active_connections, [], 1)
@@ -405,7 +407,7 @@ class Communication_Process(ICommunication_Process):
 
 class Promoter(IPromoter):
 
-    def __call__(self, nodes:NodeAssignment) -> ICommunication_Process:
+    def __call__(self, nodes:NodeAssignment) -> AbsCommunicationProcess:
         worker_register = Worker_Register()
         # register
         worker_register.register(Initialization_Server, nodes)
