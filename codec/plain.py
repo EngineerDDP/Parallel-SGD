@@ -8,7 +8,7 @@ from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation
 
 
-class PlainCommunicationCtrl(Codec):
+class Plain(Codec):
 
     def __init__(self, node_id):
 
@@ -28,7 +28,8 @@ class PlainCommunicationCtrl(Codec):
         """
         self.BlockWeights[block_weight.block_id] = block_weight.content
         self.check_for_combine()
-        return netEncapsulation(block_weight.adversary, (block_weight.block_id, block_weight.content))
+        send_to = GlobalSettings.get_default().get_adversary(block_weight.block_id)
+        return netEncapsulation(send_to, (block_weight.block_id, block_weight.content))
 
     def receive_blocks(self, content: Tuple[int, ndarray]) -> None:
         """
@@ -42,5 +43,8 @@ class PlainCommunicationCtrl(Codec):
         if len(self.BlockWeights) < GlobalSettings.get_default().block_count:
             return
 
-        self.set_result(np.sum(self.BlockWeights.values()))
+        res = 0
+        for val in self.BlockWeights.values():
+            res += val
+        self.set_result(res)
         self.BlockWeights.clear()

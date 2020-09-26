@@ -1,26 +1,27 @@
 from codec import GlobalSettings
-from codec.essential import BlockWeight
 from codec.interfaces import Codec
+from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
 
 class MyComCtrl(Codec):
+
     def __init__(self, node_id):
         super().__init__(node_id)
+        # 保存并记录当前批次已经收到了多少份结果
         self.__global_weights = 0
         self.__current_recv = 0
 
     def dispose(self):
-        # 使用 record 方法记录信息到 P-SGD 的 log 文件中
-        self.record('my communication controller is disposed.')
+        print('my communication controller is disposed.')
 
     def update_blocks(self, block_weight: BlockWeight):
-        self.record('Weights delta received.')
-        self.record('from block: {}'.format(block_weight.block_id))
-        self.record('It has a content with shape: {}'.format(block_weight.content.shape))
+        print('Weights delta received.')
+        print('from block: {}'.format(block_weight.block_id))
+        print('It has a content with shape: {}'.format(block_weight.content.shape))
 
         # 获取没有该数据的节点
-        send_to = block_weight.adversary
+        send_to = GlobalSettings.get_default().get_adversary(block_weight.block_id)
         # 我们使用 'data' 字符串来标记我们的梯度内容
         pkg = {
             'data': block_weight.content
@@ -31,13 +32,13 @@ class MyComCtrl(Codec):
         # 检查是否接受完所有数据
         self.__do_grad_average()
         # 发送梯度
-        return netEncapsulation(send_to, pkg)
+        yield netEncapsulation(send_to, pkg)
 
-    def receive_blocks(self, content: dict):
-        self.record('I have received an package.')
-        self.record('It has a content with shape: {}'.format(content['data'].shape))
-        # 记录梯度内容
-        self.__global_weights += content['data']
+    def receive_blocks(self, json_dict: dict):
+        print('I have received an package.')
+        print('It has a content with shape: {}'.format(json_dict['data'].shape))
+        # 我们使用上述定义的 'data' 字符串获取我们更新的梯度内容
+        self.__global_weights += json_dict['data']
         # 记录已经接收到多少个梯度了
         self.__current_recv += 1
         # 检查是否接受完所有数据

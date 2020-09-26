@@ -1,5 +1,5 @@
 from codec.essential import BlockWeight
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 
 # import np
 import numpy as np
@@ -20,10 +20,10 @@ from time import sleep
     ---------------DEFINE HERE---------------
 """
 # import test codec
-from codec.tutorial_codec import myComCtrl
-from profiles.blockassignment.duplicate import DuplicateAssignment
+from codec.tutorial_codec import MyComCtrl
+from profiles.blockassignment import DuplicateAssignment
 # Type
-SLAVE_CODEC = myComCtrl
+SLAVE_CODEC = MyComCtrl
 ASSIGNMENTS = DuplicateAssignment
 """
     ---------------DEFINE HERE---------------
@@ -39,7 +39,7 @@ BATCHSIZE = 64
 SYNCWAITTIMEOUT = 1000 #ms
 
 # setup global parameters
-GlobalSettings.set_default(SLAVE_CNT, REDUNDANCY, BATCHSIZE, ASSIGNMENTS)
+GlobalSettings.deprecated_default_settings = DuplicateAssignment(SLAVE_CNT, REDUNDANCY)
 
 # default setting
 Default = GlobalSettings.get_default()
@@ -56,9 +56,9 @@ for i in range(TEST_ROUNDS):
             # get random
             arr = np.random.random(size=WEIGHTS_SHAPE)
             # build blockweights
-            blockweight = BlockWeight(LAYER, i, block_id, Default.block_assignment.block_2_node[block_id], arr)
+            block_weight = BlockWeight(block_id=block_id, content=arr)
             # send consensus package
-            for package in slave.update_blocks(blockweight):
+            for package in slave.update_blocks(block_weight):
                 # get proper receiver
                 for tgt in package.target():
                     assert tgt in range(SLAVE_CNT)
@@ -108,5 +108,6 @@ for slave in slave_codec:
 
 print("INFO: All test input_ref was handled without exception.")
 print("WARNING: The functionality of the codec cannot be tested here.\n"
-      "WARNING: Use Mathematical analysis to make sure that your codec process didn't prevents SGD from properly convergence.")
+      "WARNING: Use Mathematical analysis to make sure that your codec process didn't prevents SGD from properly "
+      "convergence.")
 
