@@ -16,7 +16,7 @@
 9.为 *ICoordinator* 增加了分组策略。使用组内ID和组偏移量实现，组与组之间互相不可访问，组内可互相访问，各个组之间共享一个参数服务器。  
 10.添加项目依赖，项目目前仅依赖 pandas（任意版本） 和 numpy（任意版本）。  
 
-附：关于自定义Executor，参见如何定义Executor： [executor](./myExe.py)，如何提交自定义的Executor： [submit](./my_submit.py)。  
+附：关于自定义Executor，参见如何定义Executor： [executor](executor/myexe/myExe.py)，如何提交自定义的Executor： [submit](executor/myexe/my_submit.py)。  
 
 ## 参数说明
 

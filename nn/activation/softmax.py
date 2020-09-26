@@ -6,7 +6,7 @@ from nn.interface import IOperator
 
 class Softmax_NoGradient(AbsActivation):
 
-    def __init__(self, op: IOperator=None):
+    def __init__(self, op: IOperator = None):
         super().__init__(op)
 
     def output_shape(self) -> [list, tuple, None]:

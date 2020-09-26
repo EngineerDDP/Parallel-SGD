@@ -18,7 +18,7 @@ class PSClient(Codec):
     def update_blocks(self, block_weight: BlockWeight) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
         return netEncapsulation(Parameter_Server, (self.node_id, block_weight.content))
 
-    def receive_blocks(self, content: Tuple[int, ndarray]) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+    def receive_blocks(self, content: Tuple[int, ndarray]) -> None:
         self.set_result(content[1])
 
 

@@ -31,17 +31,6 @@ class IParallelSGD(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def initialize(self, company_list: List[Set[int]], adversary_list: List[Set[int]]):
-        """
-            Initialize with given node id and block assignment.
-            Do this on the worker nodes.
-        :param node_id:
-        :param block_assignment:
-        :return:
-        """
-        pass
-
-    @abstractmethod
     def release_memory(self) -> None:
         """
             Release memory used by this sgd controller.

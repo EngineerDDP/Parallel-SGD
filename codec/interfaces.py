@@ -21,7 +21,7 @@ class netEncapsulation:
         Net Encapsulation, for network transmission.
     """
 
-    def __init__(self, send_to_who: Union[Iterable[int], int], content: object):
+    def __init__(self, send_to_who: Union[Iterable[int], int], content: [object]):
 
         if isinstance(send_to_who, list):
             self.__target = send_to_who
@@ -39,7 +39,7 @@ class netEncapsulation:
     def target(self) -> List[int]:
         return self.__target
 
-    def content(self) -> object:
+    def content(self) -> [object]:
         return self.__packages
 
 

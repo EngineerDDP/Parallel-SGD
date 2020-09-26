@@ -5,9 +5,9 @@ from nn.data.interface import IDataFeeder
 
 class NumpyDataFeeder(IDataFeeder):
 
-    def __init__(self, x:ndarray, y:ndarray, batch_size:int):
-        self.__iter_x:ndarray = x
-        self.__iter_y:ndarray = y
+    def __init__(self, x: ndarray, y: ndarray, batch_size: int):
+        self.__iter_x: ndarray = x
+        self.__iter_y: ndarray = y
         self.__batch_size = min(batch_size, len(x))
         self.__batches = len(x) // batch_size
         self.__iter = 0
@@ -19,6 +19,10 @@ class NumpyDataFeeder(IDataFeeder):
     @property
     def length(self):
         return self.__batches
+
+    @property
+    def batch_size(self):
+        return self.__batch_size
 
     def __iter__(self):
         for self.__iter in range(self.__batches):

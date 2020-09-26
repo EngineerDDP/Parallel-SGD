@@ -70,7 +70,7 @@ class PSGD_Worker:
             _, req = PSGD_Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
             if isinstance(req, SubmitJob):
                 self.client_logger.log_message('ACK job submission.')
-                if self.init_PSGD(com, req):
+                if self.initialize(com, req):
                     self.do_training(com)
                     self.post_log(com)
 
@@ -79,15 +79,13 @@ class PSGD_Worker:
                 self.post_log(com)
 
         except Exception as e:
-            self.client_logger.log_error('Exception occurred: {}'.format(e))
-
             # print DEBUG message
             import sys
             import traceback
             exc_type, exc_value, exc_tb = sys.exc_info()
             exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
-            for line in exc_tb:
-                self.client_logger.log_error(line[:-1])
+            exc_format = "".join(exc_tb)
+            self.client_logger.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
             # print DEBUG message
 
     def post_log(self, com: ICommunication_Controller):
@@ -104,9 +102,9 @@ class PSGD_Worker:
         # Post files
         com.send_one(Initialization_Server, DoneType(posting_files))
 
-    def init_PSGD(self, com: ICommunication_Controller, job_info: SubmitJob) -> bool:
+    def initialize(self, com: ICommunication_Controller, job_info: SubmitJob) -> bool:
         """
-            Initialize P-SGD Training environment
+            Initialize execution environment
         :param com: Communication process
         :param job_info: job info
         :return:
@@ -127,7 +125,8 @@ class PSGD_Worker:
         for req in requests:
             com.send_one(Initialization_Server, req)
 
-        self.client_logger.log_message('Request data: ({}).'.format(requests))
+        req_format = "\tRequests List:\n\t\t--> {}".format("\n\t\t--> ".join([str(req) for req in requests]))
+        self.client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
         self.client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
         # Set job executor to ready state
         while not self.__job_executor.ready():
@@ -211,4 +210,4 @@ class PSGD_Worker:
 
         self.client_logger.log_message('Try post training log to coordinator.')
 
-        self.client_logger.log_message('Training process exited.')
+        self.client_logger.log_message('Execution process exited.')

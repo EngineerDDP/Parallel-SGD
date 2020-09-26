@@ -1,6 +1,7 @@
 from executor.abstract import AbsSimpleExecutor
 from network.interfaces import ICommunication_Controller
 
+
 # 继承自 AbsSimpleExecutor
 class myExecutor(AbsSimpleExecutor):
 
@@ -20,10 +21,10 @@ class myExecutor(AbsSimpleExecutor):
     def requests(self) -> list:
         return []
 
-    def satisfy(self, reply:list) -> list:
+    def satisfy(self, reply: list) -> list:
         return []
 
-    def start(self, com: ICommunication_Controller) -> None:
+    def run(self, com: ICommunication_Controller) -> None:
         """
             获取 ICommunication_Controller 控制权，开始执行任务。
         """
@@ -33,7 +34,7 @@ class myExecutor(AbsSimpleExecutor):
         import shutil as sh
         try:
             sh.rmtree('./tmp_log')
-        except:
+        except IOError:
             pass
 
     def trace_files(self) -> list:
@@ -41,4 +42,3 @@ class myExecutor(AbsSimpleExecutor):
             返回当前执行结果保存在哪些文件上。
         """
         return [self.__my_output_file]
-

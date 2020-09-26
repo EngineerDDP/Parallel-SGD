@@ -7,8 +7,8 @@ from nn.activation.interface import IActivation
 
 class Dense(AbsLayer):
 
-    def __init__(self, units, activation:IActivation=None, input:IOperator=None):
-        super().__init__(input, activation)
+    def __init__(self, units, activation: IActivation = None, inputs: IOperator = None):
+        super().__init__(inputs, activation)
         self.__layer_units = units
         self.__w = Weights()
         self.__b = Weights()

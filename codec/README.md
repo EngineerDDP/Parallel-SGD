@@ -33,16 +33,14 @@ from codec.interfaces import Codec
 ## 参数
 
 　　编码控制器总是需要接受一个 node_id 来创建，当需要创建编码控制器时，P-SGD Transfer 会创建编码控制器并给一个 node_id 的参数，代表了当前节点在集群中的唯一识别编号。  
-　　您可以选择接受并记录该参数，也可以选择抛弃该参数，该参数只会在创建的时候传递，之后也没有与该参数关联的接口，无需做过多的处理。
 
 ```python
 from codec.interfaces import Codec
 
-class myComCtrl(Codec):
+class MyComCtrl(Codec):
+
     def __init__(self, node_id):
-        super().__init__()
-        # save it if you need it
-        self.__node_id = node_id
+        super().__init__(node_id)
 ```
 
 ## 处理资源释放
@@ -52,11 +50,10 @@ class myComCtrl(Codec):
 ```python
 from codec.interfaces import Codec
 
-class myComCtrl(Codec):
+class MyComCtrl(Codec):
+
     def __init__(self, node_id):
-        super().__init__()
-        # save it if you need it
-        self.__node_id = node_id
+        super().__init__(node_id)
     
     def dispose(self):
         print('my communication controller is disposed.')
@@ -72,25 +69,20 @@ class myComCtrl(Codec):
 
 | 成员 | 类型 | 注释 |
 | ---- | ---- | ---- |
-| Layer_ID | int | 本参数的层编号 |
-|Batch_ID|int|本参数的批次编号|
-|Block_ID|int|本参数的样本Block编号|
-|Company_ID|sequence|本参数对应的样本Block还在哪些节点上出现过|
-|Adversary_ID|sequence|本参数对应的样本Block没在哪些节点上出现过|
-|Content|numpy.ndarray|参数本身|
+|content|int| 权重参数的内容 |
+|block_id|int| 标明该权重参数是模型训练编号为 block_id 的样本后生成的 |
 
-**注意**：传入的参数默认是权重梯度而不是权重，要使用参数更新机制，需要更换 P-SGD Optimizer，Optimizer 可在 server_util.init_model.__optimizer_map 中找到。  
+**注意**：block_id 仅指模型刚刚获取了编号为 block_id 的样本进行了训练，并不代表该参数完全由编号为 block_id 的样本生成，仅仅代指生成该参数之前最后一个训练的样本。  
 
-　　下面的代码接收了梯度平均化方法的参数提交：
+　　下面的代码接收了梯度平均化方法的参数提交：  
 ```python
 from codec.interfaces import Codec
 from codec.essential import BlockWeight
 
-class myComCtrl(Codec):
+class MyComCtrl(Codec):
+
     def __init__(self, node_id):
-        super().__init__()
-        # save it if you need it
-        self.__node_id = node_id
+        super().__init__(node_id)
     
     def dispose(self):
         print('my communication controller is disposed.')
@@ -100,10 +92,11 @@ class myComCtrl(Codec):
         print('from block: {}'.format(block_weight.block_id))
         print('has content: {}'.format(block_weight.content))
 ```
+**注意**：使用 self.record(message: str) 方法记录信息，这些信息会被回馈给 Coordinator，直接调用 print() 打印的数据仅在 Worker 上显示，不会回传至 Coordinator。  
 
-　　当您需要将数据发送到网络上时，您需要几个特别的参数。首先，您需要知道您的数据要送给哪些节点。要获取全局已申请的节点编号，调用以下代码：
+　　当您需要将数据发送到网络上时，您需要几个特别的参数。首先，您需要知道您的数据要送给哪些节点。要获取全局已申请的节点编号，调用以下代码：  
 ```python
-from profiles.settings import GlobalSettings
+from codec import GlobalSettings
 
 print('Workers in current job: {}'.format(GlobalSettings.get_default().nodes))
 ```
@@ -111,15 +104,15 @@ print('Workers in current job: {}'.format(GlobalSettings.get_default().nodes))
 　　要将您的数据返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。依照梯度平均化编码控制器的任务提交逻辑，应当将本节点计算所得的梯度传输给参数服务器或其他没有该数据的执行节点，我们先实现一个无参数服务器的简单模型，代码如下：  
 
 ```python
+from codec import GlobalSettings
 from codec.interfaces import Codec
 from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
-class myComCtrl(Codec):
+class MyComCtrl(Codec):
+
     def __init__(self, node_id):
-        super().__init__()
-        # save it if you need it
-        self.__node_id = node_id
+        super().__init__(node_id)
     
     def dispose(self):
         print('my communication controller is disposed.')
@@ -129,7 +122,7 @@ class myComCtrl(Codec):
         print('from block: {}'.format(block_weight.block_id))
         print('has content: {}'.format(block_weight.content))
         
-        send_to = block_weight.adversary
+        send_to = GlobalSettings.get_default().get_adversary(block_weight.block_id)
         pkg = {
             'data': block_weight.content
         }
@@ -147,18 +140,16 @@ class myComCtrl(Codec):
 　　当您完成一批数据的处理时，调用 set_result 方法来提交您的结果，当神经网络端需要更新权值时，会调用 get_result 方法直接获取数据，如果获取不到数据则会进行超时计数，超过一个SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，ISync-SGD 会尝试调用编码器的do_something_to_save_yourself 方法试图恢复集群的稳定状态，当超出两个 SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，P-SGD Transfer 就会报告超时错误，与集群的连接就会断开。  
 　　当有消息需要处理时，P-SGD Transfer 会调用 receive_blocks 方法，实现该方法并与您的 update_blocks 匹配，就可以完成一次任务的转发。要注意的是，节点不一定会在接收消息的时候完成参数的归一，可能会有其他比较快的计算节点抢先完成计算，本节点在自己计算完成并提交之后才完成参数的归一，因此我们要在参数提交和参数接收两个方法中都定义归一操作。利用全局节点总数来判断我们是否需要进行梯度平均化操作，实现如下：  
 ```python
+from codec import GlobalSettings
 from codec.interfaces import Codec
 from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
-from profiles.settings import GlobalSettings
 
+class MyComCtrl(Codec):
 
-class myComCtrl(Codec):
     def __init__(self, node_id):
-        super().__init__()
-        # 保存并记录本节点编号信息，除此之外再也没有其他地方可以获取该信息
-        self.__node_id = node_id
+        super().__init__(node_id)
         # 保存并记录当前批次已经收到了多少份结果
         self.__global_weights = 0
         self.__current_recv = 0
@@ -179,18 +170,17 @@ class myComCtrl(Codec):
 　　完整的代码如下：
 
 ```python
+from codec import GlobalSettings
 from codec.interfaces import Codec
 from codec.essential import BlockWeight
 from codec.interfaces import netEncapsulation
 
-from profiles.settings import GlobalSettings
 
+class MyComCtrl(Codec):
 
-class myComCtrl(Codec):
     def __init__(self, node_id):
-        super().__init__()
-        # 保存并记录本节点编号信息，除此之外再也没有其他地方可以获取该信息
-        self.__node_id = node_id
+        super().__init__(node_id)
+        # 保存并记录当前批次已经收到了多少份结果
         self.__global_weights = 0
         self.__current_recv = 0
     
@@ -203,7 +193,7 @@ class myComCtrl(Codec):
         print('It has a content with shape: {}'.format(block_weight.content.shape))
         
         # 获取没有该数据的节点
-        send_to = block_weight.adversary
+        send_to = GlobalSettings.get_default().get_adversary(block_weight.block_id)
         # 我们使用 'data' 字符串来标记我们的梯度内容
         pkg = {
             'data': block_weight.content
@@ -253,10 +243,10 @@ class myComCtrl(Codec):
     ---------------DEFINE HERE---------------
 """
 # import test codec
-from codec.tutorial_codec import myComCtrl
+from codec.tutorial_codec import MyComCtrl
 from profiles.blockassignment.duplicate import DuplicateAssignment
 # Type
-SLAVE_CODEC = myComCtrl
+SLAVE_CODEC = MyComCtrl
 ASSIGNMENTS = DuplicateAssignment
 """
     ---------------DEFINE HERE---------------

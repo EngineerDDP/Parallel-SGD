@@ -59,11 +59,11 @@ class NTransfer(ITransfer):
                 self.__log.log_error('Message retry to node {}'.format(sender))
             return self.__type_weights_controller[var_id].require_weights(batch_no)
 
-
     def start_transfer(self, com: ICommunication_Controller,  group_offset: int, printer: IPrinter):
         """
             Start transferring data between psgd controller and communication process.
             reference call (IParallelSGD.accept_data()) without sync check, is not thread safe call.
+        :param group_offset: group offset
         :param com: Communication process controller.
         :param printer: Printer class.
         """

@@ -63,8 +63,5 @@ class AbsBlockAssignment(ISetting):
         """
         pass
 
-    def get_company_list(self, node_id: int) -> List[Set[int]]:
-        return [set(self.block_2_node[block_id]) for block_id in self.node_2_block[node_id]]
-
-    def get_adversary(self, node_id: int) -> List[Set[int]]:
-        return [set(self.nodes) - company for company in self.get_company_list(node_id)]
+    def get_adversary(self, block_id: int) -> Set[int]:
+        return set(self.nodes) - set(self.block_2_node[block_id])

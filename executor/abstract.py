@@ -6,7 +6,7 @@ from network import ICommunication_Controller
 
 class AbsExecutor(IExecutor, metaclass=ABCMeta):
 
-    def __init__(self, node_id:int, working_group:set):
+    def __init__(self, node_id: int, working_group: set):
         self.__node_id = node_id
         self.__working_group = working_group
 
@@ -27,7 +27,7 @@ class AbsExecutor(IExecutor, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def satisfy(self, reply:list) -> list:
+    def satisfy(self, reply: list) -> list:
         """
             Satisfy requested data.
         :return: list of Req(Enum) contains requests which cannot be satisfied.
@@ -35,7 +35,7 @@ class AbsExecutor(IExecutor, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def start(self, com:ICommunication_Controller) -> None:
+    def start(self, com: ICommunication_Controller) -> None:
         """
             Do the job.
         """
@@ -72,7 +72,7 @@ class AbsSimpleExecutor(AbsExecutor):
     def requests(self) -> list:
         return []
 
-    def satisfy(self, reply:list) -> list:
+    def satisfy(self, reply: list) -> list:
         return []
 
     def ready(self) -> bool:
@@ -81,7 +81,7 @@ class AbsSimpleExecutor(AbsExecutor):
     def done(self) -> bool:
         return self.__done
 
-    def start(self, com:ICommunication_Controller) -> None:
+    def start(self, com: ICommunication_Controller) -> None:
         self.run(com)
         self.__done = True
 

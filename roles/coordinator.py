@@ -41,10 +41,11 @@ class Coordinator:
                 if isinstance(data, IRequestPackage):
                     reply = dispatch_map(data)
 
-                    self.__log.log_message('Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
+                    self.__log.log_message(
+                        'Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
 
-                elif isinstance(data, Ready_Type):
-                    reply = Ready_Type(node_ready)
+                elif isinstance(data, ReadyType):
+                    reply = ReadyType(node_ready)
 
                     if id_from in node_ready:
                         continue
@@ -74,11 +75,11 @@ class Coordinator:
 
             id_from, data = self.__com.get_one()
 
-            if isinstance(data, Binary_File_Package):
+            if isinstance(data, BinaryFilePackage):
                 data.restore()
                 self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
 
-            elif isinstance(data, Done_Type):
+            elif isinstance(data, DoneType):
                 data.restore()
                 self.__log.log_message('Restoring data from {}.'.format(id_from))
                 node_ready.add(id_from)
@@ -86,31 +87,33 @@ class Coordinator:
 
         self.__log.log_message("All task is complete.")
 
-    def submit_group(self, worker_executor: type, working_group: Iterable[int]=None, package_size: int=1e9):
+    def submit_group(self, worker_executor: type, working_group: Iterable[int] = None, package_size: int = 1e9):
         """
             Submit a job to a specified worker group.
             Nodes inside this group will wait for each other and synchronize start time.
             Group will also wait for all single nodes were ready.
         :param worker_executor: executor class, implementation of IExecutor
-        :param workers: Worker group list, iterable object, contains id of each worker in the group.
+        :param working_group: Worker group list, iterable object, contains id of each worker in the group.
         :param package_size: Package size in transmission. Potentially required by executor, and provided by dispatch.
         :return: None
         """
         # set work group
-        if working_group:
+        if working_group is None:
             working_group = set(self.__com.available_clients)
+        if not isinstance(working_group, set):
+            working_group = set(working_group)
         # check for duplication
         assert len(self.__group_allocated & working_group) == 0, "Cannot submit a task to node which already has a job."
         # calculate data size
         dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
         # send request
-        for id in working_group:
-            self.__com.send_one(id, SubmitJob(working_group | self.__global_allocated, dataset_ett, worker_executor))
+        for _id in working_group:
+            self.__com.send_one(_id, SubmitJob(working_group | self.__global_allocated, dataset_ett, worker_executor))
 
         self.__group_allocated = self.__group_allocated | working_group
         self.__log.log_message("Group submission complete ({}).".format(working_group))
 
-    def submit_single(self, worker_executor: type, worker_id: int, package_size: int=1e9):
+    def submit_single(self, worker_executor: type, worker_id: int, package_size: int = 1e9):
         """
             Submit a job to a specified node.
             This global node will start execution immediately when itself was ready.
@@ -132,7 +135,7 @@ class Coordinator:
 
 class Reclaimer:
 
-    def __init__(self, com:ICommunication_Controller, logger:Logger=None):
+    def __init__(self, com: ICommunication_Controller, logger: Logger = None):
         self.__com = com
         if logger is None:
             self.__log = Logger(title_info='Retrieve', log_to_file=True)
@@ -154,10 +157,10 @@ class Reclaimer:
             total_nodes = set(self.__com.available_clients)
             while nodes_ready != total_nodes:
                 id_from, log = self.__com.get_one()
-                if isinstance(log, Binary_File_Package):
+                if isinstance(log, BinaryFilePackage):
                     log.restore()
                     self.__log.log_message('Save log file for worker({}).'.format(id_from))
-                elif isinstance(log, Done_Type):
+                elif isinstance(log, DoneType):
                     nodes_ready.add(id_from)
                     log.restore()
                     self.__log.log_message('All package received for worker({})'.format(id_from))

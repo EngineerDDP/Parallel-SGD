@@ -58,9 +58,9 @@ for i in range(TEST_ROUNDS):
         # get random
         arr = np.random.random(size=WEIGHTS_SHAPE)
         # build BlockWeight
-        blockweight = BlockWeight(LAYER, i, node_id, {node_id}, content=arr)
+        block_weight = BlockWeight(content=arr, block_id=node_id)
         # send consensus package
-        pkg = slave.update_blocks(blockweight)
+        pkg = slave.update_blocks(block_weight)
         if isinstance(pkg, netEncapsulation):
             pkg = [pkg]
         if pkg is None:

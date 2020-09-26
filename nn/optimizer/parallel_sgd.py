@@ -10,12 +10,13 @@ class PSGDOptimizer(IOptimizer):
         Interact with transfer.
     """
 
-    def __init__(self, gradient_descent:IGradientDescent, transfer:ITransfer, block_mgr:IPSGDBlockMgr):
+    def __init__(self, gradient_descent: IGradientDescent, transfer: ITransfer, block_mgr: IPSGDBlockMgr):
         self.__transfer = transfer
         self.__block_mgr = block_mgr
         self.__optimizer = gradient_descent
+        self.__batch_size = 1
 
-    def optimize(self, variable:ITrainable):
+    def optimize(self, variable: ITrainable):
         """
             1st order gradient based optimize algorithm.
             {arg min}_{x}{F(x)}

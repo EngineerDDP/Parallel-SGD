@@ -60,9 +60,5 @@ class ISetting(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_company_list(self, node_id) -> List[Set[int]]:
-        pass
-
-    @abstractmethod
-    def get_adversary(self, node_id) -> List[Set[int]]:
+    def get_adversary(self, block_id: int) -> Set[int]:
         pass
