@@ -19,6 +19,8 @@ class Conv2DLayer(AbsLayer):
         self.__grad_left = None
         self.__grad_right = None
         self.__out_shape = None
+        self.__tape: tf.GradientTape = None
+        self.__in = None
 
     @property
     def variables(self) -> tuple:
@@ -29,11 +31,10 @@ class Conv2DLayer(AbsLayer):
             self.__kernal.set_value(np.random.uniform(low=-1, high=1, size=self.__size))
 
     def do_forward_predict(self, x):
+        self.__in = x
         left = tf.Variable(tf.constant(x, dtype=tf.float32))
         right = tf.Variable(tf.constant(self.__kernal.get_value(), dtype=tf.float32))
-        with tf.GradientTape() as tape:
-            out = tf.nn.conv2d(left, right, self.__strides, self.__padding)
-        self.__grad_left, self.__grad_right = tape.gradient(out, (left, right))
+        out = tf.nn.conv2d(left, right, self.__strides, self.__padding)
         self.__out_shape = out.numpy().shape
         return out.numpy()
 
@@ -41,11 +42,19 @@ class Conv2DLayer(AbsLayer):
         return self.do_forward_predict(x)
 
     def backward_adjust(self, grad) -> None:
-        gw = np.multiply(self.__grad_right.numpy(), grad)
-        self.__kernal.adjust(gw)
+        left = tf.constant(self.__in, dtype=tf.float32)
+        grad = tf.constant(grad, dtype=tf.float32)
+        out = tf.nn.conv2d(tf.transpose(left[:,::-1,::-1,:], perm=[3,1,2,0]), tf.transpose(grad, perm=[1,2,0,3]), self.__strides, self.__padding)
+        out = tf.transpose(out, perm=[1,2,0,3]).numpy()
+        self.__kernal.adjust(out)
 
     def backward_propagate(self, grad):
-        return np.multiply(self.__grad_left.numpy(), grad)
+        left = tf.constant(self.__kernal.get_value(), dtype=tf.float32)
+        grad = tf.constant(grad, dtype=tf.float32)
+        out = tf.nn.conv2d_transpose(grad, left, self.__in.shape, self.__strides, self.__padding)
+        out = out.numpy()
+        return out
+        # return self.__grad_left.numpy()
 
     def output_shape(self) -> [list, tuple, None]:
         return self.__out_shape
@@ -59,11 +68,12 @@ class Conv2DLayer(AbsLayer):
 
 if __name__ == '__main__':
     import os
-
+    from nn.interface import ModelState
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     from nn.value import Variable
 
     x = Variable(shape=(1, 5, 5, 1))
     y = Conv2DLayer([1, 1, 1, 1], "VALID", (2, 2, 1, 2), inputs=x)
 
-    print(y.F())
+    print(y.F(state=ModelState.Training).shape)
+    y.G(np.ones((1,4,4,2)))
