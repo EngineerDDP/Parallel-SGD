@@ -7,8 +7,8 @@ from nn.activation.abstract import IActivation
 
 class Dropout(AbsLayer):
 
-    def __init__(self, drop_out_rate: float = 0.5, activation:IActivation=None, input=None):
-        super().__init__(input, activation)
+    def __init__(self, drop_out_rate: float = 0.5, activation: IActivation = None, inputs=None):
+        super().__init__(inputs, activation)
         self.__ref_mask = None
         self.__probability = drop_out_rate
 

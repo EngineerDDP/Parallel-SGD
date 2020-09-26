@@ -13,7 +13,7 @@ from nn.model.utils import FitResultHelper
 class IModel(metaclass=ABCMeta):
 
     @abstractmethod
-    def setup(self, loss:ILoss, *metrics:IMetric):
+    def setup(self, loss: ILoss, *metrics: IMetric):
         """
              loss and metrics
         :param loss: ILoss
@@ -23,7 +23,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def compile(self, optimizer:IOptimize):
+    def compile(self, optimizer: IOptimize):
         """
             Compile model with given optimizer
         :param optimizer: IOptimizer
@@ -32,7 +32,8 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def fit(self, x:[ndarray, IDataFeeder], epoch:int, label:[ndarray]=None, batch_size:int=64, printer:IPrinter=None) -> FitResultHelper:
+    def fit(self, x: [ndarray, IDataFeeder], epoch: int, label: [ndarray] = None, batch_size: int = 64,
+            printer: IPrinter = None) -> FitResultHelper:
         """
             Fit model with given samples.
         :param x: ndarray or data feeder. requires a IDataFeeder instance or both x and label for ndarray instance.
@@ -53,7 +54,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def evaluate(self, x:ndarray, label:ndarray):
+    def evaluate(self, x: ndarray, label: ndarray):
         """
             Evaluate this model with given metric.
         :param x: input samples
@@ -63,7 +64,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def predict(self, x:ndarray) -> ndarray:
+    def predict(self, x: ndarray) -> ndarray:
         """
             Predict give input
         :param x: input samples

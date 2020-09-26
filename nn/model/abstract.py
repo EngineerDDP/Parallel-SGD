@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Tuple, List
+from typing import Tuple, List, Iterable
 
 from numpy import ndarray
 
@@ -19,21 +19,21 @@ class Model(IModel):
 
     def __init__(self, input_shape=None):
         self.__placeholder_input = Placeholder(input_shape)
-        self.__ref_output:[IOperator] = None
-        self.__metrics:List[IMetric] = []
-        self.__loss:[ILoss] = None
-        self.__optimizer:[IOptimizer] = None
-        self.__fit_history:FitResultHelper = FitResultHelper()
+        self.__ref_output: [IOperator] = None
+        self.__metrics: List[IMetric] = []
+        self.__loss: [ILoss] = None
+        self.__optimizer: [IOptimizer] = None
+        self.__fit_history: FitResultHelper = FitResultHelper()
 
     @abstractmethod
-    def trainable_variables(self) -> Tuple[ITrainable]:
+    def trainable_variables(self) -> Iterable[ITrainable]:
         pass
 
     @abstractmethod
-    def call(self, x:IOperator) -> IOperator:
+    def call(self, x: IOperator) -> IOperator:
         pass
 
-    def setup(self, loss:ILoss, *metrics:IMetric):
+    def setup(self, loss: ILoss, *metrics: IMetric):
         self.__ref_output = self.call(self.__placeholder_input)
         # validate model
         if self.__placeholder_input.get_shape() is not None:
@@ -41,7 +41,7 @@ class Model(IModel):
             # reset and validate
             self.__ref_output.F()
         # setup loss
-        self.__loss:ILoss = loss
+        self.__loss: ILoss = loss
         # setup metric
         self.__metrics = [self.__loss]
         self.__metrics.extend(metrics)
@@ -54,7 +54,7 @@ class Model(IModel):
         # set title
         self.__fit_history.set_fit_title(title)
 
-    def compile(self, optimizer:IOptimize):
+    def compile(self, optimizer: IOptimize):
         # set optimizer
         self.__optimizer = optimizer
         self.__optimizer.optimize(*self.trainable_variables())
@@ -62,7 +62,8 @@ class Model(IModel):
     def __evaluate_metrics(self, y, label) -> list:
         return [metric.metric(y, label) for metric in self.__metrics]
 
-    def fit(self, x:[ndarray, IDataFeeder], epoch:int, label:[ndarray]=None, batch_size:int=64, printer:IPrinter=None) -> FitResultHelper:
+    def fit(self, x: [ndarray, IDataFeeder], epoch: int, label: [ndarray] = None, batch_size: int = 64,
+            printer: IPrinter = None) -> FitResultHelper:
         assert isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator), "Model hasn't complied."
         assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."
 
@@ -82,7 +83,7 @@ class Model(IModel):
                 # do backward propagation from loss
                 self.__ref_output.G(grad_y)
                 # record fitting process
-                fit_rec = [j+1, x.position, x.length, self.__fit_history.count+1, loss]
+                fit_rec = [j + 1, x.position, x.length, self.__fit_history.count + 1, loss]
                 fit_rec.extend(self.__evaluate_metrics(y, part_y))
 
                 str_formatted = self.__fit_history.append_row(fit_rec)
@@ -96,7 +97,7 @@ class Model(IModel):
     def fit_history(self) -> FitResultHelper:
         return self.__fit_history
 
-    def evaluate(self, x:ndarray, label:ndarray):
+    def evaluate(self, x: ndarray, label: ndarray):
         # set placeholder
         self.__placeholder_input.set_value(x)
         # do forward propagation
@@ -111,7 +112,7 @@ class Model(IModel):
         title.append("Loss")
         return dict(zip(title, eval))
 
-    def predict(self, x:ndarray):
+    def predict(self, x: ndarray):
         self.__placeholder_input.set_value(x)
         y = self.__ref_output.F()
         return y

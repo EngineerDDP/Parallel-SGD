@@ -1,14 +1,14 @@
-from typing import Tuple
+from abc import abstractmethod
+from typing import Iterable, Union
 
 import numpy as np
-
-from abc import abstractmethod
 from numpy import ndarray
+
 from nn.activation.interface import IActivation
-from nn.value.abstract import AbsValue
+from nn.activation.linear import Linear
 from nn.interface import IOperator, ITrainable, IOptimizer, ModelState
 from nn.layer.interface import ILazyInitialization
-from nn.activation.linear import Linear
+from nn.value.abstract import AbsValue
 
 
 class Weights(AbsValue, ITrainable):
@@ -17,7 +17,7 @@ class Weights(AbsValue, ITrainable):
         super().__init__()
         self.__content = None
         self.__content_gradient = None
-        self.__optimizer:[IOptimizer] = None
+        self.__optimizer: [IOptimizer] = None
 
     def get_shape(self) -> list:
         return self.__content.shape
@@ -36,7 +36,7 @@ class Weights(AbsValue, ITrainable):
         if self.__optimizer:
             self.__optimizer.optimize(self)
 
-    def attach_optimizer(self, optimizer:IOptimizer) -> None:
+    def attach_optimizer(self, optimizer: IOptimizer) -> None:
         self.__optimizer = optimizer
 
     def reset(self) -> None:
@@ -50,12 +50,12 @@ class AbsLayer(IOperator, ILazyInitialization):
         Used for lazy initialization.
     """
 
-    def __init__(self, input:IOperator=None, activation:IActivation=Linear()):
+    def __init__(self, inputs: IOperator = None, activation: IActivation = Linear()):
         """
             Abstract layer class
-        :param input: input operator, IOperator instance
+        :param inputs: input operator, IOperator instance
         """
-        self.__op_input = input
+        self.__op_input = inputs
         self.__ref_input = None
         self.__activation = activation
         self.__initialized = False
@@ -64,12 +64,12 @@ class AbsLayer(IOperator, ILazyInitialization):
     def input_ref(self):
         return self.__ref_input
 
-    def set_input(self, input:IOperator):
-        self.__op_input = input
+    def set_input(self, inputs: IOperator):
+        self.__op_input = inputs
 
     @property
     @abstractmethod
-    def variables(self) -> Tuple[ITrainable]:
+    def variables(self) -> Iterable[ITrainable]:
         """
             Trainable units within this scope.
         :return: tuple
@@ -124,7 +124,7 @@ class AbsLayer(IOperator, ILazyInitialization):
         self.initialize_parameters(x)
         self.__initialized = True
 
-    def F(self, x:[float, ndarray, tuple]=None, state:ModelState=ModelState.Training) -> [float, ndarray]:
+    def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> Union[float, ndarray]:
         """
             Do forward propagate.
         :param x: input of this layer.
@@ -141,7 +141,7 @@ class AbsLayer(IOperator, ILazyInitialization):
         else:
             return self.__activation.do_forward(self.do_forward_train(self.__ref_input))
 
-    def G(self, grad:[float, ndarray]=None) -> None:
+    def G(self, grad: [float, ndarray] = None) -> None:
         """
             Do backward and adjust parameters.
         :param grad: Gradients from back-propagation, set to None when this layer doesnt needs
