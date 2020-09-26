@@ -14,7 +14,7 @@ class ReLU(AbsActivation):
         return self.op_child.output_shape()
 
     def do_forward(self, x, training=True):
-        self.__ref_input = x.copy
+        self.__ref_input = x.copy()
         self.__ref_input[self.__ref_input < 0] = 0
         return self.__ref_input
 

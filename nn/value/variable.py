@@ -28,10 +28,6 @@ class Variable(AbsValue, OperandHelper, ITrainable):
 
     # -------- Operator implementation --------
 
-    @property
-    def output_ref(self):
-        return self.get_value()
-
     def output_shape(self) -> [list, tuple, None]:
         return self.get_shape()
 

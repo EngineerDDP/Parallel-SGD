@@ -1,7 +1,6 @@
-from nn.interface import IValue
-
 __var_id_max = 0
 __var_ids = set()
+
 
 def register():
     global __var_id_max, __var_ids
@@ -9,8 +8,10 @@ def register():
     __var_id_max += 1
     return __var_id_max - 1
 
+
 def remove(id):
     pass
+
 
 class AbsValue:
 
