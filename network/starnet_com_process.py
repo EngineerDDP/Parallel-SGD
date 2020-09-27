@@ -12,7 +12,7 @@ from utils.constants import Initialization_Server
 STAR_NET_WORKING_PORTS = 15387
 
 
-class Worker_Register_List:
+class WorkerRegisterList:
 
     def __init__(self):
         self.__worker_id_to_cons = {}
@@ -96,7 +96,7 @@ class Worker_Register_List:
             del self.__fd_to_workers[con]
             del self.__worker_id_to_cons[id]
 
-    def find(self, id:[int, socket.socket]):
+    def find(self, id: [int, socket.socket]):
         """
             find a connection file descriptor
         :param id: integer id, to search for specified fd.
@@ -116,12 +116,13 @@ class Worker_Register_List:
     def keys(self):
         return list(self.__fd_to_workers.values())
 
-class Worker_Register(IWorker_Register):
+
+class WorkerRegister(IWorker_Register):
 
     def __init__(self):
         super().__init__()
         self.__id = None
-        self.__workers = Worker_Register_List()
+        self.__workers = WorkerRegisterList()
 
     def __iter__(self):
         return self.__workers.to_list()
@@ -133,7 +134,7 @@ class Worker_Register(IWorker_Register):
     def working_port(self):
         return STAR_NET_WORKING_PORTS
 
-    def register(self, id_self, content_package:NodeAssignment, con_from=None):
+    def register(self, id_self, content_package: NodeAssignment, con_from=None):
         """
             Register all workers
         :param id_self: id of current worker
@@ -151,10 +152,10 @@ class Worker_Register(IWorker_Register):
         # for all slaves
         for id, ip_addr in content_package:
             # slaves who's id before self
-            if (self_uuid is None and id != self.__id):
+            if self_uuid is None and id != self.__id:
                 self.__workers.occupy(id, uuid)
             # id of myself
-            elif (id == self.__id):
+            elif id == self.__id:
                 self_uuid = uuid
             # id behind myself
             elif self_uuid is not None:
@@ -164,10 +165,10 @@ class Worker_Register(IWorker_Register):
                     worker_con.connect((ip_addr, STAR_NET_WORKING_PORTS))
                     # try register
                     data = {
-                        Key.Type:       Type_Val.WorkerReports,
-                        Key.From:       self.__id,
-                        Key.To:         id,
-                        Key.Content:    self_uuid
+                        Key.Type: Type_Val.WorkerReports,
+                        Key.From: self.__id,
+                        Key.To: id,
+                        Key.Content: self_uuid
                     }
                     writer.set_content(data)
                     writer.send(worker_con)
@@ -202,15 +203,15 @@ class Worker_Register(IWorker_Register):
 
     def reset(self):
         del self.__workers
-        self.__workers = Worker_Register_List()
+        self.__workers = WorkerRegisterList()
 
 
-class Communication_Process(AbsCommunicationProcess):
+class CommunicationProcess(AbsCommunicationProcess):
     """
         Operated with dictionary, serialized using numpy save
     """
 
-    def __init__(self, id_register: Worker_Register):
+    def __init__(self, id_register: WorkerRegister):
         """
             Initialize a communication control process.
         :param socketcon: socket connection object to remote device.
@@ -250,7 +251,8 @@ class Communication_Process(AbsCommunicationProcess):
             fd.setblocking(False)
 
         # handle writeable event here
-        __write_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.', daemon=True)
+        __write_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.',
+                                          daemon=True)
         __write_thread.start()
 
         # handle readable event here
@@ -407,8 +409,8 @@ class Communication_Process(AbsCommunicationProcess):
 
 class Promoter(IPromoter):
 
-    def __call__(self, nodes:NodeAssignment) -> AbsCommunicationProcess:
-        worker_register = Worker_Register()
+    def __call__(self, nodes: NodeAssignment) -> AbsCommunicationProcess:
+        worker_register = WorkerRegister()
         # register
         worker_register.register(Initialization_Server, nodes)
         data = {
@@ -443,7 +445,7 @@ class Promoter(IPromoter):
         writer.close()
 
         if worker_register.check():
-            com = Communication_Process(worker_register)
+            com = CommunicationProcess(worker_register)
             return com
         else:
             raise OSError('Some of workers didnt respond properly.')

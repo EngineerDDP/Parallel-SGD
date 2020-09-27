@@ -31,9 +31,9 @@ class DoubleBufferingOptimizer(IOptimizer):
 
         grad = variable.get_gradient()
         if variable.get_shape() != grad.shape:
-            grad = grad.sum(axis=0)
+            grad = grad.mean(axis=0)
 
-        delta = self.__optimizer.delta(grad / self.__batch_size)
+        delta = self.__optimizer.delta(grad)
         self.__transfer.put_weights(delta, variable.id, self.__block_mgr.batch_id, self.__block_mgr.current_block_id)
         self.__delayed_update_mark = self.__block_mgr.end
 

@@ -46,5 +46,5 @@ class Plain(Codec):
         res = 0
         for val in self.BlockWeights.values():
             res += val
-        self.set_result(res)
+        self.set_result(res / len(self.BlockWeights))
         self.BlockWeights.clear()

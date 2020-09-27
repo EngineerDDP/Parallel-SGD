@@ -5,6 +5,7 @@ from codec import GlobalSettings
 import numpy as np
 
 # import event logger
+from codec.interfaces import netEncapsulation
 from utils.log import Logger
 from time import sleep
 
@@ -20,10 +21,10 @@ from time import sleep
     ---------------DEFINE HERE---------------
 """
 # import test codec
-from codec.tutorial_codec import MyComCtrl
+from codec.plain import Plain
 from profiles.blockassignment import DuplicateAssignment
 # Type
-SLAVE_CODEC = MyComCtrl
+SLAVE_CODEC = Plain
 ASSIGNMENTS = DuplicateAssignment
 """
     ---------------DEFINE HERE---------------
@@ -55,10 +56,15 @@ for i in range(TEST_ROUNDS):
         for block_id in Default.node_2_block[node_id]:
             # get random
             arr = np.random.random(size=WEIGHTS_SHAPE)
-            # build blockweights
+            # build block weights
             block_weight = BlockWeight(block_id=block_id, content=arr)
+            pkg = slave.update_blocks(block_weight)
+            if isinstance(pkg, netEncapsulation):
+                pkg = [pkg]
+            if pkg is None:
+                pkg = []
             # send consensus package
-            for package in slave.update_blocks(block_weight):
+            for package in pkg:
                 # get proper receiver
                 for tgt in package.target():
                     assert tgt in range(SLAVE_CNT)
@@ -82,6 +88,10 @@ for i in range(TEST_ROUNDS):
                 do_retry = slave.do_something_to_save_yourself()
                 if do_retry is None:
                     raise TimeoutError('Timeout occurred and retry mechanism is not available.')
+                if isinstance(do_retry, netEncapsulation):
+                    pkg = [do_retry]
+                if do_retry is None:
+                    do_retry = []
                 for package in do_retry:
                     # get proper receiver
                     for tgt in package.target():

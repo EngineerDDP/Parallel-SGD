@@ -97,7 +97,7 @@ class PSGDWorkerExecutor(AbsExecutor):
         train_x, train_y, test_x, test_y = self.__data.load()
         self.__log.log_message('Dataset is ready, type: ({})'.format(self.__data))
         # build data feeder
-        block_ids = GlobalSettings.get_default().blocks
+        block_ids = GlobalSettings.get_default().node_2_block[com.Node_Id]
         feeder = PSGDBlockDataFeeder(train_x, train_y, batch_iter=self.__batch_iter, block_ids=block_ids)
         # assemble optimizer
         self.__optimizer.assemble(transfer=self.__trans, block_mgr=feeder)

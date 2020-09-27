@@ -37,9 +37,9 @@ class Serve:
         """
         net_type = net_type.lower()
         if net_type == 'fcnet':
-            from network.starnet_com_process import Communication_Process, Worker_Register
-            self.__constructor = wcc(Worker_Register())
-            self.__proc_cls = Communication_Process
+            from network.starnet_com_process import CommunicationProcess, WorkerRegister
+            self.__constructor = wcc(WorkerRegister())
+            self.__proc_cls = CommunicationProcess
         else:
             raise AssertionError('Cannot find network type that matches {}.'.format(net_type))
 
