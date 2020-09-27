@@ -1,30 +1,29 @@
 from queue import Queue
 from time import sleep
-from typing import Dict, List, Set, Iterable
+from typing import Dict, List, Set, Iterable, Union
 
 from numpy import ndarray
 
-from codec.interfaces import Codec
 from codec.essential import BlockWeight
-from profiles.blockassignment.abstract import AbsBlockAssignment
+from codec.interfaces import Codec, netEncapsulation
 from psgd.sync.interface import IParallelSGD
 from psgd.sync.interface import ReadTimeOut, AsyncDetected, OutdatedUpdates
 from utils.constants import SSGD_Sync_Timeout_Limit_MSec
 
 
-def iterator_helper(iter):
+def iterator_helper(objs: Union[Iterable[netEncapsulation], netEncapsulation, None]):
     """
         Retrieve data from generator
-    :param iter:
+    :param objs:
     :return:
     """
-    if type(iter).__name__ == 'generator':
-        return [i for i in iter]
+    if type(objs).__name__ == 'generator':
+        return [i for i in objs]
 
-    if iter is None:
+    if objs is None:
         return []
 
-    return [iter]
+    return [objs]
 
 
 class SynchronizedSGD(IParallelSGD):
