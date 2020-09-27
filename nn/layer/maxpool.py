@@ -15,8 +15,9 @@ class MaxPool(AbsLayer):
         self.__strides: [List[int], Tuple[int]] = strides
         self.__padding: [List[int], Tuple[int], str] = padding
         self.__size: [List[int], Tuple[int]] = size
-        self.__grad_left = None
+        self.__mask = None
         self.__out_shape = None
+        self.__in_shape = None
 
     @property
     def variables(self) -> tuple:
@@ -29,8 +30,9 @@ class MaxPool(AbsLayer):
         left = tf.Variable(tf.constant(x, dtype=tf.float32))
         with tf.GradientTape() as tape:
             out = tf.nn.max_pool2d(left, self.__size, self.__strides, self.__padding)
-        self.__grad_left = tape.gradient(out, left)
+        self.__mask = tape.gradient(out, left)
         self.__out_shape = out.numpy().shape
+        self.__in_shape = x.shape
         return out.numpy()
 
     def do_forward_train(self, x):
@@ -40,7 +42,10 @@ class MaxPool(AbsLayer):
         pass
 
     def backward_propagate(self, grad):
-        return np.multiply(self.__grad_left.numpy(), grad)
+        indices = tf.where(self.__mask > 0)
+        updates = tf.reshape(tf.constant(grad), (-1))
+        shape = tf.constant(self.__in_shape, dtype=tf.int64)
+        return tf.scatter_nd(indices, updates, shape).numpy()
 
     def output_shape(self) -> [list, tuple, None]:
         return self.__out_shape
