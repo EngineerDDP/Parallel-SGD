@@ -47,6 +47,10 @@ class SynchronizedSGD(IParallelSGD):
         self.__adversary_list: List[Set[int]] = []
         self.__receive_buffer: Dict[int, Queue] = {}
 
+    @property
+    def batch_updater(self):
+        return self.__batch_updater
+
     def release_memory(self):
         """
             release out-dated memory for local batch buffer and codec buffer.
@@ -65,7 +69,7 @@ class SynchronizedSGD(IParallelSGD):
         self.__current_batch = batch_no
 
         block = BlockWeight(content, block_id)
-        update_packs = iterator_helper(self.__batch_updater.update_blocks(block))
+        update_packs = iterator_helper(self.batch_updater.update_blocks(block))
 
         for update_pack in update_packs:
             sender = update_pack.target()
@@ -98,7 +102,7 @@ class SynchronizedSGD(IParallelSGD):
 
         time_out = 0
 
-        while not self.__batch_updater.is_done():
+        while not self.batch_updater.is_done():
             # wait until more data is available
             if self.__receive_buffer.get(self.__current_batch) is None \
                     or self.__receive_buffer[self.__current_batch].empty():
@@ -106,11 +110,11 @@ class SynchronizedSGD(IParallelSGD):
                 time_out += 1
                 if time_out >= SynchronizedSGD.INT_READ_TIMEOUT_MSEC:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
-                    raise ReadTimeOut(self.__batch_updater.do_something_to_save_yourself)
+                    raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
 
             else:
                 pkg = self.__receive_buffer[self.__current_batch].get()
-                self.__batch_updater.receive_blocks(pkg)
+                self.batch_updater.receive_blocks(pkg)
 
-        if self.__batch_updater.is_done():
-            return self.__batch_updater.get_result()
+        if self.batch_updater.is_done():
+            return self.batch_updater.get_result()
