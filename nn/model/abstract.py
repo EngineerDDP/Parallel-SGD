@@ -123,7 +123,10 @@ class Model(IModel):
             var.reset()
 
     def summary(self) -> str:
-        summary = "No structure description available for this model.\n"
+
+        summary = '\n------------\t\tModel Summary\t\t------------\n'
+
+        summary += "No structure description available for this model.\n"
 
         if self.__loss and self.__optimizer and self.__metrics:
             summary += '\t------------\t\tAppendix\t\t------------\n'
