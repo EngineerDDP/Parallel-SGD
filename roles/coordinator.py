@@ -75,13 +75,13 @@ class Coordinator:
 
             id_from, data = self.__com.get_one()
 
-            if isinstance(data, BinaryFilePackage):
+            if isinstance(data, IReplyPackage):
                 data.restore()
-                self.__log.log_message('Restoring data ({}) from {}.'.format(data.filename, id_from))
+                self.__log.log_message('Restoring data ({}) from {}.'.format(data, id_from))
 
-            elif isinstance(data, DoneType):
-                data.restore()
-                self.__log.log_message('Restoring data from {}.'.format(id_from))
+            if isinstance(data, DoneType):
+                file_format = "\n\t\t--> ".join([filename for filename in data.file_list])
+                self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
                 node_ready.add(id_from)
                 self.__log.log_message('Node({}) is done, {} is done.'.format(id_from, node_ready))
 
@@ -156,15 +156,24 @@ class Reclaimer:
             nodes_ready = set()
             total_nodes = set(self.__com.available_clients)
             while nodes_ready != total_nodes:
+
                 id_from, log = self.__com.get_one()
-                if isinstance(log, BinaryFilePackage):
+
+                if isinstance(log, DoneType):
                     log.restore()
-                    self.__log.log_message('Save log file for worker({}).'.format(id_from))
-                elif isinstance(log, DoneType):
+                    file_format = "\n\t\t--> ".join([filename for filename in log.file_list])
+                    self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
                     nodes_ready.add(id_from)
-                    log.restore()
-                    self.__log.log_message('All package received for worker({})'.format(id_from))
-        except:
-            self.__log.log_error('Connection lost.')
+                    self.__log.log_message('Node({}) is done, {} is done.'.format(id_from, nodes_ready))
+
+        except Exception as e:
+            # print DEBUG message
+            import sys
+            import traceback
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
+            exc_format = "".join(exc_tb)
+            self.__log.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
+            # print DEBUG message
 
         self.__log.log_message('Done.')

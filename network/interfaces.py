@@ -22,8 +22,8 @@ class NodeAssignment:
         self.__unique.add(id)
 
     def __iter__(self):
-        for id, addr in self.__nodes:
-            yield id, addr
+        for _id, addr in self.__nodes:
+            yield _id, addr
 
     def __len__(self):
         return len(self.__unique)

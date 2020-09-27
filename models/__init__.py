@@ -34,12 +34,19 @@ class ReadyType:
 
 class DoneType(IReplyPackage):
 
-    def __init__(self, posted_files):
+    def __init__(self, node_id, posted_files):
+        self.__header = "./Node-{}-Retrieve/".format(node_id)
         self.__contents = [BinaryFilePackage(f) for f in posted_files]
 
     def restore(self) -> None:
         for bf in self.__contents:
+            bf.filename = self.__header + bf.filename
             bf.restore()
+
+    @property
+    def file_list(self):
+        for bf in self.__contents:
+            yield bf.filename
 
 
 class BinaryFilePackage(IReplyPackage):

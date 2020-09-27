@@ -86,15 +86,23 @@ class ParallelSGD:
                                 用于参数服务器进行数据处理。
         :return:
         """
-        node_count = len(nodes) - (1 if ps_codec else 0)
+        # 获取所有的合法Slave
+        node_count = 0
+        has_ps = False
+        for _id, _ in nodes:
+            if _id >= 0:
+                node_count += 1
+            else:
+                has_ps = True
+
         assignment: ISetting = assignment_type(node_count, redundancy)
         setting: net_setting = net_setting(assignment_type, node_count, redundancy)
         model: net_model = net_model(self.__model, BatchIter(block_size, assignment.block_count))
         optimizer: net_optimizer = net_optimizer(gd_type, op_type, op_params=op_params)
         var_ids = [var.id for var in self.__model.trainable_variables()]
         transfer_worker: net_transfer = net_transfer(var_ids, sync_type, codec)
-        transfer_ps: [net_transfer] = net_transfer(var_ids, AsynchronizedSGD, ps_codec) if ps_codec else None
-        mission_title = "Codec({})-PS({})".format(codec.__name__, ps_codec.__name__ if ps_codec else "None")
+        transfer_ps: [net_transfer] = net_transfer(var_ids, AsynchronizedSGD, ps_codec) if has_ps else None
+        mission_title = "Codec({})-PS({})".format(codec.__name__, ps_codec.__name__ if has_ps else "None")
         misc: misc_package = misc_package(mission_title, epoch, None)
 
         replies = {
@@ -114,7 +122,7 @@ class ParallelSGD:
 
         with req.request(nodes) as com:
             coordinator = Coordinator(com, estimate_bandwidth=1, logger=self.__log)
-            if ps_codec:
+            if has_ps:
                 coordinator.submit_single(PSGDPSExecutor, Parameter_Server, self.__data.estimate_size())
             coordinator.submit_group(PSGDWorkerExecutor, assignment.nodes, self.__data.estimate_size())
 

@@ -72,12 +72,11 @@ class PSGD_Worker:
                 self.client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
                     self.do_training(com)
-                    self.post_log(com)
 
             if isinstance(req, RequestWorkingLog):
                 self.client_logger.log_message('ACK logfile reclaim.')
-                self.post_log(com)
 
+            self.post_log(com)
         except Exception as e:
             # print DEBUG message
             import sys
@@ -100,7 +99,7 @@ class PSGD_Worker:
                 posting_files.append(filename)
 
         # Post files
-        com.send_one(Initialization_Server, DoneType(posting_files))
+        com.send_one(Initialization_Server, DoneType(com.Node_Id, posting_files))
 
     def initialize(self, com: ICommunication_Controller, job_info: SubmitJob) -> bool:
         """
@@ -181,7 +180,8 @@ class PSGD_Worker:
             assert timeout_clock < timeout, "Maximum waiting time exceed."
 
             current_active = set(com.available_clients) | {com.Node_Id}
-            assert current_active & total_nodes == total_nodes, "Minimum nodes cannot be satisfied."
+            assert current_active & total_nodes == total_nodes, \
+                "Current nodes: {}, required nodes: {}.".format(current_active, total_nodes)
             # inc time clock
             time.sleep(1)
             timeout_clock += 1
@@ -203,11 +203,4 @@ class PSGD_Worker:
         self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))
         self.client_logger.log_message('Training stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
         self.client_logger.log_message('Training stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
-
-        for filename in self.__job_executor.trace_files():
-            data = BinaryFilePackage(filename)
-            com.send_one(Initialization_Server, data)
-
-        self.client_logger.log_message('Try post training log to coordinator.')
-
         self.client_logger.log_message('Execution process exited.')
