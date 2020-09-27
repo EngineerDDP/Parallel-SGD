@@ -122,8 +122,8 @@ class Communication_Controller(ICommunication_Controller):
         if self.is_closed():
             raise ConnectionAbortedError('Connection has already been closed.')
         if self.__com.recv_que.empty() and not blocking:
-            return (None, None)
-        while self.__com.is_alive():
+            return None, None
+        while not self.is_closed():
             try:
                 return self.__com.recv_que.get(timeout=1)
             except queue.Empty:
