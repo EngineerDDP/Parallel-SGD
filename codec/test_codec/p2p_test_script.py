@@ -52,7 +52,7 @@ for i in range(TEST_ROUNDS):
     node_id = 0
     for slave in slave_codec:
         # build each block
-        for block_id in Default.block_assignment.node_2_block[node_id]:
+        for block_id in Default.node_2_block[node_id]:
             # get random
             arr = np.random.random(size=WEIGHTS_SHAPE)
             # build blockweights
