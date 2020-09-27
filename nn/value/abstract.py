@@ -24,3 +24,6 @@ class AbsValue:
     @property
     def id(self):
         return self.__var_id
+
+    def __repr__(self):
+        return "<Value ID:{}>".format(self.__var_id)
