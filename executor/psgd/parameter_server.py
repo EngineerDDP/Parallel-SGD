@@ -42,7 +42,7 @@ class PSGDPSExecutor(AbsExecutor):
         data_recv_start = com.Com.bytes_read
 
         GlobalSettings.deprecated_global_logger = self.__log
-        self.__transfer.start_transfer(com, printer=self.__log, group_offset=list(self.group)[0])
+        self.__transfer.start_transfer(com, printer=self.__log, group_offset=0)
 
         from utils.constants import Initialization_Server
         while set(com.available_clients) - {Initialization_Server} != set():
