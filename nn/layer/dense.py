@@ -36,9 +36,8 @@ class Dense(AbsLayer):
 
     def backward_adjust(self, grad) -> None:
         g_w = np.dot(self.input_ref.T, grad)
-        g_b = np.sum(grad, axis=0)
         self.__w.adjust(g_w)
-        self.__b.adjust(g_b)
+        self.__b.adjust(grad)
 
     def backward_propagate(self, grad):
         g_x = np.dot(grad, self.__w.get_value().T)
