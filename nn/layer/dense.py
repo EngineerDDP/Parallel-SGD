@@ -21,12 +21,10 @@ class Dense(AbsLayer):
         return self.__w, self.__b
 
     def initialize_parameters(self, x) -> None:
-        if self.__w.get_value() is None:
-            high = np.sqrt(6 / (x.shape[1] + self.__layer_units))
-            low = -high
-            self.__w.set_value(np.random.uniform(low=low, high=high, size=[x.shape[1], self.__layer_units]))
-        if self.__b.get_value() is None:
-            self.__b.set_value(np.zeros(shape=[self.__layer_units]))
+        high = np.sqrt(6 / (x.shape[1] * self.__layer_units))
+        low = -high
+        self.__w.set_value(np.random.uniform(low=low, high=high, size=[x.shape[1], self.__layer_units]))
+        self.__b.set_value(np.zeros(shape=[self.__layer_units]))
 
     def do_forward_predict(self, x):
         return np.dot(x, self.__w.get_value()) + self.__b.get_value()

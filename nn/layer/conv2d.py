@@ -43,8 +43,8 @@ class Conv2DLayer(AbsLayer):
         out_w = (x_w - k_w + 1) // s_w
         self.__shape_output = (input_shape[0], out_h, out_w, self.__count_kernel)
         if self.__padding == "SAME":
-            self.__p_h = (s_h * x_h + k_h - 1 - x_h) // (2 * s_h)
-            self.__p_w = (s_w * x_w + k_w - 1 - x_w) // (2 * s_w)
+            self.__p_h = (s_h * x_h - x_h - s_h + k_h) // 2
+            self.__p_w = (s_h * x_h - x_h - s_h + k_h) // 2
             # self.__padding = [[0, 0], [0, 0], [p_h, p_h], [p_w, p_w]]
         self.__shape_kernel = (*self.__size_kernel, input_shape[3], self.__count_kernel)
 
