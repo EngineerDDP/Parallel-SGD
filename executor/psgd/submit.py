@@ -4,6 +4,7 @@ from typing import Type, Tuple, Optional
 
 from codec.interfaces import Codec
 from codec.plain import Plain
+from codec.dummy import DummyCodec
 from executor.psgd.net_package import *
 from executor.psgd.parameter_server import PSGDPSExecutor
 from executor.psgd.worker import PSGDWorkerExecutor
@@ -51,9 +52,9 @@ class ParallelSGD:
                  sync_type: Type[IParallelSGD] = SynchronizedSGD,
                  gd_type: Type[IOptimizer] = PSGDOptimizer,
                  op_type: Type[IGradientDescent] = ADAMOptimizer,
-                 codec: Type[Codec] = Plain,
+                 codec: Dict[int, Type[Codec]] = None,
                  op_params: Tuple[object] = (),
-                 ps_codec: Optional[Type[Codec]] = None):
+                 ps_codec: Optional[Dict[int, Type[Codec]]] = None):
         """
             执行并行化。
         :param nodes:           由 network 模块提供的 NodeAssignment 接口，指示了当前并行化操作调用的节点数目。
@@ -86,6 +87,11 @@ class ParallelSGD:
                                 用于参数服务器进行数据处理。
         :return:
         """
+        # 初始化适合的Codec
+        if codec is None:
+            codec = dict()
+        if ps_codec is None:
+            ps_codec = dict()
         # 获取所有的合法Slave
         node_count = 0
         has_ps = False
@@ -100,8 +106,10 @@ class ParallelSGD:
         model: net_model = net_model(self.__model, BatchIter(block_size, assignment.block_count))
         optimizer: net_optimizer = net_optimizer(gd_type, op_type, op_params=op_params)
         var_ids = [var.id for var in self.__model.trainable_variables()]
-        transfer_worker: net_transfer = net_transfer(var_ids, sync_type, codec)
-        transfer_ps: [net_transfer] = net_transfer(var_ids, AsynchronizedSGD, ps_codec) if has_ps else None
+        var_codec = {var_id: (sync_type, codec.get(var_id, DummyCodec)) for var_id in var_ids}
+        transfer_worker: net_transfer = net_transfer(var_codec)
+        var_ps_codec = {var_id: (sync_type, ps_codec.get(var_id, DummyCodec)) for var_id in var_ids}
+        transfer_ps: [net_transfer] = net_transfer(var_ps_codec) if has_ps else None
         mission_title = "Codec({})-PS({})".format(codec.__name__, ps_codec.__name__ if has_ps else "None")
         misc: misc_package = misc_package(mission_title, epoch, None)
 

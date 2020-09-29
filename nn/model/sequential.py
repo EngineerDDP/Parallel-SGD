@@ -49,3 +49,7 @@ class SequentialModel(Model):
             summary += '\t------------\t\tAppendix\t\t------------\n'
         summary += '\n------------\t\tModel Summary\t\t------------\n'
         return summary
+
+    def clear(self):
+        for layer in self.__layers:
+            layer.reset()

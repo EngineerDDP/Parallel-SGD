@@ -1,19 +1,22 @@
-from nn import ITrainable
+from typing import Type
+
+from nn import ITrainable, IOptimizer
+from nn.gradient_descent.interface import IGradientDescent
 from nn.optimizer.interface import IOptimize
 
 
 class Optimize(IOptimize):
 
-    def __init__(self, gradient_descent_type:type, optimizer_type:type, gd_params=tuple(), op_params=tuple()):
-        self.__gd_type = gradient_descent_type
-        self.__gd_params = gd_params
+    def __init__(self, optimizer_type: Type[IOptimizer], gradient_descent_type: Type[IGradientDescent], gd_params=tuple(), op_params=tuple()):
         self.__op_type = optimizer_type
         self.__op_params = op_params
+        self.__gd_type = gradient_descent_type
+        self.__gd_params = gd_params
         self.__op_list = []
 
     def optimize(self, *variables: ITrainable):
         for var in variables:
-            self.__op_list.append(self.__gd_type(self.__op_type(*self.__op_params), *self.__gd_params))
+            self.__op_list.append(self.__op_type(self.__gd_type(*self.__gd_params), *self.__op_params))
             var.attach_optimizer(self.__op_list[-1])
 
     def set_batch_size(self, batch_size:int):

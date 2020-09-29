@@ -11,7 +11,8 @@ class Variable(AbsValue, OperandHelper, ITrainable):
         Variable for operation, trainable.
         Basic leaf node in computation graph.
     """
-    def __init__(self, initial_value=None, shape:[tuple, list]=None):
+
+    def __init__(self, initial_value=None, shape: [tuple, list] = None):
         super().__init__()
         self.__var = None
         if initial_value is not None:
@@ -31,10 +32,10 @@ class Variable(AbsValue, OperandHelper, ITrainable):
     def output_shape(self) -> [list, tuple, None]:
         return self.get_shape()
 
-    def F(self, x:[float, ndarray, tuple]=None, state:ModelState=ModelState.Training) -> [float, ndarray]:
+    def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
         return self.__var
 
-    def G(self, grad:[float, ndarray]=None) -> None:
+    def G(self, grad: [float, ndarray] = None) -> None:
         self.__ref_gradient = grad
         if self.__attached_optimizer:
             self.__attached_optimizer.optimize(self)
@@ -68,4 +69,3 @@ class Variable(AbsValue, OperandHelper, ITrainable):
         return self.__ref_gradient
 
     # -------- Value implementation --------
-

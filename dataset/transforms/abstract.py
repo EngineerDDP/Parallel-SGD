@@ -8,9 +8,9 @@ class AbsTransformer(ITransformer):
     def __init__(self):
         self.__next = None
 
-    def add(self, transformer):
-        transformer.__next = self.__next
-        self.__next = transformer
+    def add(self, transformer) -> ITransformer:
+        transformer.__next = self
+        return transformer
 
     def __repr__(self):
         cur = self.__next

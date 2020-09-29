@@ -76,6 +76,7 @@ class ClassSerializer(IReplyPackage):
         self.__class_name = cls_name.__name__
         with open(mod_name, 'r', encoding='utf-8') as file:
             self.__mod_content = file.read()
+        self.__class_type: [type] = None
 
     def restore(self) -> type:
         import importlib
@@ -85,6 +86,12 @@ class ClassSerializer(IReplyPackage):
         exec(self.__mod_content, mod.__dict__)
         cls_type = getattr(mod, self.__class_name)
         return cls_type
+
+    def __call__(self, *params, **kwargs):
+        if self.__class_type:
+            return self.__class_type(*params, **kwargs)
+        else:
+            return None
 
 
 class SubmitJob(IReplyPackage):

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import List, Type, Union
+from typing import List, Type, Union, Dict, Tuple
 
 from numpy import ndarray
 
@@ -121,17 +121,29 @@ class net_optimizer(IReplyPackage, IPSGDOptimize):
 
 class net_transfer(ITransfer, IReplyPackage):
 
-    def __init__(self, var_ids, sgd_type: Type[IParallelSGD], codec_type: Type[Codec]):
-        self.__vars: List[int] = var_ids
-        self.__sgd_type: Type[IParallelSGD] = sgd_type
-        self.__codec_type: Union[Type[Codec], ClassSerializer] = ClassSerializer(codec_type)
+    def __init__(self, var_codec: Dict[int, Tuple[Type[IParallelSGD, Type[Codec]]]]):
+        types = set()
+        # get unique codecs
+        for codec, _ in var_codec.values():
+            types.add(codec)
+        # get reflections from codec to class serializer
+        self.__type_2_name: Dict[Type[Codec], ClassSerializer] = {}
+        for codec in types:
+            self.__type_2_name[codec.__name__] = ClassSerializer(codec)
+        # save type names
+        self.__vars: Dict[int, Tuple[Type[IParallelSGD], ClassSerializer]] = {}
+        for i, (sgd, codec) in var_codec.items():
+            self.__vars[i] = (sgd, self.__type_2_name[codec.__name__])
+
+        self.__type_2_name: List[ClassSerializer] = list(self.__type_2_name.values())
         self.__trans: [ITransfer] = None
 
     def restore(self) -> None:
-        self.__codec_type = self.__codec_type.restore()
+        for t in self.__type_2_name:
+            t.restore()
 
     def start_transfer(self, com: ICommunication_Controller, group_offset: int, printer: IPrinter) -> None:
-        weight_ctrl = {var_id: self.__sgd_type(self.__codec_type(com.Node_Id)) for var_id in self.__vars}
+        weight_ctrl = {var_id: sgd(codec(node_id=com.Node_Id)) for var_id, (sgd, codec) in self.__vars}
         self.__trans = NTransfer(weight_ctrl)
         # redirect function
         self.put_weights = self.__trans.put_weights

@@ -14,6 +14,7 @@ class Shuffle(AbsTransformer):
         index_train = [i for i in range(len(train_x))]
         np.random.shuffle(index_train)
         return train_x[index_train], train_y[index_train], test_x, test_y
+
     @property
     def params(self):
         return ()
