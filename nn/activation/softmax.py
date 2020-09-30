@@ -13,6 +13,7 @@ class Softmax_NoGradient(AbsActivation):
         return self.op_child.output_shape()
 
     def do_forward(self, x, training=True):
+        x = (x - np.mean(x)) / np.std(x)
         denominator = np.sum(np.exp(x), axis=1).reshape([-1, 1])
         return np.exp(x) / denominator
 
