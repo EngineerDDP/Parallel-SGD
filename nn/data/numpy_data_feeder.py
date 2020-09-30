@@ -9,7 +9,7 @@ class NumpyDataFeeder(IDataFeeder):
         self.__iter_x: ndarray = x
         self.__iter_y: ndarray = y
         self.__batch_size = min(batch_size, len(x))
-        self.__batches = len(x) // batch_size
+        self.__batches = len(x) // self.__batch_size
         self.__iter = 0
 
     @property
@@ -37,4 +37,4 @@ class NumpyDataFeeder(IDataFeeder):
         print(self.__str__())
 
     def __str__(self):
-        return "<Numpy data iterator, current batch: {}, total: {}.".format(self.__iter, self.__batches)
+        return "<Numpy data iterator, current batch: {}, total: {}.>".format(self.__iter, self.__batches)
