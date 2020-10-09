@@ -18,8 +18,8 @@ class CIFAR(AbsDataset):
         return '<CIFAR-10 classification dataset.>'
 
     def load(self) -> tuple:
-        data: Dict[str, np.ndarray] = np.load(self.path + "cifar10")[()]
-        return data["train_x"], data["train_y"], data["test_x"], data["test_y"]
+        data: Dict[str, np.ndarray] = np.load(self.path + "cifar10", allow_pickle=True)[()]
+        return data["x_train"], data["y_train"].reshape(-1), data["x_test"], data["y_test"].reshape(-1)
 
     def check_sum(self) -> str:
         if not os.path.exists(self.path + "cifar10"):
