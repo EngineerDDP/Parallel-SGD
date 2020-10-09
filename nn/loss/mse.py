@@ -19,4 +19,4 @@ class MSELoss(ILoss):
         return 2.0 * (arg1 - arg2), -2.0 * (arg1 - arg2)
 
     def metric(self, arg1, arg2):
-        return np.sum(np.square(arg1 - arg2))
+        return np.mean(np.square(arg1 - arg2))
