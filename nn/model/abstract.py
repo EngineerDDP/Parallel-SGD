@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import Tuple, List, Iterable
 
+import numpy as np
 from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
@@ -90,7 +91,11 @@ class Model(IModel):
                 if printer:
                     printer.log_message(str_formatted)
                 else:
-                    print(str_formatted)
+                    # get stdout
+                    import sys
+                    sys.stdout.write('\r' + str_formatted)
+                    sys.stdout.flush()
+            print('')
 
         return self.__fit_history
 
@@ -99,19 +104,26 @@ class Model(IModel):
 
     def evaluate(self, x: ndarray, label: ndarray):
         assert isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator), "Model hasn't setup."
-        # set placeholder
-        self.__placeholder_input.set_value(x)
-        # do forward propagation
-        y = self.__ref_output.F(state=ModelState.Evaluating)
-        # get lost
-        loss = self.__loss.metric(y, label)
-        # get evaluation
-        eval_rec = self.__evaluate_metrics(y, label)
-        eval_rec.append(loss)
+        x = NumpyDataFeeder(x, label, batch_size=100)
+        # get stdout
+        import sys
         # get title
         title = [metric.description() for metric in self.__metrics]
-        title.append("Loss")
-        return dict(zip(title, eval_rec))
+        eval_recs = []
+        for part_x, part_y in x:
+            # set placeholder
+            self.__placeholder_input.set_value(part_x)
+            # do forward propagation
+            y = self.__ref_output.F(state=ModelState.Evaluating)
+            # get evaluation
+            eval_rec = self.__evaluate_metrics(y, part_y)
+            eval_recs.append(eval_rec)
+            strs_formatted = ["\t{}:{:.2f}".format(name, val) for name, val in zip(title, np.mean(eval_recs, axis=0))]
+            sys.stdout.write("\rEvaluating: {:.2f}%{}.".format(100 * x.position / x.length, ','.join(strs_formatted)))
+            sys.stdout.flush()
+        # flush a new line
+        print('')
+        return dict(zip(title, np.mean(eval_recs, axis=0)))
 
     def predict(self, x: ndarray):
         self.__placeholder_input.set_value(x)
