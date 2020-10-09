@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import List, Tuple
+from typing import List, Tuple, Sequence
 from nn.interface import IOperator
 from nn.layer.abstract import Weights, AbsLayer
 from nn.activation.interface import IActivation
@@ -10,35 +10,29 @@ class Flatten(AbsLayer):
 
     def __init__(self, activation: IActivation = None, inputs: IOperator = None):
         super().__init__(inputs, activation)
-        self.__batch: [List[int], Tuple[int]] = None
-        self.__shape_in: [List[int], Tuple[int]] = None
-        self.__shape_out: [List[int], Tuple[int]] = None
-        self.__batch: [List[int], Tuple[int]] = None
+        self.__shape_in: [Sequence[int]] = None
+        self.__shape_out: [Sequence[int]] = (-1, -1)
 
     @property
     def variables(self) -> tuple:
         return ()
 
     def initialize_parameters(self, x) -> None:
-        self.__shape_in = x.shape
-        if x is not None:
-            self.__shape_out = (x.shape[0], x.size/x.shape[0])
+        pass
 
     def do_forward_predict(self, x):
-        # self.__shape_in = x.shape
-        # self.__batch = x.shape[0]
+        self.__shape_in = x.shape[1:]
         return np.reshape(x, (x.shape[0], -1))
 
     def do_forward_train(self, x):
-        # self.__shape_in = x.shape
-        # self.__batch = x.shape[0]
+        self.__shape_in = x.shape[1:]
         return np.reshape(x, (x.shape[0], -1))
 
     def backward_adjust(self, grad) -> None:
         pass
 
     def backward_propagate(self, grad):
-        return np.reshape(grad, self.__shape_in)
+        return np.reshape(grad, (-1, *self.__shape_in))
 
     def output_shape(self) -> [list, tuple, None]:
         return self.__shape_out
