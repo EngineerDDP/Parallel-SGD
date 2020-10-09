@@ -1,4 +1,4 @@
-from nn.activation import ReLU, Softmax_NoGradient
+from nn.activation import ReLU, Softmax
 from nn.layer import Dense, Reshape, Conv2DLayer, MaxPool, Flatten
 from nn.model.sequential import SequentialModel
 
@@ -18,5 +18,5 @@ def AlexNet():
     model.add(Dense(units=4096, activation=ReLU()))
     model.add(Dense(units=4096, activation=ReLU()))
     model.add(Dense(units=1000, activation=ReLU()))
-    model.add(Dense(units=10, activation=Softmax_NoGradient()))
+    model.add(Dense(units=10, activation=Softmax()))
     return model

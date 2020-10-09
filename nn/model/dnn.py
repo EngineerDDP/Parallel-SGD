@@ -1,7 +1,7 @@
 from typing import List, Iterable, Tuple
 from nn import IOperator, ITrainable
 from nn.layer import Dense, Dropout
-from nn.activation import Tanh, Softmax_NoGradient
+from nn.activation import Tanh, Softmax
 from nn.model.abstract import Model
 
 
@@ -31,7 +31,7 @@ class DNN(Model):
         fc4 = Dense(inputs=dropout, activation=Tanh(), units=128)
         self.__var_list.extend(fc4.variables)
 
-        fc5 = Dense(inputs=fc4, activation=Softmax_NoGradient(), units=10)
+        fc5 = Dense(inputs=fc4, activation=Softmax(), units=10)
         self.__var_list.extend(fc5.variables)
 
         return fc5
