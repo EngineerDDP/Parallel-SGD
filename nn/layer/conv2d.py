@@ -22,8 +22,8 @@ class Conv2DLayer(AbsLayer):
         self.__shape_kernel: Sequence[int] = ()
         self.__strides: Sequence[int] = strides
         self.__padding: Union[Sequence[int], str] = padding
-        self.__p_h = None
-        self.__p_w = None
+        self.__p_h = 0
+        self.__p_w = 0
         self.__shape_output: [Sequence[int]] = None
         if inputs and inputs.output_shape():
             self.__get_shape(inputs.output_shape())
@@ -61,11 +61,11 @@ class Conv2DLayer(AbsLayer):
         self.__bias.set_value(np.zeros(shape=self.__shape_output[1:]))
 
     def do_forward_predict(self, x: np.ndarray):
-        left = tf.Variable(tf.constant(x, dtype=tf.float32))
-        right = tf.Variable(tf.constant(self.__kernel.get_value(), dtype=tf.float32))
-        out = tf.nn.conv2d(left, right, self.__strides, self.__padding)
-        # self.__out_shape = out.numpy().shape
-        return out.numpy() + self.__bias.get_value()
+        tf_input = tf.Variable(tf.constant(x, dtype=tf.float32))
+        tf_kernel = tf.Variable(tf.constant(self.__kernel.get_value(), dtype=tf.float32))
+        tf_out = tf.nn.conv2d(tf_input, tf_kernel, self.__strides, self.__padding)  # BUG 卷积操作可能返回不正确的值
+        out = tf_out.numpy()
+        return out.astype('float64') + self.__bias.get_value()
 
     def do_forward_train(self, x):
         return self.do_forward_predict(x)
@@ -78,15 +78,16 @@ class Conv2DLayer(AbsLayer):
         tf_out = tf.nn.conv2d(tf.transpose(tf_input[:, ::-1, ::-1, :], perm=[3, 1, 2, 0]),
                               tf.transpose(tf_grad, perm=[1, 2, 0, 3]), self.__strides, "VALID")
         out = tf.transpose(tf_out, perm=[1, 2, 0, 3]).numpy()
-        self.__kernel.adjust(out / np.sum(self.output_shape()[1:3]))
-        self.__bias.adjust(grad)
+        out = out / ((self.__size_kernel[0] * self.__size_kernel[1]) * (grad.shape[1] * grad.shape[2]))
+        self.__kernel.adjust(out)
+        # self.__bias.adjust(grad)
 
     def backward_propagate(self, grad):
         tf_kernel = tf.constant(self.__kernel.get_value(), dtype=tf.float32)
         tf_grad = tf.constant(grad, dtype=tf.float32)
         tf_out = tf.nn.conv2d_transpose(tf_grad, tf_kernel, self.input_ref.shape, self.__strides, self.__padding)
         grad = tf_out.numpy()
-        return grad
+        return grad.astype('float64')
 
     def output_shape(self) -> [list, tuple, None]:
         return self.__shape_output
