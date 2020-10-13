@@ -12,7 +12,7 @@ class RMSPropOptimizer(IGradientDescent):
         self.__epsilon = 1e-7
         self.__alpha = 0.9
 
-    def delta(self, var: IValue):
+    def delta(self, var: np.ndarray):
         self.__r = (1 - self.__alpha) * np.square(var) + self.__alpha * self.__r
         return self.__eta * var / (self.__epsilon + np.sqrt(self.__r))
 

@@ -11,7 +11,7 @@ class AdaGradOptimizer(IGradientDescent):
         self.__r = 0
         self.__epsilon = 1e-7
 
-    def delta(self, var: IValue):
+    def delta(self, var: np.ndarray):
         self.__r = np.square(var) + self.__r
         return self.__eta * var / (self.__epsilon + np.sqrt(self.__r))
 
