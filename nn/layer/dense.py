@@ -34,7 +34,7 @@ class Dense(AbsLayer):
 
     def backward_adjust(self, grad) -> None:
         g_w = np.dot(self.input_ref.T, grad)
-        g_w = g_w / (g_w.shape[0] * g_w.shape[1])
+        g_w = g_w  # / (g_w.shape[0] * g_w.shape[1])
         self.__w.adjust(g_w)
         self.__b.adjust(grad)
 
