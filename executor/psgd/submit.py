@@ -50,13 +50,15 @@ class ParallelSGD:
                  epoch: int = 10,
                  assignment_type: Type[AbsBlockAssignment] = IIDBlockAssignment,
                  sync_type: Type[IParallelSGD] = SynchronizedSGD,
-                 gd_type: Type[IOptimizer] = PSGDOptimizer,
-                 op_type: Type[IGradientDescent] = ADAMOptimizer,
-                 codec: Dict[int, Type[Codec]] = None,
+                 op_type: Type[IOptimizer] = PSGDOptimizer,
+                 gd_type: Type[IGradientDescent] = ADAMOptimizer,
+                 codec: Union[Dict[int, Type[Codec]], Type[Codec]] = None,
                  op_params: Tuple[object] = (),
-                 ps_codec: Optional[Dict[int, Type[Codec]]] = None):
+                 ps_codec: Optional[Dict[int, Type[Codec]]] = None,
+                 mission_title: str = "P-SGD"):
         """
             执行并行化。
+        :param mission_title:   任务标题，作为本次任务的log文件文件名。
         :param nodes:           由 network 模块提供的 NodeAssignment 接口，指示了当前并行化操作调用的节点数目。
                                 参数服务器的节点编号由 utils.constant.Parameter_Server 指定，其余工作节点的id
                                 从 0 开始依次递增（为整数型）。
@@ -92,6 +94,18 @@ class ParallelSGD:
             codec = dict()
         if ps_codec is None:
             ps_codec = dict()
+
+        # 默认填充Codec
+        default_codec = DummyCodec
+        default_ps_codec = DummyCodec
+        # 如果传入确定的Codec
+        if isinstance(codec, type):
+            default_codec = codec
+            codec = dict()
+        if isinstance(ps_codec, type):
+            default_ps_codec = ps_codec
+            codec = dict()
+
         # 获取所有的合法Slave
         node_count = 0
         has_ps = False
@@ -101,16 +115,25 @@ class ParallelSGD:
             else:
                 has_ps = True
 
+        # 任务分配策略
         assignment: ISetting = assignment_type(node_count, redundancy)
+        # 分配策略实例
         setting: net_setting = net_setting(assignment_type, node_count, redundancy)
+        # 模型实例
         model: net_model = net_model(self.__model, BatchIter(block_size, assignment.block_count))
-        optimizer: net_optimizer = net_optimizer(gd_type, op_type, op_params=op_params)
+        # 优化器实例
+        optimizer: net_optimizer = net_optimizer(op_type, gd_type, op_params=op_params)
+        # 变量表
         var_ids = [var.id for var in self.__model.trainable_variables()]
-        var_codec = {var_id: (sync_type, codec.get(var_id, DummyCodec)) for var_id in var_ids}
+        # 变量表Codec字典
+        var_codec = {var_id: (sync_type, codec.get(var_id, default_codec)) for var_id in var_ids}
+        # Transfer 实例
         transfer_worker: net_transfer = net_transfer(var_codec)
-        var_ps_codec = {var_id: (sync_type, ps_codec.get(var_id, DummyCodec)) for var_id in var_ids}
+        # PS Codec 变量表字典
+        var_ps_codec = {var_id: (sync_type, ps_codec.get(var_id, default_ps_codec)) for var_id in var_ids}
+        # PS Transfer 实例
         transfer_ps: [net_transfer] = net_transfer(var_ps_codec) if has_ps else None
-        mission_title = "Codec({})-PS({})".format(codec.__name__, ps_codec.__name__ if has_ps else "None")
+        # 其他信息
         misc: misc_package = misc_package(mission_title, epoch, None)
 
         replies = {

@@ -121,19 +121,19 @@ class net_optimizer(IReplyPackage, IPSGDOptimize):
 
 class net_transfer(ITransfer, IReplyPackage):
 
-    def __init__(self, var_codec: Dict[int, Tuple[Type[IParallelSGD, Type[Codec]]]]):
+    def __init__(self, var_codec: Dict[int, Tuple[Type[IParallelSGD], Type[Codec]]]):
         types = set()
         # get unique codecs
-        for codec, _ in var_codec.values():
+        for _, codec in var_codec.values():
             types.add(codec)
         # get reflections from codec to class serializer
-        self.__type_2_name: Dict[Type[Codec], ClassSerializer] = {}
+        self.__type_2_name: Dict[Type[Codec], ClassSerializer] = dict()
         for codec in types:
-            self.__type_2_name[codec.__name__] = ClassSerializer(codec)
+            self.__type_2_name[codec] = ClassSerializer(codec)
         # save type names
         self.__vars: Dict[int, Tuple[Type[IParallelSGD], ClassSerializer]] = {}
         for i, (sgd, codec) in var_codec.items():
-            self.__vars[i] = (sgd, self.__type_2_name[codec.__name__])
+            self.__vars[i] = (sgd, self.__type_2_name[codec])
 
         self.__type_2_name: List[ClassSerializer] = list(self.__type_2_name.values())
         self.__trans: [ITransfer] = None
@@ -143,7 +143,7 @@ class net_transfer(ITransfer, IReplyPackage):
             t.restore()
 
     def start_transfer(self, com: ICommunication_Controller, group_offset: int, printer: IPrinter) -> None:
-        weight_ctrl = {var_id: sgd(codec(node_id=com.Node_Id)) for var_id, (sgd, codec) in self.__vars}
+        weight_ctrl = {var_id: sgd(codec(node_id=com.Node_Id)) for var_id, (sgd, codec) in self.__vars.items()}
         self.__trans = NTransfer(weight_ctrl)
         # redirect function
         self.put_weights = self.__trans.put_weights
