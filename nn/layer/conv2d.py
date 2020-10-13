@@ -41,7 +41,7 @@ class Conv2DLayer(AbsLayer):
         x_w = input_shape[2]
         out_h = 1 + (x_h - k_h) // s_h
         out_w = 1 + (x_w - k_w) // s_w
-        self.__shape_output = (input_shape[0], out_h, out_w, self.__count_kernel)
+        self.__shape_output = (-1, out_h, out_w, self.__count_kernel)
         if self.__padding == "SAME":
             self.__p_h = (s_h * x_h - x_h - s_h + k_h) // 2
             self.__p_w = (s_h * x_h - x_h - s_h + k_h) // 2
@@ -51,9 +51,8 @@ class Conv2DLayer(AbsLayer):
     def initialize_parameters(self, x: np.ndarray) -> None:
         # update current shape
         self.__get_shape(x.shape)
-        nk, nk_1 = 1, 1
-        for i, j in zip(self.__shape_kernel[:3], self.__shape_output[-3:]):
-            nk, nk_1 = nk * i, nk_1 * j
+        nk = self.__size_kernel[0] * self.__size_kernel[1] * self.__shape_kernel[2]
+        nk_1 = self.__size_kernel[0] * self.__size_kernel[1] * self.__count_kernel
 
         high = np.sqrt(6 / (nk + nk_1))
         low = -high
@@ -63,7 +62,7 @@ class Conv2DLayer(AbsLayer):
     def do_forward_predict(self, x: np.ndarray):
         tf_input = tf.Variable(tf.constant(x, dtype=tf.float32))
         tf_kernel = tf.Variable(tf.constant(self.__kernel.get_value(), dtype=tf.float32))
-        tf_out = tf.nn.conv2d(tf_input, tf_kernel, self.__strides, self.__padding)  # BUG 卷积操作可能返回不正确的值
+        tf_out = tf.nn.conv2d(tf_input, tf_kernel, self.__strides, self.__padding)
         out = tf_out.numpy()
         return out.astype('float64') + self.__bias.get_value()
 
@@ -78,9 +77,9 @@ class Conv2DLayer(AbsLayer):
         tf_out = tf.nn.conv2d(tf.transpose(tf_input[:, ::-1, ::-1, :], perm=[3, 1, 2, 0]),
                               tf.transpose(tf_grad, perm=[1, 2, 0, 3]), self.__strides, "VALID")
         out = tf.transpose(tf_out, perm=[1, 2, 0, 3]).numpy()
-        out = out / ((self.__size_kernel[0] * self.__size_kernel[1]) * (grad.shape[1] * grad.shape[2]))
+        out = out  # / ((self.__size_kernel[0] * self.__size_kernel[1]) * (grad.shape[1] * grad.shape[2]))
         self.__kernel.adjust(out)
-        # self.__bias.adjust(grad)
+        self.__bias.adjust(grad)
 
     def backward_propagate(self, grad):
         tf_kernel = tf.constant(self.__kernel.get_value(), dtype=tf.float32)
