@@ -34,6 +34,18 @@ class Model(IModel):
     def call(self, x: IOperator) -> IOperator:
         pass
 
+    @property
+    def loss(self):
+        return self.__loss
+
+    @property
+    def optimizer(self):
+        return self.__optimizer
+
+    @property
+    def metrics(self):
+        return self.__metrics
+
     def setup(self, loss: ILoss, *metrics: IMetric):
         if self.__ref_output is None:
             self.__ref_output = self.call(self.__placeholder_input)

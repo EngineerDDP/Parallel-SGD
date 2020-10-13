@@ -39,12 +39,12 @@ class SequentialModel(Model):
                 [-1] + list(nn.input_ref.shape[1:]) if nn.input_ref is not None else "[Adjust]")
             summary += '\t\tOutput:\t{};\n'.format(nn.output_shape() if nn.output_shape() else "[Adjust]")
 
-        if self.__loss:
+        if self.loss:
             summary += '\t------------\t\tAppendix\t\t------------\n'
-            summary += '\tLoss:\n\t\t{}\n'.format(self.__loss)
-            summary += '\tOptimizer:\n\t\t{}\n'.format(self.__optimizer)
+            summary += '\tLoss:\n\t\t{}\n'.format(self.loss)
+            summary += '\tOptimizer:\n\t\t{}\n'.format(self.optimizer)
             summary += '\tMetrics:\n'
-            for metric in self.__metrics:
+            for metric in self.metrics:
                 summary += '\t\t<Metric: {}>\n'.format(metric.description())
             summary += '\t------------\t\tAppendix\t\t------------\n'
         summary += '\n------------\t\tModel Summary\t\t------------\n'
