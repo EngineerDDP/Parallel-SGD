@@ -16,9 +16,7 @@ class Softmax(AbsActivation):
         return self.op_child.output_shape()
 
     def do_forward(self, x, training=True):
-        # self.__ref_mean = np.mean(x, axis=0)
-        # self.__ref_std = np.std(x, axis=0)
-        # x = (x - self.__ref_mean) / (self.__ref_std + self.__epsilon)
+        x = x - x.max(axis=1).reshape([-1, 1])
         denominator = np.sum(np.exp(x), axis=1).reshape([-1, 1])
         return np.exp(x) / denominator
 
