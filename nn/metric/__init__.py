@@ -57,7 +57,7 @@ class RelativeError(IMetric):
 
     def metric(self, y, label):
         result = np.abs(y - label)
-        return result.sum()
+        return result.mean()
 
     def description(self):
         return 'relative error'
@@ -75,8 +75,8 @@ class MeanSquareError(IMetric):
         pass
 
     def metric(self, y, label):
-        result = np.square(y - label)
-        return result.sum()
+        result = np.sum(np.square(y - label), axis=1)
+        return result.mean()
 
     def description(self):
         return 'MSE'
@@ -91,7 +91,8 @@ class RelativeMeanSquareError(IMetric):
         pass
 
     def metric(self, y, label):
-        return np.sqrt(np.sum(np.square(y - label)))
+        res = np.sum(np.square(y - label), axis=1)
+        return np.mean(np.sqrt(res))
 
     def description(self):
         return 'RMSE'
