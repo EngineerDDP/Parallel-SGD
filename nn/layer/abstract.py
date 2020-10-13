@@ -150,7 +150,8 @@ class AbsLayer(IOperator, ILazyInitialization):
         """
         # adjust variables with given gradients.
         gradient = self.__activation.do_backward(None, grad)
-        self.backward_adjust(gradient)
         # adjust previous layers.
         if self.__op_input:
             self.__op_input.G(self.backward_propagate(gradient))
+        # adjust current layer.
+        self.backward_adjust(gradient)
