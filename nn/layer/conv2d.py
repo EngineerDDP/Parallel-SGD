@@ -7,7 +7,7 @@ from nn.layer.abstract import Weights, AbsLayer
 from nn.activation.interface import IActivation
 
 
-class Conv2DLayer(AbsLayer):
+class Conv2D(AbsLayer):
 
     def __init__(self, kernel: int, kernel_size: Sequence[int], strides: Optional[Sequence[int]] = None,
                  padding: Union[Sequence[int], str] = "VALID", activation: IActivation = None,
