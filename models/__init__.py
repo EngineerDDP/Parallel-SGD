@@ -85,6 +85,7 @@ class ClassSerializer(IReplyPackage):
 
         exec(self.__mod_content, mod.__dict__)
         cls_type = getattr(mod, self.__class_name)
+        self.__class_type = cls_type
         return cls_type
 
     def __call__(self, *params, **kwargs):
