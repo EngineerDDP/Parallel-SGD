@@ -1,4 +1,4 @@
-import numpy as np
+import pickle
 
 from tempfile import TemporaryFile
 from socket import socket
@@ -37,7 +37,7 @@ class BufferReader:
         file.write(data)
 
         file.seek(0)
-        pack = np.load(file, allow_pickle=True)[()]
+        pack = pickle.load(file)
 
         return pack
 
@@ -117,7 +117,7 @@ class BufferWriter:
         # make sure to write from beginning
         file.truncate(0)
         file.seek(0)
-        np.save(file, dic)
+        pickle.dump(dic, file)
 
         file.seek(0)
         data = file.read()
