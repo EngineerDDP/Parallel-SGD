@@ -68,7 +68,7 @@ class Model(IModel):
         # set title
         self.__fit_history.set_fit_title(title)
 
-    def compile(self, optimizer: IOptimize):
+    def compile(self, optimizer: IOpContainer):
         # set optimizer
         self.__optimizer = optimizer
         self.__optimizer.optimize(*self.trainable_variables())
@@ -78,7 +78,7 @@ class Model(IModel):
 
     def fit(self, x: [ndarray, IDataFeeder], epoch: int, label: [ndarray] = None, batch_size: int = 64,
             printer: IPrinter = None) -> FitResultHelper:
-        assert isinstance(self.__optimizer, IOptimize), "Model hasn't complied."
+        assert isinstance(self.__optimizer, IOpContainer), "Model hasn't complied."
         assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."
 
         if isinstance(x, ndarray):
@@ -163,3 +163,12 @@ class Model(IModel):
         summary += '\n------------\t\tModel Summary\t\t------------\n'
 
         return summary
+
+    def save(self, file: str):
+        with open(file, 'wb') as fd:
+            np.save(fd, [self], allow_pickle=True)
+
+    @staticmethod
+    def load(file: str) -> IModel:
+        with open(file, 'rb') as fd:
+            return np.load(fd, allow_pickle=True)[0]

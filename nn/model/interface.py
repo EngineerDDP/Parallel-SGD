@@ -23,7 +23,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def compile(self, optimizer: IOptimize):
+    def compile(self, optimizer: IOpContainer):
         """
             Compile model with given optimizer
         :param optimizer: IOptimizer
