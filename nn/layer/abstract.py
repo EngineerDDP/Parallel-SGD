@@ -1,48 +1,12 @@
 from abc import abstractmethod
 from typing import Iterable, Union
 
-import numpy as np
 from numpy import ndarray
 
 from nn.activation.interface import IActivation
 from nn.activation.linear import Linear
 from nn.interface import IOperator, ITrainable, IOptimizer, ModelState
 from nn.layer.interface import ILazyInitialization
-from nn.value.abstract import AbsValue
-
-
-class Weights(AbsValue, ITrainable):
-
-    def __init__(self):
-        super().__init__()
-        self.__content = None
-        self.__content_gradient = None
-        self.__optimizer: [IOptimizer] = None
-
-    def get_shape(self) -> list:
-        return self.__content.shape
-
-    def get_value(self) -> ndarray:
-        return self.__content
-
-    def set_value(self, val) -> None:
-        self.__content = val
-
-    def get_gradient(self) -> ndarray:
-        return self.__content_gradient
-
-    def adjust(self, val):
-        self.__content_gradient = val
-        if self.__optimizer:
-            self.__optimizer.optimize(self)
-
-    def attach_optimizer(self, optimizer: IOptimizer) -> None:
-        self.__optimizer = optimizer
-
-    def reset(self) -> None:
-        high = np.sqrt(6 / np.sum(self.get_shape()))
-        low = -high
-        self.__content = np.random.uniform(low=low, high=high, size=self.get_shape())
 
 
 class AbsLayer(IOperator, ILazyInitialization):
@@ -66,6 +30,10 @@ class AbsLayer(IOperator, ILazyInitialization):
 
     def set_input(self, inputs: IOperator):
         self.__op_input = inputs
+
+    def __getstate__(self):
+        self.__ref_input = None
+        return self.__dict__
 
     @property
     @abstractmethod

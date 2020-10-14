@@ -28,3 +28,6 @@ class HTanh(AbsActivation):
 
     def do_backward(self, x: [float, ndarray], grad: [float, ndarray]) -> [ndarray, float]:
         return np.multiply(grad, self.__mask)
+
+    def clear_unused(self):
+        self.__mask = np.ones(shape=1)

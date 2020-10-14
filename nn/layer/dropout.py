@@ -1,8 +1,7 @@
 import numpy as np
 
-from nn.interface import IOperator
-from nn.layer.abstract import AbsLayer
 from nn.activation.abstract import IActivation
+from nn.layer.abstract import AbsLayer
 
 
 class Dropout(AbsLayer):

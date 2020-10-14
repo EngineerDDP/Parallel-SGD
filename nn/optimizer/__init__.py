@@ -24,6 +24,12 @@ class OpContainer(IOpContainer):
         for op in self.__op_list:
             op.set_batch_size(batch_size)
 
+    def __getstate__(self):
+        return self.__op_type, self.__gd_type, self.__gd_params, self.__op_params
+
+    def __setstate__(self, state):
+        self.__init__(*state)
+
     def __str__(self):
         return "<Optimizer Container, (OP:{}), (GD:{})>".format(self.__op_type.__name__, self.__gd_type.__name__)
 

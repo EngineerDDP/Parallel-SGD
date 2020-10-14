@@ -1,10 +1,12 @@
+from typing import Sequence, Union, Optional
+
 import numpy as np
 import tensorflow as tf
 
-from typing import List, Tuple, Sequence, Union, Iterable, Optional
-from nn.interface import IOperator
-from nn.layer.abstract import Weights, AbsLayer
 from nn.activation.interface import IActivation
+from nn.interface import IOperator
+from nn.layer.abstract import AbsLayer
+from nn.value.trainable import Weights
 
 
 class Conv2D(AbsLayer):

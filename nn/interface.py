@@ -112,6 +112,20 @@ class IValue(metaclass=ABCMeta):
         """
         pass
 
+    @abstractmethod
+    def __getstate__(self):
+        """
+            Allow pickle this object.
+        """
+        pass
+
+    @abstractmethod
+    def __setstate__(self, state):
+        """
+            Allow pickle this object.
+        """
+        pass
+
     @property
     @abstractmethod
     def id(self):

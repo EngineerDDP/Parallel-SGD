@@ -2,7 +2,7 @@ import numpy as np
 
 from typing import List, Tuple, Sequence
 from nn.interface import IOperator
-from nn.layer.abstract import Weights, AbsLayer
+from nn.layer.abstract import AbsLayer
 from nn.activation.interface import IActivation
 
 

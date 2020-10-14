@@ -12,6 +12,7 @@ class Placeholder(OperandHelper, AbsValue):
         super().__init__()
         self.__hold = None
         self.__gradient_attachment = None
+        self.__input_shape = None
         self.set_shape(shape)
 
     def set_shape(self, shape):
@@ -23,6 +24,7 @@ class Placeholder(OperandHelper, AbsValue):
             self.__input_shape = None
         else:
             raise AssertionError("Shape must be int, tuple or list.")
+
     # -------- Operator implementation --------
 
     @property
@@ -32,10 +34,10 @@ class Placeholder(OperandHelper, AbsValue):
     def output_shape(self) -> [list, tuple, None]:
         return self.get_shape() if self.get_shape() else None
 
-    def F(self, x:[float, ndarray, tuple]=None, state:ModelState=ModelState.Training) -> [float, ndarray]:
+    def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
         return self.__hold
 
-    def G(self, grad:[float, ndarray]=None) -> None:
+    def G(self, grad: [float, ndarray] = None) -> None:
         self.__gradient_attachment = grad
 
     # -------- Operator implementation --------
@@ -45,7 +47,7 @@ class Placeholder(OperandHelper, AbsValue):
     def set_value(self, val=None) -> None:
         if val is not None:
             val = np.asarray(val)
-            assert  self.__input_shape is None or list(val.shape[1:]) == self.__input_shape[1:], \
+            assert self.__input_shape is None or list(val.shape[1:]) == self.__input_shape[1:], \
                 "Given shape {} does't match with {}.".format(val.shape, self.output_shape())
             self.__hold = val
         else:
@@ -61,3 +63,9 @@ class Placeholder(OperandHelper, AbsValue):
         return self.__gradient_attachment
 
     # -------- Value implementation --------
+
+    def __getstate__(self):
+        return self.__input_shape
+
+    def __setstate__(self, state):
+        self.__init__(state)

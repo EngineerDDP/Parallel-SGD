@@ -24,3 +24,10 @@ class FitResultHelper:
                               for key, val in zip(self.__title, row)])
         self.__history_result.append(row)
         return eval_str
+
+    def __getstate__(self):
+        return self.__title
+
+    def __setstate__(self, state):
+        self.__title = state
+        self.__history_result = []

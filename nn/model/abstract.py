@@ -1,7 +1,9 @@
+import sys
 from abc import abstractmethod
 from typing import Tuple, List, Iterable
 
 import numpy as np
+import pickle
 from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
@@ -85,8 +87,10 @@ class Model(IModel):
             x = NumpyDataFeeder(x, label, batch_size=batch_size)
 
         self.__optimizer.set_batch_size(x.batch_size)
+        title = [metric.description() for metric in self.__metrics]
 
         for j in range(epoch):
+            epoch_rec = np.zeros(shape=[len(title)])
             for part_x, part_y in x:
                 self.__placeholder_input.set_value(part_x)
                 # do forward propagation
@@ -96,18 +100,21 @@ class Model(IModel):
                 # do backward propagation from loss
                 self.__ref_output.G(grad_y)
                 # record fitting process
+                batch_rec = self.__evaluate_metrics(y, part_y)
                 fit_rec = [j + 1, x.position, x.length, self.__fit_history.count + 1]
-                fit_rec.extend(self.__evaluate_metrics(y, part_y))
+                fit_rec.extend(batch_rec)
+                epoch_rec += np.asarray(batch_rec) / x.length
 
                 str_formatted = self.__fit_history.append_row(fit_rec)
                 if printer:
                     printer.log_message(str_formatted)
                 else:
                     # get stdout
-                    import sys
                     sys.stdout.write('\r' + str_formatted)
                     sys.stdout.flush()
             print('')
+            str_formatted = ["\t{}:{:.2f}".format(name, val) for name, val in zip(title, epoch_rec)]
+            print("Epoch Summary:{}".format(','.join(str_formatted)))
 
         return self.__fit_history
 
@@ -130,8 +137,8 @@ class Model(IModel):
             # get evaluation
             eval_rec = self.__evaluate_metrics(y, part_y)
             eval_recs.append(eval_rec)
-            strs_formatted = ["\t{}:{:.2f}".format(name, val) for name, val in zip(title, np.mean(eval_recs, axis=0))]
-            sys.stdout.write("\rEvaluating: {:.2f}%{}.".format(100 * x.position / x.length, ','.join(strs_formatted)))
+            str_formatted = ["\t{}:{:.2f}".format(name, val) for name, val in zip(title, np.mean(eval_recs, axis=0))]
+            sys.stdout.write("\rEvaluating: {:.2f}%{}.".format(100 * x.position / x.length, ','.join(str_formatted)))
             sys.stdout.flush()
         # flush a new line
         print('')
@@ -166,9 +173,12 @@ class Model(IModel):
 
     def save(self, file: str):
         with open(file, 'wb') as fd:
-            np.save(fd, [self], allow_pickle=True)
+            pickle.dump(self, fd)
 
     @staticmethod
     def load(file: str) -> IModel:
         with open(file, 'rb') as fd:
-            return np.load(fd, allow_pickle=True)[0]
+            model = pickle.load(fd)
+        if model.__optimizer:
+            model.compile(model.__optimizer)
+        return model
