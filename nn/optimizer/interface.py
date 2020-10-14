@@ -4,7 +4,7 @@ from nn.data.block_data_feeder import IPSGDBlockMgr
 from psgd.interface import ITransfer
 
 
-class IOptimize(metaclass=ABCMeta):
+class IOpContainer(metaclass=ABCMeta):
 
     @abstractmethod
     def optimize(self, *variables: ITrainable):

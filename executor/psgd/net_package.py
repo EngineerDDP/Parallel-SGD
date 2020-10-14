@@ -12,7 +12,7 @@ from network import ICommunication_Controller
 from nn import IModel, IOptimizer, ITrainable
 from nn.data.block_data_feeder import IPSGDBlockMgr
 from nn.gradient_descent.interface import IGradientDescent
-from nn.optimizer import IOptimize
+from nn.optimizer import IOpContainer
 from profiles import ISetting
 from profiles.interface import IBatchIter
 from psgd.interface import ITransfer
@@ -21,7 +21,7 @@ from psgd.transfer import NTransfer
 from utils.log import IPrinter
 
 
-class IPSGDOptimize(IOptimize):
+class IPSGDOpContainer(IOpContainer):
 
     @abstractmethod
     def assemble(self, transfer: ITransfer, block_mgr: IPSGDBlockMgr):
@@ -84,7 +84,7 @@ class net_model(IReplyPackage):
         return "<Net package (Model)>"
 
 
-class net_optimizer(IReplyPackage, IPSGDOptimize):
+class net_optimizer(IReplyPackage, IPSGDOpContainer):
 
     def __init__(self, optimizer_type: Type[IOptimizer], gradient_method: Type[IGradientDescent], op_params=tuple()):
         self.__op_params = op_params

@@ -5,7 +5,7 @@ from numpy import ndarray
 from nn.data.interface import IDataFeeder
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
-from nn.optimizer import IOptimize
+from nn.optimizer import IOpContainer
 from utils.log import IPrinter
 from nn.model.utils import FitResultHelper
 

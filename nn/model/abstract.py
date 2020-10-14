@@ -11,7 +11,7 @@ from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.model.interface import IModel
 from nn.model.utils import FitResultHelper
-from nn.optimizer import IOptimize
+from nn.optimizer import IOpContainer
 from nn.value.placeholder import Placeholder
 from utils.log import IPrinter
 

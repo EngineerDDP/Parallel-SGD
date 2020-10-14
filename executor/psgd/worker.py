@@ -6,7 +6,7 @@ import pandas as pd
 from codec import GlobalSettings
 from dataset.interfaces import IDataset
 from executor.abstract import AbsExecutor
-from executor.psgd.net_package import IPSGDOptimize, misc_package, Requests, Req
+from executor.psgd.net_package import IPSGDOpContainer, misc_package, Requests, Req
 from executor.psgd.net_package import net_model, net_setting
 from models import IRequestPackage
 from network import ICommunication_Controller
@@ -26,7 +26,7 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__trace_filename = [self.__log.File_Name]
         # waiting for those
         self.__model: [IModel] = None
-        self.__optimizer: [IPSGDOptimize] = None
+        self.__optimizer: [IPSGDOpContainer] = None
         self.__batch_iter: [IBatchIter] = None
         self.__trans: [ITransfer] = None
         self.__data: [IDataset] = None
@@ -49,7 +49,7 @@ class PSGDWorkerExecutor(AbsExecutor):
                 self.__model = obj.model
                 self.__batch_iter = obj.batch_iter
 
-            if isinstance(obj, IPSGDOptimize):
+            if isinstance(obj, IPSGDOpContainer):
                 self.__optimizer = obj
 
             if isinstance(obj, ITransfer):
@@ -71,7 +71,7 @@ class PSGDWorkerExecutor(AbsExecutor):
 
     def __check(self) -> Tuple[bool, List[str]]:
         status = []
-        s1 = isinstance(self.__optimizer, IPSGDOptimize)
+        s1 = isinstance(self.__optimizer, IPSGDOpContainer)
         status.append("Optimizer:{}".format("OK" if s1 else "ABSENT"))
         s2 = isinstance(self.__model, IModel)
         status.append("Model:{}".format("OK" if s2 else "ABSENT"))
