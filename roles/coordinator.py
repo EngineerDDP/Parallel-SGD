@@ -105,7 +105,7 @@ class Coordinator:
         # check for duplication
         assert len(self.__group_allocated & working_group) == 0, "Cannot submit a task to node which already has a job."
         # calculate data size
-        dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
+        dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth + 1
         # send request
         for _id in working_group:
             self.__com.send_one(_id, SubmitJob(working_group | self.__global_allocated, dataset_ett, worker_executor))
@@ -125,7 +125,7 @@ class Coordinator:
         # check for duplication
         assert worker_id not in self.__global_allocated, "Cannot submit a task to node which already has a job."
         # calculate data size
-        dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth
+        dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth + 0.6
         # send request
         self.__com.send_one(worker_id, SubmitJob({worker_id}, dataset_ett, worker_executor))
 
