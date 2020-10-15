@@ -9,21 +9,14 @@ def register():
     return __var_id_max - 1
 
 
-def remove(id):
-    pass
-
-
 class AbsValue:
 
     def __init__(self):
-        self.__var_id = register()
-
-    def __del__(self):
-        remove(self.__var_id)
+        self.var_id = register()
 
     @property
     def id(self):
-        return self.__var_id
+        return self.var_id
 
     def __repr__(self):
-        return "<Value ID:{}>".format(self.__var_id)
+        return "<Value ID:{}>".format(self.id)

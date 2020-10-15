@@ -38,8 +38,9 @@ class Weights(AbsValue, ITrainable):
         self.__content = None
 
     def __getstate__(self):
-        return self.__content
+        return self.__content, self.id
 
     def __setstate__(self, state):
         self.__init__()
-        self.__content = state
+        self.var_id = state[1]
+        self.__content = state[0]

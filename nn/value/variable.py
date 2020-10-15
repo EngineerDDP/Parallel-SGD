@@ -69,10 +69,11 @@ class Variable(AbsValue, OperandHelper, ITrainable):
         return self.__ref_gradient
 
     def __getstate__(self):
-        return self.get_value()
+        return self.__var, self.id
 
     def __setstate__(self, state):
         self.__init__()
-        self.__var = state
+        self.var_id = state[1]
+        self.__var = state[0]
 
     # -------- Value implementation --------
