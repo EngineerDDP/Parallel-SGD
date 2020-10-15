@@ -106,7 +106,7 @@ class ParallelSGD:
             codec = dict()
         if isinstance(ps_codec, type):
             default_ps_codec = ps_codec
-            codec = dict()
+            ps_codec = dict()
 
         # 获取所有的合法Slave
         node_count = 0
