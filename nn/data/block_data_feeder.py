@@ -66,6 +66,7 @@ class PSGDBlockDataFeeder(IDataFeeder, IPSGDBlockMgr):
         return self.__cur_block
 
     def __iter__(self):
+        self.__iter = 0
         for self.__batch_id in range(self.__batches):
             self.__end = False
             for b_id in self.__total_blocks:
