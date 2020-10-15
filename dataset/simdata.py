@@ -63,7 +63,7 @@ class LinearSimulation:
 
 class SinSimulation:
 
-    def __init__(self, a=2.0, b=0.0, w=2*np.pi, normal_scale=1.0, bin_scale=1.0, bin_rate=0.1, oneside=True):
+    def __init__(self, a=2.0, b=0.0, w=2 * np.pi, normal_scale=1.0, bin_scale=1.0, bin_rate=0.1, oneside=True):
         """
             build simulation model base line
             model creates samples like y = sin(x * 2*pi/w) + b
@@ -76,7 +76,6 @@ class SinSimulation:
         self.Noise = NoiseSimulation(normal_scale, bin_scale, bin_rate, oneside)
 
     def predict(self, x):
-
         return self.Noise.predict(np.sin(x * 2 * np.pi / self.W) + self.B)
 
     def baseline(self, x):
@@ -88,7 +87,7 @@ class SinSimulation:
 
 class SimLin(AbsDataset):
 
-    def __init__(self, check_sum:str=None, input_shape:int=1024, output_shape:int=1):
+    def __init__(self, check_sum: str = None, input_shape: int = 1024, output_shape: int = 1):
         """
             Interesting way to identify input_ref and output_ref scale.
             Use checksum string to storage input_ref and output_ref data.
@@ -119,8 +118,7 @@ class SimLin(AbsDataset):
         return self.__input_shape * 60000
 
     @staticmethod
-    def __load(len_x:int=1024, len_y:int=1):
-
+    def __load(len_x: int = 1024, len_y: int = 1):
         x = np.random.uniform(0, 10, size=[60000, len_x])
         w = np.random.uniform(0, 1 / (len_x * len_y), size=[len_y, len_x])
         b = np.random.normal(0, 0.1, size=len_y)
