@@ -32,6 +32,14 @@ class Model(IModel):
     def trainable_variables(self) -> Iterable[ITrainable]:
         pass
 
+    @property
+    def is_setup(self):
+        return isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator)
+
+    @property
+    def can_fit(self):
+        return self.is_setup and isinstance(self.__optimizer, IOpContainer)
+
     @abstractmethod
     def call(self, x: IOperator) -> IOperator:
         pass
@@ -80,7 +88,7 @@ class Model(IModel):
 
     def fit(self, x: [ndarray, IDataFeeder], epoch: int, label: [ndarray] = None, batch_size: int = 64,
             printer: IPrinter = None) -> FitResultHelper:
-        assert isinstance(self.__optimizer, IOpContainer), "Model hasn't complied."
+        assert self.can_fit, "Model is not prepared for training."
         assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."
 
         if isinstance(x, ndarray):
@@ -122,7 +130,7 @@ class Model(IModel):
         return self.__fit_history
 
     def evaluate(self, x: ndarray, label: ndarray):
-        assert isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator), "Model hasn't setup."
+        assert self.is_setup, "Model hasn't setup."
         x = NumpyDataFeeder(x, label, batch_size=100)
         # get stdout
         import sys
