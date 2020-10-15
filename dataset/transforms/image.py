@@ -16,4 +16,4 @@ class ImageCls(AbsTransformer):
         return tuple()
 
     def run(self, train_x, train_y, test_x, test_y) -> tuple:
-        return train_x / 255, np.eye(10)[train_y], test_x / 255, np.eye(10)[test_y]
+        return train_x / 255 - 0.5, np.eye(10)[train_y], test_x / 255 - 0.5, np.eye(10)[test_y]
