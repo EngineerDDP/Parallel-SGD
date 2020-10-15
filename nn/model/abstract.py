@@ -1,6 +1,6 @@
 import sys
 from abc import abstractmethod
-from typing import Tuple, List, Iterable
+from typing import Tuple, List, Iterable, Union, Type
 
 import numpy as np
 import pickle
@@ -8,12 +8,13 @@ from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
 from nn.data.numpy_data_feeder import NumpyDataFeeder
+from nn.gradient_descent.interface import IGradientDescent
 from nn.interface import IOperator, IOptimizer, ITrainable, ModelState
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.model.interface import IModel
 from nn.model.utils import FitResultHelper
-from nn.optimizer import IOpContainer
+from nn.optimizer import IOpContainer, OpContainer, GDOptimizer
 from nn.value.placeholder import Placeholder
 from utils.log import IPrinter
 
@@ -41,7 +42,7 @@ class Model(IModel):
         return self.is_setup and isinstance(self.__optimizer, IOpContainer)
 
     @abstractmethod
-    def call(self, x: IOperator) -> IOperator:
+    def call(self, x: Placeholder) -> IOperator:
         pass
 
     @property
@@ -78,15 +79,18 @@ class Model(IModel):
         # set title
         self.__fit_history.set_fit_title(title)
 
-    def compile(self, optimizer: IOpContainer):
+    def compile(self, optimizer: Union[IOpContainer, Type[IGradientDescent]]):
         # set optimizer
-        self.__optimizer = optimizer
+        if isinstance(optimizer, IOpContainer):
+            self.__optimizer = optimizer
+        else:
+            self.__optimizer = OpContainer(GDOptimizer, optimizer)
         self.__optimizer.optimize(*self.trainable_variables())
 
     def __evaluate_metrics(self, y, label) -> list:
         return [metric.metric(y, label) for metric in self.__metrics]
 
-    def fit(self, x: [ndarray, IDataFeeder], epoch: int, label: [ndarray] = None, batch_size: int = 64,
+    def fit(self, x: [ndarray, IDataFeeder], label: [ndarray] = None, epoch: int = 4, batch_size: int = 64,
             printer: IPrinter = None) -> FitResultHelper:
         assert self.can_fit, "Model is not prepared for training."
         assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."

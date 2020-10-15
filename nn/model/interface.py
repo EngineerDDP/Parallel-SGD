@@ -32,7 +32,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def fit(self, x: [ndarray, IDataFeeder], epoch: int, label: [ndarray] = None, batch_size: int = 64,
+    def fit(self, x: [ndarray, IDataFeeder], label: [ndarray] = None, epoch: int = 4, batch_size: int = 64,
             printer: IPrinter = None) -> FitResultHelper:
         """
             Fit model with given samples.
