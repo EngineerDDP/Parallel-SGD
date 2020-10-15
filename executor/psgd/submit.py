@@ -53,11 +53,13 @@ class ParallelSGD:
                  op_type: Type[IOptimizer] = PSGDOptimizer,
                  gd_type: Type[IGradientDescent] = ADAMOptimizer,
                  codec: Union[Dict[int, Type[Codec]], Type[Codec]] = None,
-                 op_params: Tuple[object] = (),
-                 ps_codec: Optional[Dict[int, Type[Codec]]] = None,
+                 gd_params: Tuple[object] = (),
+                 ps_codec: Union[Dict[int, Type[Codec]], Type[Codec], None] = None,
+                 network_bandwidth: int = 1,
                  mission_title: str = "P-SGD"):
         """
             执行并行化。
+        :param network_bandwidth: 可用的网络带宽，用作计算预估传输时间，设置 pre_commit 超时计时器。
         :param mission_title:   任务标题，作为本次任务的log文件文件名。
         :param nodes:           由 network 模块提供的 NodeAssignment 接口，指示了当前并行化操作调用的节点数目。
                                 参数服务器的节点编号由 utils.constant.Parameter_Server 指定，其余工作节点的id
@@ -84,7 +86,7 @@ class ParallelSGD:
         :param op_type:         梯度生成策略，实现了 nn.gradient_descent.IGradientDescent 接口的类型。
                                 负责生成待处理的更新增量。
         :param codec:           编码器类型，实现了 codec.interface.Codec 接口的类型。
-        :param op_params:       梯度生成器参数
+        :param gd_params:       梯度生成器参数
         :param ps_codec:        编码器类型，实现了 codec.interface.Codec 接口的类型。
                                 用于参数服务器进行数据处理。
         :return:
@@ -122,7 +124,7 @@ class ParallelSGD:
         # 模型实例
         model: net_model = net_model(self.__model, BatchIter(block_size, assignment.block_count))
         # 优化器实例
-        optimizer: net_optimizer = net_optimizer(op_type, gd_type, op_params=op_params)
+        optimizer: net_optimizer = net_optimizer(op_type, gd_type, op_params=gd_params)
         # 变量表
         var_ids = [var.id for var in self.__model.trainable_variables()]
         # 变量表Codec字典
@@ -152,7 +154,7 @@ class ParallelSGD:
         self.__log.log_message(nodes)
 
         with req.request(nodes) as com:
-            coordinator = Coordinator(com, estimate_bandwidth=1, logger=self.__log)
+            coordinator = Coordinator(com, estimate_bandwidth=network_bandwidth, logger=self.__log)
             if has_ps:
                 coordinator.submit_single(PSGDPSExecutor, Parameter_Server, self.__data.estimate_size())
             coordinator.submit_group(PSGDWorkerExecutor, assignment.nodes, self.__data.estimate_size())
