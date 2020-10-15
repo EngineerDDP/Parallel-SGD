@@ -7,9 +7,7 @@ from utils.constants import Parameter_Server
 
 def q1(arr: np.ndarray):
     std = np.std(arr)
-    weights = arr.copy()
-    weights[np.abs(weights) < std] = 0
-    weights = np.sign(weights)
+    weights = np.sign(arr)
     return weights, std
 
 
