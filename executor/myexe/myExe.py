@@ -18,12 +18,6 @@ class myExecutor(AbsSimpleExecutor):
         # 计算结果以文件的形式记录
         self.__my_output_file = "./Done({})".format(self.node_id)
 
-    def requests(self) -> list:
-        return []
-
-    def satisfy(self, reply: list) -> list:
-        return []
-
     def run(self, com: ICommunication_Controller) -> None:
         """
             获取 ICommunication_Controller 控制权，开始执行任务。
