@@ -176,7 +176,7 @@ class Model(IModel):
             pickle.dump(self, fd)
 
     @staticmethod
-    def load(file: str) -> IModel:
+    def load(file: str) -> 'Model':
         with open(file, 'rb') as fd:
             model = pickle.load(fd)
         if model.__optimizer:
