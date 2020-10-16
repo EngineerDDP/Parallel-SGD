@@ -1,8 +1,10 @@
 from abc import ABCMeta, abstractmethod
+from typing import Union, Type, Dict
 
 from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
+from nn.gradient_descent.interface import IGradientDescent
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.optimizer import IOpContainer
@@ -23,7 +25,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def compile(self, optimizer: IOpContainer):
+    def compile(self, optimizer: Union[IOpContainer, Type[IGradientDescent]]):
         """
             Compile model with given optimizer
         :param optimizer: IOptimizer
@@ -54,7 +56,7 @@ class IModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def evaluate(self, x: ndarray, label: ndarray):
+    def evaluate(self, x: ndarray, label: ndarray) -> Dict[str, float]:
         """
             Evaluate this model with given metric.
         :param x: input samples

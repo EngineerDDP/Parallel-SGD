@@ -1,6 +1,6 @@
 import sys
 from abc import abstractmethod
-from typing import Tuple, List, Iterable, Union, Type
+from typing import Tuple, List, Iterable, Union, Type, Dict
 
 import numpy as np
 import pickle
@@ -133,7 +133,7 @@ class Model(IModel):
     def fit_history(self) -> FitResultHelper:
         return self.__fit_history
 
-    def evaluate(self, x: ndarray, label: ndarray):
+    def evaluate(self, x: ndarray, label: ndarray) -> Dict[str, float]:
         assert self.is_setup, "Model hasn't setup."
         x = NumpyDataFeeder(x, label, batch_size=100)
         # get stdout
