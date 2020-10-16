@@ -127,29 +127,3 @@ class SimLin(AbsDataset):
         y = sim.predict(x)
 
         return x[:50000], y[:50000], x[50000:], y[50000:]
-
-
-if __name__ == '__main__':
-    from nn.model_deprecated import SequentialModel_v2
-    from nn.layers_deprecated import FCLayer_v2
-    from nn.activations_deprecated import Linear
-    from nn.losses_deprecated import MseLoss
-    from nn.optimizer_deprecated import GradientDecentOptimizer_v2
-
-    model = SequentialModel_v2()
-    model.add(FCLayer_v2(1, act=Linear()))
-    model.compile(optimizer=GradientDecentOptimizer_v2(learn_rate=0.00002), loss=MseLoss(), metrics=[MseLoss()])
-
-    len_x, len_y = 1024, 1
-    x = np.random.uniform(0, 10, size=[60000, len_x])
-    w = np.random.uniform(0, 1, size=[len_y, len_x])
-    b = np.random.normal(0, 0.1, size=len_y)
-    sim = LinearSimulation(w, b, normal_scale=0.0, bin_scale=1.0, bin_rate=0, oneside=False)
-
-    y = sim.predict(x)
-
-    tx, ty, ex, ey = x[:50000], y[:50000], x[50000:], y[50000:]
-
-    model.fit(x=tx, y=ty, batch_size=10000, epochs=100)
-    print(model.evaluate(ex, ey))
-    print(np.sum(np.abs(w - model.NN[0].W)))
