@@ -76,7 +76,6 @@ class PSGD_Worker:
             if isinstance(req, RequestWorkingLog):
                 self.client_logger.log_message('ACK logfile reclaim.')
 
-            self.post_log(com)
         except Exception as e:
             # print DEBUG message
             import sys
@@ -86,6 +85,8 @@ class PSGD_Worker:
             exc_format = "".join(exc_tb)
             self.client_logger.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
             # print DEBUG message
+
+        self.post_log(com)
 
     def post_log(self, com: ICommunication_Controller):
         """
