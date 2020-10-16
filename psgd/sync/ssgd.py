@@ -72,10 +72,9 @@ class SynchronizedSGD(IParallelSGD):
 
         for update_pack in update_packs:
             sender = update_pack.target()
-            content = update_pack.content()
             pkg = {
                 SynchronizedSGD.STR_BATCH_NO: batch_no,
-                SynchronizedSGD.DATA: content
+                SynchronizedSGD.DATA: update_pack
             }
             yield (sender, pkg)
 
@@ -113,7 +112,7 @@ class SynchronizedSGD(IParallelSGD):
 
             else:
                 pkg = self.__receive_buffer[self.__current_batch].get()
-                self.batch_updater.receive_blocks(pkg)
+                self.batch_updater.receive_blocks(pkg.content())
 
         if self.batch_updater.is_done():
             return self.batch_updater.get_result()

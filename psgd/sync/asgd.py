@@ -30,16 +30,15 @@ class AsynchronizedSGD(SynchronizedSGD):
         sender_batch = obj[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch > AsynchronizedSGD.INT_BATCH_SKIP:
             # get package iterable
-            pack_to_sends = iterator_helper(self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA]))
+            pack_to_sends = iterator_helper(self.batch_updater.receive_blocks(obj[SynchronizedSGD.DATA].content()))
 
             # iterate package
             for pack_to_send in pack_to_sends:
                 target = pack_to_send.target()
-                pack = pack_to_send.content()
                 # tag this layer
                 pkg = {
                     SynchronizedSGD.STR_BATCH_NO: sender_batch,
-                    SynchronizedSGD.DATA: pack
+                    SynchronizedSGD.DATA: pack_to_send
                 }
                 yield target, pkg
 
