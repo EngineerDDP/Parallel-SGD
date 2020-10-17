@@ -39,31 +39,18 @@ class netEncapsulation(Generic[T]):
             self.__packages = content
         else:
             raise InvalidArguments("Package is not required type.", netEncapsulation)
-        self.__has_sent = Value('i', 0)
-        self.__has_handled = Value('i', 0)
 
     def __setstate__(self, state: T):
         self.__target = None
         self.__packages = state
-        self.__has_handled = Value('i', 0)
 
     def __getstate__(self) -> T:
-        self.__has_sent.value = 1
         return self.__packages
-
-    @property
-    def has_sent(self):
-        return self.__has_sent
-
-    @property
-    def has_handled(self):
-        return self.__has_handled
 
     def target(self) -> List[int]:
         return self.__target
 
     def content(self) -> T:
-        self.__has_handled.value = 1
         return self.__packages
 
 

@@ -84,7 +84,7 @@ class ClassSerializer(IReplyPackage):
         self.__mod_content = ''
         with open(mod_name, 'r', encoding='utf-8') as file:
             line = file.readline()
-            while line[:26] != 'if __name__ == \'__main__\':':
+            while line != '' and line[:26] != 'if __name__ == \'__main__\':':
                 self.__mod_content += line
                 line = file.readline()
         self.__class_type: [type] = None

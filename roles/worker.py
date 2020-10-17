@@ -51,7 +51,7 @@ class PSGD_Worker:
         while data is None:
             id_from, data = com.get_one(blocking=False)
             time.sleep(0.001)
-            time_clock += 0.002
+            time_clock += 0.001
             # Assertion, this node count as one
             assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
             assert time_clock < timeout, "Maximum waiting time exceed."
