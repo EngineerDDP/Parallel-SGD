@@ -69,7 +69,6 @@ class IWorker_Register(metaclass=ABCMeta):
 
 
 class AbsCommunicationProcess(Process, metaclass=ABCMeta):
-    Circle_interval = 0.001
 
     def __init__(self, name: str):
         Process.__init__(self, name=name, daemon=True)
