@@ -219,7 +219,7 @@ class CommunicationProcess(AbsCommunicationProcess):
         """
 
         super().__init__(name='Communication thread address: {}'.format(id_register.get_id()))
-
+        self.Alive = True
         self.__connections = id_register
         self.__available_nodes_count = Value('i', len(self.__connections.ids()))
         self.__available_nodes = Array('i', self.__connections.ids())
@@ -243,7 +243,6 @@ class CommunicationProcess(AbsCommunicationProcess):
             start both sending and receiving thread on target socket object
         """
         import threading
-        self.Alive = True
 
         recv_buffer_list = {}
         for fd in self.__connections.to_list():
@@ -357,6 +356,8 @@ class CommunicationProcess(AbsCommunicationProcess):
                         self.__data_bytes_sent.value += len(buffer)
                     # put it back
                     else:
+                        if fd not in active_connections:
+                            active_connections.append(fd)
                         left.append(send_to)
 
                 if len(left) > 0:

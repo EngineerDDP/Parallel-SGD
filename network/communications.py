@@ -121,7 +121,7 @@ class Communication_Controller(ICommunication_Controller):
         """
         if self.is_closed():
             raise ConnectionAbortedError('Connection has already been closed.')
-        if self.__com.recv_que.empty() and not blocking:
+        if self.__com.recv_que.empty() and not blocking and not self.is_closed():
             return None, None
         while not self.is_closed():
             try:
@@ -173,7 +173,7 @@ class Communication_Controller(ICommunication_Controller):
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return not self.__com.Alive and self.__com.Exit
+        return not self.__com.Alive
 
 
 def get_repr():
