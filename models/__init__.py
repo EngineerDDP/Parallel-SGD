@@ -70,12 +70,23 @@ class BinaryFilePackage(IReplyPackage):
 class ClassSerializer(IReplyPackage):
 
     def __init__(self, cls_name: type):
-        # get module filename
-        mod_name = "./" + "/".join(cls_name.__module__.split('.')) + ".py"
+        # check module
+        execution_dirs = cls_name.__module__.split('.')
+        # if its from __main__
+        if execution_dirs[0] == '__main__':
+            import sys
+            mod_name = sys.argv[0]
+        else:
+            # get module filename
+            mod_name = "./" + "/".join(execution_dirs) + ".py"
 
         self.__class_name = cls_name.__name__
+        self.__mod_content = ''
         with open(mod_name, 'r', encoding='utf-8') as file:
-            self.__mod_content = file.read()
+            line = file.readline()
+            while line[:26] != 'if __name__ == \'__main__\':':
+                self.__mod_content += line
+                line = file.readline()
         self.__class_type: [type] = None
 
     def restore(self) -> type:
