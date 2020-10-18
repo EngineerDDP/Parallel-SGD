@@ -1,4 +1,5 @@
-from typing import Type
+from typing import Type, Union
+import copy
 
 from nn import ITrainable, IOptimizer
 from nn.gradient_descent.interface import IGradientDescent
@@ -7,7 +8,8 @@ from nn.optimizer.interface import IOpContainer
 
 class OpContainer(IOpContainer):
 
-    def __init__(self, optimizer_type: Type[IOptimizer], gradient_descent_type: Type[IGradientDescent],
+    def __init__(self, optimizer_type: Type[IOptimizer],
+                 gradient_descent_type: Union[Type[IGradientDescent], IGradientDescent],
                  gd_params=tuple(), op_params=tuple()):
         self.__op_type = optimizer_type
         self.__op_params = op_params
@@ -17,7 +19,11 @@ class OpContainer(IOpContainer):
 
     def optimize(self, *variables: ITrainable):
         for var in variables:
-            self.__op_list.append(self.__op_type(self.__gd_type(*self.__gd_params), *self.__op_params))
+            if isinstance(self.__gd_type, IGradientDescent):
+                gd = copy.deepcopy(self.__gd_type)
+            else:
+                gd = self.__gd_type(*self.__gd_params)
+            self.__op_list.append(self.__op_type(gd, *self.__op_params))
             var.attach_optimizer(self.__op_list[-1])
 
     def set_batch_size(self, batch_size: int):

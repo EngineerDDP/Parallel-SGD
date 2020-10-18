@@ -79,7 +79,7 @@ class Model(IModel):
         # set title
         self.__fit_history.set_fit_title(title)
 
-    def compile(self, optimizer: Union[IOpContainer, Type[IGradientDescent]]):
+    def compile(self, optimizer: Union[IOpContainer, Type[IGradientDescent], IGradientDescent]):
         # set optimizer
         if isinstance(optimizer, IOpContainer):
             self.__optimizer = optimizer
