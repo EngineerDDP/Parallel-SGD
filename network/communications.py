@@ -22,7 +22,7 @@ class Worker_Communication_Constructor:
         self.__id_register = worker_register
         self.__server_addr = server
 
-    def buildCom(self):
+    def build_communication(self):
         """
             Non-blocking IO for register this slave com to a specified job.
             Connection will be established while all connections between slaves were established.
@@ -165,7 +165,7 @@ class Communication_Controller(ICommunication_Controller):
             sleep(1)
             wait_limit -= 1
         if wait_limit <= 0:
-            self.__com.terminate()
+            # self.__com.terminate()
             print('Terminate communication process.')
 
     def is_closed(self):

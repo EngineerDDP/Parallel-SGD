@@ -1,4 +1,6 @@
 # for import usage
+import time
+
 from network.interfaces import ICommunication_Controller, NodeAssignment
 
 from network.communications import Worker_Communication_Constructor as wcc
@@ -25,6 +27,7 @@ class Request:
         """
         com_proc = self.__method(nodes)
         com_ctrl = cc(com_proc)
+        time.sleep(2)
         return com_ctrl
 
 
@@ -48,7 +51,7 @@ class Serve:
             Receive a connection from promoter.
         :return: full functional ICommunication_Controller instance
         """
-        register = self.__constructor.buildCom()
+        register = self.__constructor.build_communication()
         self.__constructor.close()
         com_proc = self.__proc_cls(register)
         com_ctrl = cc(com_proc)
