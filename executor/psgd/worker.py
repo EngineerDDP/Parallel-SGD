@@ -12,6 +12,7 @@ from models import IRequestPackage
 from network import ICommunication_Controller
 from nn import IModel
 from nn.data import PSGDBlockDataFeeder
+from nn.model import Model
 from profiles import ISetting
 from profiles.interface import IBatchIter
 from psgd.interface import ITransfer
@@ -25,7 +26,7 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__log = Logger('Fit-{}'.format(node_id), log_to_file=True)
         self.__trace_filename = [self.__log.File_Name]
         # waiting for those
-        self.__model: [IModel] = None
+        self.__model: [Model] = None
         self.__optimizer: [IPSGDOpContainer] = None
         self.__batch_iter: [IBatchIter] = None
         self.__trans: [ITransfer] = None
@@ -153,8 +154,12 @@ class PSGDWorkerExecutor(AbsExecutor):
         evaluation_name = "EV-" + trace_head + ".csv"
         evaluation_trace = pd.DataFrame(evaluation_history, columns=title)
         evaluation_trace.to_csv(evaluation_name, index=False)
+        # save model
+        model_name = "MODEL-" + trace_head + ".model"
+        self.__model.save(model_name)
         self.__trace_filename.append(training_name)
         self.__trace_filename.append(evaluation_name)
+        self.__trace_filename.append(model_name)
 
         self.__log.log_message('Execution complete, time: {}.'.format(time_end - time_start))
         self.__log.log_message('Execution complete, Total bytes sent: {}.'.format(data_sent_end - data_send_start))
