@@ -3,6 +3,7 @@ from typing import List, Tuple
 
 import pandas as pd
 
+import nn
 from codec import GlobalSettings
 from dataset.interfaces import IDataset
 from executor.abstract import AbsExecutor
@@ -156,6 +157,7 @@ class PSGDWorkerExecutor(AbsExecutor):
         evaluation_trace.to_csv(evaluation_name, index=False)
         # save model
         model_name = "MODEL-" + trace_head + ".model"
+        self.__model.compile(nn.gradient_descent.SGDOptimizer(learn_rate=1e-5))
         self.__model.save(model_name)
         self.__trace_filename.append(training_name)
         self.__trace_filename.append(evaluation_name)
