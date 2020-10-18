@@ -55,7 +55,7 @@ class ParallelSGD:
                  codec: Union[Dict[int, Type[Codec]], Type[Codec]] = None,
                  gd_params: Tuple[object] = (),
                  ps_codec: Union[Dict[int, Type[Codec]], Type[Codec], None] = None,
-                 network_bandwidth: int = 1,
+                 network_bandwidth: int = 1048576,
                  mission_title: str = "P-SGD",
                  ssgd_timeout_limit: int = 10000):
         """

@@ -3,12 +3,18 @@ from typing import Iterable, Callable
 from models import *
 
 from network.interfaces import ICommunication_Controller
-from utils.log import Logger
+from utils.log import IPrinter, Logger
 
 
 class Coordinator:
 
-    def __init__(self, com: ICommunication_Controller, estimate_bandwidth=10, logger=None):
+    def __init__(self, com: ICommunication_Controller, estimate_bandwidth: int = 10, logger: IPrinter = None):
+        """
+            Coordinator
+        :param com: Communication Thread
+        :param estimate_bandwidth: bandwidth estimation, Bytes per second
+        :param logger: IPrinter
+        """
         self.__com = com
         if logger is None:
             self.__log = Logger(title_info='Coordinator', log_to_file=True)
