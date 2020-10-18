@@ -1,187 +1,881 @@
-# Parallel SGD
 
-　　Parallel-SGD v0.7  
-　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](./codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](./executor/README.md)）。  
 
-## 参数说明
+* [Parallel\-SGD\-docs\-zh\_CN](#parallel-sgd-docs-zh_cn)
+  * [nn(神经网络)](#nn%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C)
+    * [神经网络使用流程](#%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%BD%BF%E7%94%A8%E6%B5%81%E7%A8%8B)
+      * [1\. build](#1-build)
+        * [1\.1\.完全自定义网络](#11%E5%AE%8C%E5%85%A8%E8%87%AA%E5%AE%9A%E4%B9%89%E7%BD%91%E7%BB%9C)
+        * [1\.2 SequentialModel](#12-sequentialmodel)
+        * [1\.3 model\.Model](#13-modelmodel)
+        * [1\.4 完全自定义网络](#14-%E5%AE%8C%E5%85%A8%E8%87%AA%E5%AE%9A%E4%B9%89%E7%BD%91%E7%BB%9C)
+      * [2\. setup](#2-setup)
+      * [3\. compile](#3-compile)
+      * [4\. fit](#4-fit)
+      * [5\. evaluate](#5-evaluate)
+      * [6\. predict](#6-predict)
+      * [7\. save&amp;load](#7-saveload)
+    * [数据集处理](#%E6%95%B0%E6%8D%AE%E9%9B%86%E5%A4%84%E7%90%86)
+  * [API](#api)
+    * [1\. activation](#1-activation)
+      * [1\.1 接口定义](#11-%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89)
+      * [1\.2 实现类](#12-%E5%AE%9E%E7%8E%B0%E7%B1%BB)
+    * [2\. layer](#2-layer)
+      * [2\.1 接口定义](#21-%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89)
+      * [2\.2 实现类](#22-%E5%AE%9E%E7%8E%B0%E7%B1%BB)
+    * [3\. loss](#3-loss)
+      * [3\.1 接口定义](#31-%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89)
+      * [3\.2 实现类](#32-%E5%AE%9E%E7%8E%B0%E7%B1%BB)
+    * [4\. metric](#4-metric)
+      * [4\.1 接口定义](#41-%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89)
+      * [4\.2 实现类](#42-%E5%AE%9E%E7%8E%B0%E7%B1%BB)
+    * [5\. model](#5-model)
+      * [5\.1 接口定义](#51-%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89)
+    * [6\. gradient\_descent](#6-gradient_descent)
+      * [6\.1 接口定义](#61-%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89)
+      * [6\.2 实现类](#62-%E5%AE%9E%E7%8E%B0%E7%B1%BB)
 
-### 工作节点参数
-　　所有的参数都通过 job_submit.py 传入，worker节点无需传入任何参数。启动时，使用以下命令启动Worker，无需传入参数。当任务提交时，节点会自动申请并获取工作状态信息。  
-**注意**：每个worker所在的计算机都需要允许15387端口的TCP传入。  
-```shell script
-python worker.py 
+# Parallel-SGD-docs-zh_CN
+
+## nn(神经网络)
+> 本模块是一个图神经网络模块，可供用户搭建自己的神经网络，提供了常见的数据集处理、激活函数、层、优化器、损失函数、衡量指标、自动求导功能。整体设计保留了**大量接口**可供用户自定义实现自己的想法创意。
+
+### 神经网络使用流程
+
+#### 1. build
+##### 1.1.完全自定义网络
+   最简单的使用建立网络的方式就是调用框架已实现的经典网络。
+```python
+model = nn.model.dnn.DNN(input_shape=(-1,784))
 ```
 
-### 任务提交
-　　提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
-```shell script
-python job_submit.py 
-    --node-count 4  
-    --batch-size 128  
-    --redundancy 1  
-    --codec plain,plain,plain,plain,ccdc,ps  
-    --optimizer psgd  
-    --psgd ssgd  
-    --learn-rate 0.05  
-    --epochs 10  
-    --dataset mnist
-    --non-iid 
-    --block-assignment iid 
-    --server-codec grad 
-    --workers worker.json
+##### 1.2 SequentialModel
+
+   该方式的使用类似`tf.keras.models.Sequential()`,该方法使用简单，但是只能表示线性的神经网络。下面展示如何使用该方法搭建网络
+```python
+import nn
+
+model = nn.model.SequentialModel(input_shape=[-1, 32, 32, 3])
+model.add(nn.layer.Conv2D(kernel=64, kernel_size=[3, 3], activation=nn.activation.LeakReLU()))
+model.add(nn.layer.Conv2D(kernel=64, kernel_size=[3, 3], activation=nn.activation.LeakReLU()))
+model.add(nn.layer.Conv2D(kernel=64, kernel_size=[3, 3], activation=nn.activation.LeakReLU()))
+model.add(nn.layer.Conv2D(kernel=64, kernel_size=[3, 3], activation=nn.activation.LeakReLU()))
+model.add(nn.layer.Flatten())
+model.add(nn.layer.Dense(units=128, activation=nn.activation.HTanh()))
+model.add(nn.layer.Dense(units=10, activation=nn.activation.Softmax()))
 ```
-* *-n* *--node-count*  
-节点数目，当前任务需要占用的节点数目。  
-该参数需要与代码适配，在 GlobalSetting 中默认的每个节点编号是连续的且从0开始。
+##### 1.3 model.Model
+   该方式的使用类似`tf.keras.Model`,通过继承该类可以搭建更加复杂流程的神经网络，下面展示这种方式搭建网络
+```python
+class DNN(Model):
 
-* *-G* *--batch_size*  
-批次大小，当前任务训练批次的大小。  
-**注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为 *batch_size* / *node_count*。
+    def __init__(self, input_shape: [Tuple[int]] = None):
+        super().__init__(input_shape)
+        self.__var_list: List[ITrainable] = []
 
-* *-r* *--redundancy*  
-样本冗余份数，当前任务所需的样本冗余份数。  
-样本冗余份数会按要求传送给 GlobalSetting ，具体的冗余分配方案仍然依赖 *block_assignment* 参数，当 *block_assignment* 参数提供的处理方法无法处理冗余分配时，设置的冗余级别事实上是无效的。  
-**注意**：如果编码控制器无法处理冗余分配情况，可能会导致全局死锁。
+    def trainable_variables(self) -> Iterable[ITrainable]:
+        return self.__var_list
 
-* *-O* *--optimizer*  
-使用的梯度下降优化器。  
-选用并行梯度下降优化器以实现并行计算，选用单机梯度下降优化器只能执行单机计算。  
-（关于可用的梯度下降优化器，请参阅 [梯度下降优化器类型](./nn/LIST.md) ）
+    def call(self, x: IOperator) -> IOperator:
+        self.__var_list: List[ITrainable] = []
 
-* *-C* *--codec*  
-worker上执行的实际编码器。  
-需要传入一个编码器参数时，默认给每层都分配相同的编码器。需要传入多个编码器时，使用逗号隔开，每个编码器对应一层，确保层数和编码器数量一致。   
-编码器类继承自 codec.interfaces.ICommunicationCtrl 。实现一个编码器类放置在 *job_submit* 可见的 *codec* 文件夹下，当任务提交时，*job_submit* 会自动解析类并发送至Worker上运行。  
-**注意**：无需在每个Worker上复制一份 *codec*，*job_submit* 过程会自动将运行所需的代码发送至Worker。  
-**注意**：如果编码器引用了外部类或其他依赖，保证这些依赖对每个Worker都是可用的。  
-**注意**：第一个编码器参数对应第一个层，以此类推。  
-**注意**：当需要引入参数服务器时，确保给定的编码器能与参数服务器正常交互。  
-（关于编码器设计的详情，请参阅 [编码控制器教程](./codec/README.md) ）  
-（关于可用的已实现的编码器，请参阅 [编码器类型](./codec/LIST.md) ）  
+        fc1 = Dense(inputs=x, activation=Tanh(), units=784)
+        self.__var_list.extend(fc1.variables)
 
-* *--psgd*  
-worker上执行的实际SGD同步器。  
-asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当超出SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法尝试补救，当两次超时并且无法挽回后，ssgd 会报告超时错误。  
+        fc2 = Dense(inputs=fc1, activation=Tanh(), units=784)
+        self.__var_list.extend(fc2.variables)
 
-* *--learn_rate*  
-worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。  
+        fc3 = Dense(inputs=fc2, activation=Tanh(), units=392)
+        self.__var_list.extend(fc3.variables)
 
-* *-E* *--epochs*  
-worker上执行的训练轮次。
+        dropout = Dropout(inputs=fc3)
 
-* *-D* *--dataset*  
-训练所使用的数据集，目前内置有 **MNIST** （参数："*mnist*"）数据集，**CIFAR-10** （参数："*cifar*"）数据集。   
+        fc4 = Dense(inputs=dropout, activation=Tanh(), units=128)
+        self.__var_list.extend(fc4.variables)
 
-* *--non-iid*  
-加入此选项，使用非i.i.d.数据集划分。  
+        fc5 = Dense(inputs=fc4, activation=Softmax(), units=10)
+        self.__var_list.extend(fc5.variables)
 
-* *--block_assignment*  
-全局训练样本分配策略。  
-继承自 profiles.blockassignment.interfaces.IBlockAssignment ，使用自定义的 block_assignment 分配样本，需要在 server_util.init_model.__assignment_map 中注册。  
-本项目的样本被划分为训练集与测试集，样本是固定的。训练集又被划分为多个batch，每个batch被均分为多个block，并发送到 block_assignment 指定的节点上。需要划分为多少个block，以及每个block复制多少份发送给多少节点由block_assignment决定。  
-（关于分配策略的详情，请参阅 [分配策略](./profiles/blockassignment/README.md) ）
-
-* *--server_codec*  
-参数服务器编码器。  
-继承自 codec.interfaces.ICommunicationCtrl ，实现一个编码器并在 server_util.init_model.__para_server_map 中注册，即可在此处传入对应参数，启动对应的参数服务器编码器。
-
-* *--workers*  
-工作节点目录，参数内容为文件名，默认为 worker.json。  
-在提交任务到集群上之前，需要设置worker.json，标明当前集群的节点列表。
-worker.json格式如下：
-```json
-{
-  "PS": "192.168.1.1",
-  "Worker": [
-    "192.168.1.2",
-    "192.168.1.3"  
-  ]
-}
+        return fc5
 ```
-　　主体为一个数组，每行包含两个信息，分别是该节点的工作角色和IP地址，您要保证这些IP地址均可以互相访问。目前支持的角色类型只有两种，"PS"代表该节点以参数服务器的形式工作，"Worker"代表该节点以计算节点的形式工作。   
-**注意**：无需在每个节点上配置worker.json，只需要在提交任务时配置了worker.json即可。  
+##### 1.4 完全自定义网络
+   本模块支持自动求导，所以用户可以实现不依赖神经网络层任意自动求导，并且使用优化器对其进行梯度下降。下面展示如何使用自动求导功能。
 
-### 工作与等待
+```python
+class LR(nn.model.Model):
 
-　　根据控制台的输出，您可以确定已经成功提交任务至多少个节点，当所有节点都准备就绪时，您提交的任务就在集群上正常运行。
-当一个Worker已经初始化完成后，会输出相应的信息，以及总共需要初始化的Worker数目，输出如下。
-```shell script
-INFO Coordinator-192.168.1.1@10:49:55 : Add worker (Rule: PS, Id: -2, Address: 192.168.1.2).
-INFO Coordinator-192.168.1.1@10:58:38 : Add worker (Rule: Worker, Id: 0, Address: 192.168.1.3).
-INFO Coordinator-192.168.1.1@10:49:55 : Try connecting to the cluster.
-INFO Coordinator-192.168.1.1@10:49:55 : Connection with cluster established.
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(global_setting_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(codec_and_sgd_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(weights_and_layers_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(misc_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Node(-2) is ready, 2 nodes total, {-2} is ready.
-INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(global_setting_package).
-INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(codec_and_sgd_package).
-INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(weights_and_layers_package).
-INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(misc_package).
-INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(data_sample_package).
-INFO Coordinator-192.168.1.1@10:50:44 : Node(0) is ready, 2 nodes total, {-2, 0} is ready.
+    def __init__(self):
+        super().__init__()
+        self.w = nn.Variable(shape=[1,1])
+        self.b = nn.Variable(shape=[1])
+
+    def call(self, x):
+        return x * self.w + self.b
+
+    def trainable_variables(self):
+        return self.w, self.b
 ```
-　　此时您可以选择通过按下 Ctrl+C 键手动退出 job_submit，也可以选择等待所有Worker返回数据集给您。当您选择提前退出job_submit
-时，您需要在任务运行完成之后通过以下命令从每个节点上回收上次执行的训练数据。
-```shell script
-python job_submit.py --retrieve_data --worker ./worker.json
+
+#### 2. setup
+   模型建立后首先需要绑定模型优化使用的损失函数，以及衡量指标（可选，变长），这里计入的衡量指标将在训练以及评估阶段显示。
+
+```python
+model.setup(nn.loss.Cross_Entropy_With_Softmax(), nn.metric.CategoricalAccuracy())
 ```
-　　连接无误的话，输出应当如下所示：
-```shell script
-INFO Coordinator-192.168.1.1@11:12:26 : Add worker (Rule: Worker, Id: 0, Address: 192.168.1.3).
-INFO Coordinator-192.168.1.1@11:12:26 : Add worker (Rule: PS, Id: -2, Address: 192.168.1.2).
-INFO Coordinator-192.168.1.1@11:12:26 : Try connecting to the cluster.
-INFO Coordinator-192.168.1.1@11:12:26 : Connection with cluster established.
-INFO Coordinator-192.168.1.1@11:12:27 : Acquire log file from worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Acquire log file from worker(-2).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
+
+#### 3. compile
+   该步骤用于选择模型更新所用的优化器，其中优化器划分为两个层次，一个负责如何使用梯度，另一个用于计算梯度，如果使用的是梯度下降策略，使用adam计算梯度，选择额外的指定学习率,当然也可以简化写法，如下面所示。
+
+```python
+model.compile(Optimize(nn.optimizer.GDOptimizer, nn.gradient_descent.ADAMOptimizer, gd_params=(1e-3, )))
+model.compile(nn.gradient_descent.ADAMOptimizer)
 ```
-**注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。  
-**注意**：参数服务器只有Worker工作记录和简要的Training日志，没有详细的训练过程报表。  
-**注意**：在Sync-SGD强一致性约束下，集群可以保证每个Worker给出的Evaluation报表是一致的。  
-**注意**：在ASync-SGD弱一致性约束下，每个Worker给出一个有限的感知范围下最优的Evaluation报表。  
+#### 4. fit
+   该步骤非常类似keras的使用，这里封装了各种循环，放入样本、标签，epoch，batch_size即可训练，训练时会展示setup阶段选择的batch的评估指标。
 
-### 提交流程
+```python
+model.fit(x, label=y, epoch=1, batch_size=64)
+```
+#### 5. evaluate
+   该步骤用于评估模型在测试集上的表现，输出指标依然优setup阶段确认
 
-　　训练任务的提交过程遵循分布式系统的三阶段提交规范。包含canCommit、preCommit和doCommit三个阶段。
-* canCommit阶段：Coordinator会逐个访问worker.json中的每个Worker，检查Worker是否处于可提交阶段。  
-    - 当所有的Worker都接收了本次连接并回复ACK之后，进入preCommit阶段。
-    - 当存在一个Worker处于Busy状态，或存在一个Worker连接超时，取消提交。
-* preCommit阶段：Coordinator会向每个Worker提交本次训练所需的超参数、初始化权重、网络结构和样本集等数据。
-    - Worker逐个接收并确认每个Package，当所有的Worker都完成确认之后，进入doCommit阶段。
-    - 当存在一个Worker未确认，或超时未确认之后，Coordinator就会放弃提交，断开当前连接。
-* doCommit阶段：第一个完成preCommit的Worker会向集群中广播Ready标志。
-    - 每个完成preCommit阶段的Worker都会在收到Ready标志后回复Ready_Type，当所有Worker都进入Ready状态后，提交完成。
-    - 当超时未收到指定数目的Ready回复后，所有的Worker回退到初始状态并重置连接状态，Coordinator检查连接断开后报告任务提交失败。
-    
-### 一致性约束
+```python
+model.evaluate(x_t, y_t)
+```
+#### 6. predict
+   该步骤用于输出测试结果y。
 
-　　在 Sync-SGD Type 约束下，网络权重参数满足一致性（Consistency）和分区容错性（Partition Tolerance），不满足可用性（Availability）。
-详细的资源CAP状况如下表。
- 
-|资源|Consistency|Availability|Partition Tolerance|
-|----|----|----|----|
-|初始化资源|√|√|×|
-|训练日志|√|√|×|
-|评估日志|√|×|√|
-|网络权重|√|×|√|
+```python
+model.predict(x_t)
+```
 
-　　在 ASync-SGD Type 约束下，网络权重参数满足分区容错性（Partition Tolerance）和可用性（Availability），不满足一致性（Consistency）。
-详细的资源CAP状况如下表。
+#### 7. save&load
+   本步骤用于保存/恢复 模型结构、参数、setup和compile的参数，便于保存实验结果。
 
-|资源|Consistency|Availability|Partition Tolerance|
-|----|----|----|----|
-|初始化资源|√|√|×|
-|训练日志|√|√|×|
-|评估日志|×|√|√|
-|网络权重|×|√|√|
+```python
+model.save('abc.model')
+model = nn.model.Model.load('abc.model')
+```
+### 数据集处理
+   数据集的处理采用了链式的处理流，方便在与本项目其他模块进行协作，现阶段处理的操作较少，只包括了打乱数据集、图片的简单处理、**数据集非独立同分布化**，数据集的处理过程如下
 
-## 框架结构
+```python
+from dataset.transforms import ImageCls, Shuffle
+from dataset import CIFAR
+trans = Shuffle().add(ImageCls())
+x, y, _, _ = trans(*CIFAR().load())
+```
 
-　　To be constructed.
+
+
+## API
+
+### 1. activation
+#### 1.1 接口定义
+   激活函数接口继承了一元操作符：`AbsFlexibleUnaryNode`和激活操作:`IActivation`，下面为相关接口（不要慌），实际使用时，只需要写do_forward、do_backward就能重新写一个激活函数。
+```python
+class AbsActivation(AbsFlexibleUnaryNode, IActivation):
+
+    def output_shape(self):
+        return None
+
+class IActivation(metaclass=ABCMeta):
+
+    @abstractmethod
+    def do_forward(self, x: [float, ndarray], training: bool = True) -> [float, ndarray]:
+        """
+            Do forward propagation.
+        """
+        pass
+
+    @abstractmethod
+    def do_backward(self, x: [float, ndarray], grad: [float, ndarray]) -> [ndarray, float]:
+        """
+            Do backward propagation.
+        """
+        pass
+
+class AbsFlexibleUnaryNode(IUnaryNode, IFlexNode):
+
+    def __init__(self, op: [IOperator] = None):
+        self.__op_child: IOperator = op
+        self.__ref_input: [ndarray, float] = 0
+
+    @property
+    def op_child(self):
+        return self.__op_child
+
+    def set_input(self, op: IOperator):
+        self.__op_child = op
+
+    @abstractmethod
+    def do_forward(self, x: [float, ndarray], training: bool = True) -> [float, ndarray]:
+        """
+            Do forward propagation.
+        """
+        pass
+
+    @abstractmethod
+    def do_backward(self, x: [float, ndarray], grad: [float, ndarray]) -> [ndarray, float]:
+        """
+            Do backward propagation.
+        """
+        pass
+
+    def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
+        """
+            Forward propagate to get predictions.
+        :return: output_ref
+        """
+        if self.__op_child:
+            self.__ref_input = self.op_child.F(x, state)
+        else:
+            self.__ref_input = x
+        self.do_forward(self.__ref_input, state == ModelState.Training)
+
+    def G(self, grad: [float, ndarray] = None) -> None:
+        """
+            Backward propagate and update variables.
+        :param grad: gradients of backward_predict layers
+        """
+        grad_back = self.do_backward(self.__ref_input, grad)
+        if self.__op_child:
+            self.op_child.G(grad_back)
+
+    def clear_unused(self):
+        pass
+
+    def __getstate__(self):
+        self.__ref_input = 0
+        self.clear_unused()
+        return self.__dict__
+```
+
+   如果想要定义新的激活函数只需要实现\_\_init\_\_、output_shape（基本是固定写法，除非激活函数还能改变尺寸）、do_forward、do_backward、clear_unused（基本为固定写法，用于保存模型时丢弃激活函数参数，减少存储（存储空间大的可以不丢））。下面以最常见的relu为例。
+
+```python
+class ReLU(AbsActivation):
+
+    def __init__(self, op: IOperator = None):
+        super().__init__(op)
+        # 用于记录被丢弃的位置
+        self.__ref_input: [np.ndarray] = None
+    # 这个是从`AbsFlexibleUnaryNode`继承来的，可以拿到操作数的尺寸。
+    def output_shape(self) -> [list, tuple, None]:
+        return self.op_child.output_shape()
+
+    def do_forward(self, x, training=True):
+        self.__ref_input = x.copy()
+        self.__ref_input[self.__ref_input < 0] = 0
+        return self.__ref_input
+
+    def do_backward(self, x, grad):
+        return np.multiply(grad, self.__ref_input >= 0)
+
+    def clear_unused(self):
+        self.__ref_input = None
+```
+
+#### 1.2 实现类
+   现阶段以实现下列激活函数，调用方式如下。
+
+```python
+from nn.activation import ReLU, Sigmoid, Tanh, LeakReLU, Softmax, Linear, HTanh, SigmoidNoGrad
+```
+
+### 2. layer
+#### 2.1 接口定义
+​    layer接口`AbsLayer`继承了操作符：`IOperator`和懒加载初始化接口:`ILazyInitialization`，下面为`AbsLayer`接口。
+```python
+class AbsLayer(IOperator, ILazyInitialization):
+    """
+        Used for lazy initialization.
+    """
+
+    def __init__(self, inputs: IOperator = None, activation: IActivation = None):
+        """
+            Abstract layer class
+        :param inputs: input operator, IOperator instance
+        """
+        self.__op_input = inputs
+        self.__ref_input = None
+        self.__activation = activation if activation else Linear()
+        self.__initialized = False
+
+    @property
+    def input_ref(self):
+        return self.__ref_input
+
+    def set_input(self, inputs: IOperator):
+        self.__op_input = inputs
+
+    def __getstate__(self):
+        self.__ref_input = None
+        return self.__dict__
+
+    @property
+    @abstractmethod
+    def variables(self) -> Iterable[ITrainable]:
+        """
+            Trainable units within this scope.
+        :return: tuple
+        """
+        pass
+
+    @abstractmethod
+    def initialize_parameters(self, x) -> None:
+        """
+            Initialize parameters with given input_ref (x)
+        :param x: ndarray
+        """
+        pass
+
+    @abstractmethod
+    def do_forward_predict(self, x):
+        """
+            Do forward propagate with given input_ref.
+        :param x: ndarray
+        """
+        pass
+
+    @abstractmethod
+    def do_forward_train(self, x):
+        """
+            Do forward propagate with given input_ref.
+        :param x: ndarray
+        """
+        pass
+
+    @abstractmethod
+    def backward_adjust(self, grad) -> None:
+        """
+            Backward propagate with weights adjusting.
+        :param grad: ndarray
+        """
+        pass
+
+    @abstractmethod
+    def backward_propagate(self, grad):
+        """
+            Backward propagate.
+        :param grad: ndarray
+        :return: return the gradient from backward to input_ref (x)
+        """
+        pass
+
+    def reset(self):
+        self.__initialized = False
+
+    def __forward_prepare(self, x):
+        self.initialize_parameters(x)
+        self.__initialized = True
+
+    def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> Union[float, ndarray]:
+        """
+            Do forward propagate.
+        :param x: input of this layer.
+                This parameter works only when this layer is not part of the computation graph.
+        :param state: State to identify training process, works in some particular layer like
+                (Dropout).
+        :return: output of this layer.
+        """
+        self.__ref_input = self.__op_input.F(x, state) if self.__op_input else x
+        if not self.__initialized:
+            self.__forward_prepare(self.__ref_input)
+        if state != ModelState.Training:
+            return self.__activation.do_forward(self.do_forward_predict(self.__ref_input))
+        else:
+            return self.__activation.do_forward(self.do_forward_train(self.__ref_input))
+
+    def G(self, grad: [float, ndarray] = None) -> None:
+        """
+            Do backward and adjust parameters.
+        :param grad: Gradients from back-propagation, set to None when this layer doesnt needs
+                input gradients. e.g. loss functions.
+        :return: None, try get gradients from placeholder or variable.
+        """
+        # adjust variables with given gradients.
+        gradient = self.__activation.do_backward(None, grad)
+        # adjust previous layers.
+        if self.__op_input:
+            self.__op_input.G(self.backward_propagate(gradient))
+        # adjust current layer.
+        self.backward_adjust(gradient)
+```
+
+   如果想要定义新的层需要实现\_\_init\_\_、output_shape、variables、do_backward、initialize_parameters、do_forward_predict、backward_adjust、backward_propagate、\_\_str\_\_、\_\_repr\_\_。下面以常见的dense为例。
+
+```python
+class Dense(AbsLayer):
+
+    def __init__(self, units, activation: IActivation = None, inputs: IOperator = None):
+        super().__init__(inputs, activation)
+        self.__layer_units = units
+        self.__w = Weights()
+        self.__b = Weights()
+
+    def output_shape(self) -> [list, tuple, None]:
+        return [-1, self.__layer_units]
+
+    @property
+    def variables(self) -> tuple:
+        return self.__w, self.__b
+
+    def initialize_parameters(self, x) -> None:
+        high = np.sqrt(6 / (x.shape[1] + self.__layer_units))
+        low = -high
+        self.__w.set_value(np.random.uniform(low=low, high=high, size=[x.shape[1], self.__layer_units]))
+        self.__b.set_value(np.zeros(shape=[self.__layer_units]))
+	
+    # 进行前向传播，预测与训练在某些层（比如dropout）上表现不同
+    def do_forward_predict(self, x):
+        return np.dot(x, self.__w.get_value()) + self.__b.get_value()
+
+    def do_forward_train(self, x):
+        return self.do_forward_predict(x)
+        
+	# 根据后面层传来的梯度更新自己的权值
+    def backward_adjust(self, grad) -> None:
+        g_w = np.dot(self.input_ref.T, grad)
+        self.__w.adjust(g_w)
+        self.__b.adjust(grad)
+
+	# 继续进行反向传播
+    def backward_propagate(self, grad):
+        g_x = np.dot(grad, self.__w.get_value().T)
+        return g_x
+
+    def __str__(self):
+        return "<Dense Layer, Units: {}>".format(self.__layer_units)
+
+    def __repr__(self):
+        print(self.__str__())
+```
+
+#### 2.2 实现类
+   现阶段以实现下列layer，调用方式如下。
+
+```python
+from nn.layer import Conv2D, MaxPool, Reshape, Dense, Flatten, Dropout, BatchNorm
+```
+### 3. loss
+#### 3.1 接口定义
+​    loss接口`ILoss`实现了`IMetric`。
+```python
+class ILoss(IMetric):
+
+    @abstractmethod
+    def gradient(self, left:[float, ndarray], right:[float, ndarray]) -> (ndarray, ndarray):
+        """
+            Calculated gradient of L(x, y) for both x and y.
+        :param left: left input
+        :param right: right input
+        :return: tuple for left gradient and right gradient
+        """
+        pass
+
+    def description(self):
+        return "Loss"
+
+class IMetric(metaclass=ABCMeta):
+
+    @abstractmethod
+    def metric(self, y, label):
+        """
+            Calculate metrics value
+        :return: Scala: single metrics value
+        """
+        pass
+
+    @abstractmethod
+    def description(self):
+        """
+            Official name for this metric.
+        :return:
+        """
+        pass
+```
+
+   如果想要定义新的损失函数需要实现\_\_init\_\_、gradient、metric、_\_str\_\_、\_\_repr\_\_。下面以常见的MSELoss为例。
+
+```python
+class MSELoss(ILoss):
+
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        print(self.__str__())
+
+    def __str__(self):
+        return "<Mean Square Error Loss>"
+	
+    def gradient(self, arg1, arg2):
+        return 2.0 * (arg1 - arg2), -2.0 * (arg1 - arg2)
+	
+    # 相当于前向传播
+    def metric(self, arg1, arg2):
+        return np.mean(np.square(arg1 - arg2))
+```
+
+#### 3.2 实现类
+   现阶段以实现下列loss，调用方式如下。
+
+```python
+from nn.loss import MSELoss, Cross_Entropy_With_Softmax, Cross_Entropy, TanhLoss
+```
+
+
+### 4. metric
+#### 4.1 接口定义
+​    metric接口`IMetric`没有更上层的继承，里面也比较简单，一个自描述的方法，还有一个衡量指标功能。
+```python
+class IMetric(metaclass=ABCMeta):
+
+    @abstractmethod
+    def metric(self, y, label):
+        """
+            Calculate metrics value
+        :return: Scala: single metrics value
+        """
+        pass
+
+    @abstractmethod
+    def description(self):
+        """
+            Official name for this metric.
+        :return:
+        """
+        pass
+```
+
+   如果想要定义新的衡量指标需要实现\_\_init\_\_、metric、description（实际就实现一个metric就行）。下面以常见的`CategoricalAccuracy`为例。
+
+```python
+class CategoricalAccuracy(IMetric):
+    """
+        Categorical Accuracy metric.
+        Use one-hot vector as label.
+
+        Metric can be used in MLR, CNN.
+    """
+
+    def __init__(self):
+        pass
+
+    def metric(self, y, label):
+        y = (y == y.max(axis=1).reshape([-1, 1])).astype('int')
+        label = label.astype('int')
+        result = np.sum(y & label) / len(y)
+        return result
+
+    def description(self):
+        return 'accuracy'
+```
+
+#### 4.2 实现类
+   现阶段以实现下列metric，调用方式如下。
+
+```python
+from nn.metric import MeanSquareError, CategoricalAccuracy, BinaryAccuracy, RelativeError, MeanSquareError, RelativeMeanSquareError, EqualErrorRate, TruePositive, FalsePositive, TrueNegative, TrueNegative, FalseNegative, AreaUnderCurve
+```
+### 5. model
+#### 5.1 接口定义
+​    model接口`IModel`继承了操作符：`IOperator`和懒加载初始化接口:`ILazyInitialization`，下面为`AbsLayer`接口。
+```python
+class IModel(metaclass=ABCMeta):
+
+    @abstractmethod
+    def setup(self, loss: ILoss, *metrics: IMetric):
+        """
+             loss and metrics
+        :param loss: ILoss
+        :param metrics: IMetric
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def compile(self, optimizer: Union[IOpContainer, Type[IGradientDescent]]):
+        """
+            Compile model with given optimizer
+        :param optimizer: IOptimizer
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def fit(self, x: [ndarray, IDataFeeder], label: [ndarray] = None, epoch: int = 4, batch_size: int = 64,
+            printer: IPrinter = None) -> FitResultHelper:
+        """
+            Fit model with given samples.
+        :param x: ndarray or data feeder. requires a IDataFeeder instance or both x and label for ndarray instance.
+        :param epoch: int, Epoch of training
+        :param label: ndarray, Label of samples
+        :param batch_size: int, batch size
+        :param printer: printer type
+        :return: Fitting result, contains all history records.
+        """
+        pass
+
+    @abstractmethod
+    def fit_history(self) -> FitResultHelper:
+        """
+            Get all history records.
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def evaluate(self, x: ndarray, label: ndarray) -> Dict[str, float]:
+        """
+            Evaluate this model with given metric.
+        :param x: input samples
+        :param label: labels
+        :return: evaluation result
+        """
+        pass
+
+    @abstractmethod
+    def predict(self, x: ndarray) -> ndarray:
+        """
+            Predict give input
+        :param x: input samples
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def clear(self):
+        """
+            Clear and reset model parameters.
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def summary(self) -> str:
+        """
+            Return the summary string for this model.
+        :return: String
+        """
+        pass
+
+class Model(IModel):
+
+    def __init__(self, input_shape: [Tuple[int]] = None):
+        self.__placeholder_input = Placeholder(input_shape)
+        self.__ref_output: [IOperator] = None
+        self.__metrics: List[IMetric] = []
+        self.__loss: [ILoss] = None
+        self.__optimizer: [IOptimizer] = None
+        self.__fit_history: FitResultHelper = FitResultHelper()
+
+    @abstractmethod
+    def trainable_variables(self) -> Iterable[ITrainable]:
+        pass
+
+    @property
+    def is_setup(self):
+        return isinstance(self.__loss, ILoss) and isinstance(self.__ref_output, IOperator)
+
+    @property
+    def can_fit(self):
+        return self.is_setup and isinstance(self.__optimizer, IOpContainer)
+
+    @abstractmethod
+    def call(self, x: Placeholder) -> IOperator:
+        pass
+
+    @property
+    def loss(self):
+        return self.__loss
+
+    @property
+    def optimizer(self):
+        return self.__optimizer
+
+    @property
+    def metrics(self):
+        return self.__metrics
+
+    def setup(self, loss: ILoss, *metrics: IMetric):
+        if self.__ref_output is None:
+            self.__ref_output = self.call(self.__placeholder_input)
+        # validate model
+        if self.__placeholder_input.get_shape() is not None:
+            self.__placeholder_input.set_value()
+            # reset and validate
+            self.__ref_output.F()
+        # setup loss
+        self.__loss: ILoss = loss
+        # setup metric
+        self.__metrics = [self.__loss]
+        self.__metrics.extend(metrics)
+        # validate metrics and set title
+        title = ["Epochs", "Batches", "in", "Total"]
+        for metric in self.__metrics:
+            assert isinstance(metric, IMetric), "Something cannot be interpreted as metric were passed in."
+            title.append(metric.description())
+
+        # set title
+        self.__fit_history.set_fit_title(title)
+
+    def compile(self, optimizer: Union[IOpContainer, Type[IGradientDescent]]):
+        # set optimizer
+        if isinstance(optimizer, IOpContainer):
+            self.__optimizer = optimizer
+        else:
+            self.__optimizer = OpContainer(GDOptimizer, optimizer)
+        self.__optimizer.optimize(*self.trainable_variables())
+
+    def __evaluate_metrics(self, y, label) -> list:
+        return [metric.metric(y, label) for metric in self.__metrics]
+
+    def fit(self, x: [ndarray, IDataFeeder], label: [ndarray] = None, epoch: int = 4, batch_size: int = 64,
+            printer: IPrinter = None) -> FitResultHelper:
+        assert self.can_fit, "Model is not prepared for training."
+        assert isinstance(x, IDataFeeder) or label is not None, "Fitting process requires both x and label."
+
+        if isinstance(x, ndarray):
+            x = NumpyDataFeeder(x, label, batch_size=batch_size)
+
+        self.__optimizer.set_batch_size(x.batch_size)
+        title = [metric.description() for metric in self.__metrics]
+
+        for j in range(epoch):
+            epoch_rec = np.zeros(shape=[len(title)])
+            for part_x, part_y in x:
+                self.__placeholder_input.set_value(part_x)
+                # do forward propagation
+                y = self.__ref_output.F()
+                # get loss
+                grad_y, _ = self.__loss.gradient(y, part_y)
+                # do backward propagation from loss
+                self.__ref_output.G(grad_y)
+                # record fitting process
+                batch_rec = self.__evaluate_metrics(y, part_y)
+                fit_rec = [j + 1, x.position, x.length, self.__fit_history.count + 1]
+                fit_rec.extend(batch_rec)
+                epoch_rec += np.asarray(batch_rec) / x.length
+
+                str_formatted = self.__fit_history.append_row(fit_rec)
+                if printer:
+                    printer.log_message(str_formatted)
+                else:
+                    # get stdout
+                    sys.stdout.write('\r' + str_formatted)
+                    sys.stdout.flush()
+            print('')
+            str_formatted = ["\t{}:{:.2f}".format(name, val) for name, val in zip(title, epoch_rec)]
+            print("Epoch Summary:{}".format(','.join(str_formatted)))
+
+        return self.__fit_history
+
+    def fit_history(self) -> FitResultHelper:
+        return self.__fit_history
+
+    def evaluate(self, x: ndarray, label: ndarray) -> Dict[str, float]:
+        assert self.is_setup, "Model hasn't setup."
+        x = NumpyDataFeeder(x, label, batch_size=100)
+        # get stdout
+        import sys
+        # get title
+        title = [metric.description() for metric in self.__metrics]
+        eval_recs = []
+        for part_x, part_y in x:
+            # set placeholder
+            self.__placeholder_input.set_value(part_x)
+            # do forward propagation
+            y = self.__ref_output.F(state=ModelState.Evaluating)
+            # get evaluation
+            eval_rec = self.__evaluate_metrics(y, part_y)
+            eval_recs.append(eval_rec)
+            str_formatted = ["\t{}:{:.2f}".format(name, val) for name, val in zip(title, np.mean(eval_recs, axis=0))]
+            sys.stdout.write("\rEvaluating: {:.2f}%{}.".format(100 * x.position / x.length, ','.join(str_formatted)))
+            sys.stdout.flush()
+        # flush a new line
+        print('')
+        return dict(zip(title, np.mean(eval_recs, axis=0)))
+
+    def predict(self, x: ndarray):
+        self.__placeholder_input.set_value(x)
+        y = self.call(self.__placeholder_input).F(state=ModelState.Predicting)
+        return y
+
+    def clear(self):
+        for var in self.trainable_variables():
+            var.reset()
+
+    def summary(self) -> str:
+
+        summary = '\n------------\t\tModel Summary\t\t------------\n'
+
+        summary += "No structure description available for this model.\n"
+
+        if self.__loss and self.__optimizer and self.__metrics:
+            summary += '\t------------\t\tAppendix\t\t------------\n'
+            summary += '\tLoss:\n\t\t{}\n'.format(self.__loss)
+            summary += '\tOptimizer:\n\t\t{}\n'.format(self.__optimizer)
+            summary += '\tMetrics:\n'
+            for metric in self.__metrics:
+                summary += '\t\t<Metric: {}>\n'.format(metric.description())
+            summary += '\t------------\t\tAppendix\t\t------------\n'
+        summary += '\n------------\t\tModel Summary\t\t------------\n'
+
+        return summary
+
+    def save(self, file: str):
+        with open(file, 'wb') as fd:
+            pickle.dump(self, fd)
+
+    @staticmethod
+    def load(file: str) -> 'Model':
+        with open(file, 'rb') as fd:
+            model = pickle.load(fd)
+        if model.__optimizer:
+            model.compile(model.__optimizer)
+        return model
+```
+
+   如果想要定义新的模型可以参考上面的神经网络使用流程。
+
+### 6. gradient_descent
+
+#### 6.1 接口定义
+​     gradient_descent接口`IGradientDescent`用于接受梯度，然后如何加工这个梯度，之前提到过本项目将优化器抽象成两个层次，本部分负责加工梯度，在其之上的是optimizer用来使用梯度，决定是梯度下降还是梯度上升（别问为什么有梯度上升这么傻吊的想法）。所以如果想要重写优化器，只要重写本子模块就可以了。
+```python
+class IGradientDescent(metaclass=ABCMeta):
+
+    @abstractmethod
+    def delta(self, var):
+        """
+            Calculate only incremental value, do not update.
+        :param var: variable or placeholder
+        :return: delta w
+        """
+        pass
+```
+
+   如果想要定义新的优化器（额，我感觉可以叫优化器吧。。。）需要实现\_\_init\_\_、delta、\_\_str\_\_。下面以常见的`SGDOptimizer`为例。
+
+```python
+class SGDOptimizer(IGradientDescent):
+
+    def __init__(self, learn_rate=0.01):
+        self.__learn_rate = learn_rate
+
+    # SGD只要乘个学习率就返回去就行了，如果想整带有记录的就可以在init开变量存一存
+    def delta(self, gradient):
+        return gradient * self.__learn_rate
+
+    def __str__(self):
+        return "<SGD Optimizer>"
+```
+
+#### 6.2 实现类
+   现阶段以实现下列gradient_descent，调用方式如下。
+
+```python
+from nn.gradient_descent import ADAMOptimizer, SGDOptimizer, AdaGradOptimizer, AdaDeltaOptimizer, RMSPropOptimizer
+```
+
