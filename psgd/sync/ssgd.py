@@ -6,13 +6,13 @@ from typing import Dict, List, Set, Iterable, Union
 from numpy import ndarray
 
 from codec.essential import BlockWeight
-from codec.interfaces import Codec, netEncapsulation
+from codec.interfaces import Codec, netEncapsulation, T
 from psgd.sync.interface import IParallelSGD
 from psgd.sync.interface import ReadTimeOut, AsyncDetected, OutdatedUpdates
 from utils.constants import SSGD_Sync_Timeout_Limit_MSec
 
 
-def iterator_helper(objs: Union[Iterable[netEncapsulation], netEncapsulation, None]):
+def iterator_helper(objs: Union[Iterable[netEncapsulation[T]], netEncapsulation[T], None]) -> Iterable[netEncapsulation[T]]:
     """
         Retrieve data from generator
     :param objs:
@@ -84,7 +84,7 @@ class SynchronizedSGD(IParallelSGD):
             Accept object and put it in the queue if the data
             is way ahead of current working progress.
         """
-        sender_batch = content[SynchronizedSGD.STR_BATCH_NO]
+        sender_batch: int = content[SynchronizedSGD.STR_BATCH_NO]
         if sender_batch >= self.__current_batch:
             self.__receive_buffer[sender_batch] = self.__receive_buffer.get(sender_batch, Queue())
             self.__receive_buffer[sender_batch].put(content[SynchronizedSGD.DATA])
@@ -111,8 +111,8 @@ class SynchronizedSGD(IParallelSGD):
                     raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
 
             else:
-                pkg = self.__receive_buffer[self.__current_batch].get()
-                self.batch_updater.receive_blocks(pkg.content())
+                pkg: netEncapsulation[T] = self.__receive_buffer[self.__current_batch].get()
+                self.batch_updater.receive_blocks(pkg.content)
 
         if self.batch_updater.is_done():
             return self.batch_updater.get_result()

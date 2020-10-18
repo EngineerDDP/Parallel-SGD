@@ -39,19 +39,38 @@ class netEncapsulation(Generic[T]):
             self.__packages = content
         else:
             raise InvalidArguments("Package is not required type.", netEncapsulation)
+        self.__has_handled = False
+        self.__has_sent = False
+
+    @property
+    def has_handled(self):
+        return self.__has_handled
+
+    @property
+    def has_sent(self):
+        return self.__has_sent
 
     def __setstate__(self, state: T):
         self.__target = None
+        self.__has_handled = False
+        self.__has_sent = False
         self.__packages = state
 
     def __getstate__(self) -> T:
+        self.__has_sent = True
         return self.__packages
 
     def target(self) -> List[int]:
         return self.__target
 
+    @property
     def content(self) -> T:
+        self.__has_handled = True
         return self.__packages
+
+    @content.setter
+    def content(self, value: T):
+        self.__packages = value
 
 
 class Codec(metaclass=ABCMeta):

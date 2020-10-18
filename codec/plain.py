@@ -22,7 +22,7 @@ class Plain(Codec):
         """
         self.BlockWeights.clear()
 
-    def update_blocks(self, block_weight: BlockWeight) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[Tuple[int, ndarray]]:
         """
             Try collect all blocks.
         """
