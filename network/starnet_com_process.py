@@ -305,8 +305,8 @@ class CommunicationProcess(AbsCommunicationProcess):
             BufferWriter.request_close(fd)
             fd.close()
 
-        self.recv_que.close()
-        self.send_que.close()
+        # self.recv_que.close()
+        # self.send_que.close()
 
         self.__connections.reset()
         self.Alive = False

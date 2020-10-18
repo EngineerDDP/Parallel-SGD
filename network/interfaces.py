@@ -1,7 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from ctypes import c_bool
-from multiprocessing import Queue
+# from multiprocessing import Queue
+from queue import Queue
 from multiprocessing import Value, Process
+from threading import Thread
 from uuid import uuid4
 
 
@@ -68,10 +70,10 @@ class IWorker_Register(metaclass=ABCMeta):
         pass
 
 
-class AbsCommunicationProcess(Process, metaclass=ABCMeta):
+class AbsCommunicationProcess(Thread, metaclass=ABCMeta):
 
     def __init__(self, name: str):
-        Process.__init__(self, name=name, daemon=True)
+        super().__init__(name=name, daemon=True)
         self.__exit = Value(c_bool, 0)
         self.__alive = Value(c_bool, 0)
         self.__recv_que = Queue(maxsize=24)
