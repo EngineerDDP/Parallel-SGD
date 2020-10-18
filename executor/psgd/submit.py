@@ -56,9 +56,11 @@ class ParallelSGD:
                  gd_params: Tuple[object] = (),
                  ps_codec: Union[Dict[int, Type[Codec]], Type[Codec], None] = None,
                  network_bandwidth: int = 1,
-                 mission_title: str = "P-SGD"):
+                 mission_title: str = "P-SGD",
+                 ssgd_timeout_limit: int = 10000):
         """
             执行并行化。
+        :param ssgd_timeout_limit: Sync-SGD等待超时限制，单位为毫秒，数值为整型。
         :param network_bandwidth: 可用的网络带宽，用作计算预估传输时间，设置 pre_commit 超时计时器。
         :param mission_title:   任务标题，作为本次任务的log文件文件名。
         :param nodes:           由 network 模块提供的 NodeAssignment 接口，指示了当前并行化操作调用的节点数目。
@@ -136,7 +138,7 @@ class ParallelSGD:
         # PS Transfer 实例
         transfer_ps: [net_transfer] = net_transfer(var_ps_codec) if has_ps else None
         # 其他信息
-        misc: misc_package = misc_package(mission_title, epoch, None)
+        misc: misc_package = misc_package(mission_title, epoch, None, ssgd_timeout_limit)
 
         replies = {
             Req.Model: model,

@@ -199,13 +199,15 @@ class data_content(data_package):
 
 class misc_package(IReplyPackage):
 
-    def __init__(self, mission_title, epoch, target_acc):
+    def __init__(self, mission_title, epoch, target_acc, ssgd_timeout):
         self.mission_title = mission_title
         self.epoch = epoch
         self.target_acc = target_acc
+        self.ssgd_time_out_limit = ssgd_timeout
 
     def restore(self) -> None:
-        pass
+        from psgd.sync.ssgd import SynchronizedSGD
+        SynchronizedSGD.INT_READ_TIMEOUT_MSEC = self.ssgd_time_out_limit
 
     def __repr__(self):
         return "<Net package (Other stuff)>"

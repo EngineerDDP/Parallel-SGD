@@ -11,7 +11,7 @@ from utils.constants import Initialization_Server, Init_Job_Submission_Timeout_L
 from utils.log import Logger
 
 
-class PSGD_Worker:
+class Worker:
 
     def __init__(self):
         self.client_logger = Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
@@ -26,7 +26,8 @@ class PSGD_Worker:
                 self.client_logger.log_message('Worker started with network type \'FCNet\'.')
                 try:
                     with listener.acquire() as com:
-                        self.client_logger.log_message('Job submission received. Node assigned node_id({})'.format(com.Node_Id))
+                        self.client_logger.log_message(
+                            'Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
                         self.dispatch(com)
 
@@ -43,18 +44,17 @@ class PSGD_Worker:
             listener.close()
 
     @staticmethod
-    def __recv_pack(com:ICommunication_Controller, timeout:int=100):
+    def __recv_pack(com: ICommunication_Controller, timeout: int = 100):
         data = None
         id_from = None
-        time_clock = 0
+        time_out_end = time.time() + timeout
         # requests with timeout check
         while data is None:
             id_from, data = com.get_one(blocking=False)
-            time.sleep(0.001)
-            time_clock += 0.001
+            time.sleep(0.1)
             # Assertion, this node count as one
             assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
-            assert time_clock < timeout, "Maximum waiting time exceed."
+            assert time.time() < time_out_end, "Maximum waiting time exceed."
         return id_from, data
 
     def dispatch(self, com: ICommunication_Controller):
@@ -67,7 +67,7 @@ class PSGD_Worker:
         :return:
         """
         try:
-            _, req = PSGD_Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
+            _, req = Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
             if isinstance(req, SubmitJob):
                 self.client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
@@ -131,7 +131,7 @@ class PSGD_Worker:
         # Set job executor to ready state
         while not self.__job_executor.ready():
 
-            id_from, data = PSGD_Worker.__recv_pack(com, eta_waiting_time)
+            id_from, data = Worker.__recv_pack(com, eta_waiting_time)
 
             self.client_logger.log_message('Ack package, type: ({})'.format(data.__class__.__name__))
             # restoring data
@@ -156,12 +156,12 @@ class PSGD_Worker:
 
         self.client_logger.log_message('Synchronize timeline with cluster.')
 
-        PSGD_Worker.synchronize(com, ready_state, total_nodes, eta_waiting_time)
+        Worker.synchronize(com, ready_state, total_nodes, eta_waiting_time)
 
         return True
 
     @staticmethod
-    def synchronize(com:ICommunication_Controller, ready_state: set, total_nodes: set, timeout:int):
+    def synchronize(com: ICommunication_Controller, ready_state: set, total_nodes: set, timeout: int):
         """
             Synchronize timeline with cluster.
             Make sure all nodes exits this method with same time.

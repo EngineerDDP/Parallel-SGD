@@ -1,3 +1,4 @@
+import time
 from queue import Queue
 from time import sleep
 from typing import Dict, List, Set, Iterable, Union
@@ -98,15 +99,14 @@ class SynchronizedSGD(IParallelSGD):
         if self.__current_batch != batch_no:
             raise AsyncDetected()
 
-        time_out = 0
+        time_out_end = time.time() + SynchronizedSGD.INT_READ_TIMEOUT_MSEC / 1000
 
         while not self.batch_updater.is_done():
             # wait until more data is available
             if self.__receive_buffer.get(self.__current_batch) is None \
                     or self.__receive_buffer[self.__current_batch].empty():
-                sleep(0.001)
-                time_out += 1
-                if time_out >= SynchronizedSGD.INT_READ_TIMEOUT_MSEC:
+                sleep(0.1)
+                if time.time() >= time_out_end:
                     # read time out after INT_READ_TIMEOUT_MS million seconds
                     raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
 
