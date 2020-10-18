@@ -132,7 +132,7 @@ class ParallelSGD:
         # Transfer 实例
         transfer_worker: net_transfer = net_transfer(var_codec)
         # PS Codec 变量表字典
-        var_ps_codec = {var_id: (sync_type, ps_codec.get(var_id, default_ps_codec)) for var_id in var_ids}
+        var_ps_codec = {var_id: (AsynchronizedSGD, ps_codec.get(var_id, default_ps_codec)) for var_id in var_ids}
         # PS Transfer 实例
         transfer_ps: [net_transfer] = net_transfer(var_ps_codec) if has_ps else None
         # 其他信息
