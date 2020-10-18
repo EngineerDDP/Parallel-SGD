@@ -67,7 +67,11 @@ class Worker:
         :return:
         """
         try:
-            _, req = Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
+            id_from = com.Node_Id
+            req = None
+            while id_from != Initialization_Server:
+                id_from, req = Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
+
             if isinstance(req, SubmitJob):
                 self.client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
