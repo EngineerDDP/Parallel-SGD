@@ -6,4 +6,3 @@ from nn.layer.reshape import Reshape
 from nn.layer.maxpool import MaxPool
 from nn.layer.flatten import Flatten
 from nn.layer.batchnorm import BatchNorm
-
