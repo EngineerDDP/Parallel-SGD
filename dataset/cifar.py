@@ -11,7 +11,7 @@ from dataset.interfaces import AbsDataset
 class CIFAR(AbsDataset):
 
     def __init__(self, check_sum=None):
-        self.path = './dataset/cirfar_data/'
+        self.path = './dataset/cifar_data/'
         super().__init__(check_sum)
 
     def __repr__(self):
