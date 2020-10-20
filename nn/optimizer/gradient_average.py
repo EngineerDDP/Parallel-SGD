@@ -1,3 +1,5 @@
+import numpy as np
+
 from nn import IOptimizer, ITrainable
 from nn.data.block_data_feeder import IPSGDBlockMgr
 from nn.gradient_descent.interface import IGradientDescent
@@ -15,6 +17,7 @@ class GradientAveragingOptimizer(IOptimizer):
         self.__block_mgr = block_mgr
         self.__optimizer = gradient_descent
         self.__batch_size = 1
+        self.__initial_value: [np.ndarray] = None
 
     def optimize(self, variable: ITrainable):
         """
@@ -23,15 +26,19 @@ class GradientAveragingOptimizer(IOptimizer):
         :param variable: variable object.
         :return: None
         """
+        if self.__initial_value is None:
+            self.__initial_value = variable.get_value()
+
         grad = variable.get_gradient()
         if variable.get_shape() != grad.shape:
             grad = grad.sum(axis=0)
+
         self.__transfer.put_weights(self.__optimizer.delta(grad / self.__batch_size), variable.id,
                                     self.__block_mgr.batch_id,
                                     self.__block_mgr.current_block_id)
         if self.__block_mgr.end:
             new_parameter = self.__transfer.get_weights(variable.id, batch_no=self.__block_mgr.batch_id)
-            variable.set_value(new_parameter)
+            variable.set_value(new_parameter + self.__initial_value)
 
     def set_batch_size(self, batch_size: int):
         self.__batch_size = batch_size
