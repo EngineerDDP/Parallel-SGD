@@ -64,7 +64,7 @@ for i in range(TEST_ROUNDS):
             # check the package that will be sent to parameter server
             for target in package.target():
                 # send each package
-                replies = codecs[target].receive_blocks(package.content())
+                replies = codecs[target].receive_blocks(package.content)
                 if isinstance(replies, netEncapsulation):
                     replies = [replies]
                 if replies is None:
@@ -74,7 +74,7 @@ for i in range(TEST_ROUNDS):
                     # check the package header
                     for _id in reply.target():
                         # receive each reply
-                        codecs[_id].receive_blocks(reply.content())
+                        codecs[_id].receive_blocks(reply.content)
         # inc
         node_id += 1
     for slave in slave_codec:
