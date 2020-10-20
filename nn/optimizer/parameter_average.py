@@ -4,7 +4,7 @@ from nn.gradient_descent.interface import IGradientDescent
 from psgd.interface import ITransfer
 
 
-class PAOptimizer(IOptimizer):
+class ParameterAveragingOptimizer(IOptimizer):
     """
         P-SGD Optimizer
         Interact with transfer.
