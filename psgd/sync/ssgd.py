@@ -1,5 +1,5 @@
 import time
-from queue import Queue
+from queue import Queue, Empty
 from time import sleep
 from typing import Dict, List, Set, Iterable, Union
 
@@ -57,7 +57,7 @@ class SynchronizedSGD(IParallelSGD):
         """
         # remove outdated buffer
         for key in self.__receive_buffer.keys():
-            if key < self.__current_batch - 10:
+            if key < self.__current_batch:
                 del self.__receive_buffer[key]
 
     def update_weights(self, content: ndarray, batch_no: int, block_id: int) -> Iterable[dict]:
@@ -100,19 +100,18 @@ class SynchronizedSGD(IParallelSGD):
             raise AsyncDetected()
 
         time_out_end = time.time() + SynchronizedSGD.INT_READ_TIMEOUT_MSEC / 1000
+        self.__receive_buffer[self.__current_batch] = self.__receive_buffer.get(self.__current_batch, Queue())
 
         while not self.batch_updater.is_done():
             # wait until more data is available
-            if self.__receive_buffer.get(self.__current_batch) is None \
-                    or self.__receive_buffer[self.__current_batch].empty():
-                sleep(0.1)
-                if time.time() >= time_out_end:
-                    # read time out after INT_READ_TIMEOUT_MS million seconds
-                    raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
-
-            else:
-                pkg: netEncapsulation[T] = self.__receive_buffer[self.__current_batch].get()
+            try:
+                pkg: netEncapsulation[T] = self.__receive_buffer[self.__current_batch].get(timeout=1)
                 self.batch_updater.receive_blocks(pkg.content)
+            except Empty:
+                pass
 
-        if self.batch_updater.is_done():
-            return self.batch_updater.get_result()
+            if time.time() >= time_out_end:
+                # read time out after INT_READ_TIMEOUT_MS million seconds
+                raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
+
+        return self.batch_updater.get_result()
