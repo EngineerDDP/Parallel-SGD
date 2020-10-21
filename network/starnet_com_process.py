@@ -332,7 +332,7 @@ class CommunicationProcess(AbsCommunicationProcess):
                 else:
                     try:
                         target, data = self.send_que.get(timeout=1)  # cond: (len(a) == 0 and qsize == 0) or (qsize > 0)
-                     except queue.Empty:
+                    except queue.Empty:
                         continue
 
                 left = list()
