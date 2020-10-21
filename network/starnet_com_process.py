@@ -1,3 +1,4 @@
+import queue
 import select
 import socket
 from ctypes import c_int64
@@ -274,7 +275,10 @@ class CommunicationProcess(AbsCommunicationProcess):
                         # do decode
                         data = buf.get_content()
                         _from = data[Key.From]
-                        self.recv_que.put((_from, data[Key.Content]))
+                        try:
+                            self.recv_que.put_nowait((_from, data[Key.Content]))
+                        except queue.Full:
+                            pass
 
                 except OSError as error:
                     recv_buffer_list[fd].close()
@@ -328,7 +332,7 @@ class CommunicationProcess(AbsCommunicationProcess):
                 else:
                     try:
                         target, data = self.send_que.get(timeout=1)  # cond: (len(a) == 0 and qsize == 0) or (qsize > 0)
-                    except:
+                     except queue.Empty:
                         continue
 
                 left = list()
@@ -368,7 +372,7 @@ class CommunicationProcess(AbsCommunicationProcess):
                             self.send_que.put_nowait(tmp_item)
                             # cond: put valid and len(left) > 0
                             tmp_item = None
-                        except:
+                        except queue.Full:
                             pass
             # do send jobs
             if len(active_connections) > 0:
