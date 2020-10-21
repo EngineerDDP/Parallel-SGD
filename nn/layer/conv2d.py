@@ -87,7 +87,7 @@ class Conv2D(AbsLayer):
                               tf.transpose(tf_grad, perm=[1, 2, 0, 3]), self.__strides, "VALID")
         out = tf.transpose(tf_out, perm=[1, 2, 0, 3]).numpy()
         self.__kernel.adjust(out)
-        # self.__bias.adjust(grad)
+        self.__bias.adjust(grad)
 
     def backward_propagate(self, grad):
         tf_kernel = tf.constant(self.__kernel.get_value(), dtype=tf.float32)
