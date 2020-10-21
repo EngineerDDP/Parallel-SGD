@@ -84,8 +84,8 @@ def optimizer_parser(name) -> Type[IOptimizer]:
         from nn.optimizer import DoubleBufferingOptimizer
         return DoubleBufferingOptimizer
     elif name == 'parameter_averaging':
-        from nn.optimizer import PAOptimizer
-        return PAOptimizer
+        from nn.optimizer import ParameterAveragingOptimizer
+        return ParameterAveragingOptimizer
 
 
 def gradient_descent_parser(name) -> Type[IGradientDescent]:
