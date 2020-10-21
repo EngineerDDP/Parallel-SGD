@@ -10,23 +10,33 @@ from nn.value.trainable import Weights
 
 
 class Conv2D(AbsLayer):
+    """
+        Convolve 2D layer.
+        Base operator implemented by tensorflow.
+    """
 
     def __init__(self, kernel: int, kernel_size: Sequence[int], strides: Optional[Sequence[int]] = None,
-                 padding: Union[Sequence[int], str] = "VALID", activation: IActivation = None,
-                 inputs: IOperator = None):
+                 activation: IActivation = None, inputs: IOperator = None):
+        """
+            Currently support "VALID" convolve only.
+        :param kernel: Kernel count
+        :param kernel_size: kernel size, [height, width]
+        :param strides: strikes of convolve operation, [height, width]
+        :param activation: activation function, None indicates that this layer use linear activation.
+        :param inputs: input operator. IOperator instance.
+        """
         super().__init__(inputs, activation)
         if strides is None:
-            strides = [1, 1, 1, 1]
+            strides = [1, 1]
         self.__kernel = Weights()
         self.__bias = Weights()
         self.__count_kernel: int = kernel
         self.__size_kernel: Sequence[int] = kernel_size
         self.__shape_kernel: Sequence[int] = ()
         self.__strides: Sequence[int] = strides
-        self.__padding: Union[Sequence[int], str] = padding
-        self.__p_h = 0
-        self.__p_w = 0
+        self.__padding: Union[Sequence[int], str] = "VALID"
         self.__shape_output: [Sequence[int]] = None
+        self.__padding_kernel: [Sequence[int]] = None
         if inputs and inputs.output_shape():
             self.__get_shape(inputs.output_shape())
 
@@ -35,19 +45,18 @@ class Conv2D(AbsLayer):
         return self.__kernel, self.__bias
 
     def __get_shape(self, input_shape: Sequence[int]):
-        s_h = self.__strides[1]
-        s_w = self.__strides[2]
+        s_h = self.__strides[0]
+        s_w = self.__strides[1]
         k_h = self.__size_kernel[0]
         k_w = self.__size_kernel[1]
         x_h = input_shape[1]
         x_w = input_shape[2]
         out_h = 1 + (x_h - k_h) // s_h
         out_w = 1 + (x_w - k_w) // s_w
+        pad_h = ((x_h - 1) * s_h + out_h) // 2
+        pad_w = ((x_w - 1) * s_w + out_w) // 2
         self.__shape_output = (-1, out_h, out_w, self.__count_kernel)
-        if self.__padding == "SAME":
-            self.__p_h = (s_h * x_h - x_h - s_h + k_h) // 2
-            self.__p_w = (s_h * x_h - x_h - s_h + k_h) // 2
-            # self.__padding = [[0, 0], [0, 0], [p_h, p_h], [p_w, p_w]]
+        self.__padding_kernel = [pad_h, pad_w]
         self.__shape_kernel = (*self.__size_kernel, input_shape[3], self.__count_kernel)
 
     def initialize_parameters(self, x: np.ndarray) -> None:
@@ -73,15 +82,12 @@ class Conv2D(AbsLayer):
 
     def backward_adjust(self, grad) -> None:
         tf_input = tf.constant(self.input_ref, dtype=tf.float32)
-        if self.__padding == "SAME":
-            tf_input = tf.pad(tf_input, [[0, 0], [self.__p_h, self.__p_h], [self.__p_w, self.__p_w], [0, 0]])
         tf_grad = tf.constant(grad, dtype=tf.float32)
-        tf_out = tf.nn.conv2d(tf.transpose(tf_input[:, ::-1, ::-1, :], perm=[3, 1, 2, 0]),
+        tf_out = tf.nn.conv2d(tf.transpose(tf_input, perm=[3, 1, 2, 0]),
                               tf.transpose(tf_grad, perm=[1, 2, 0, 3]), self.__strides, "VALID")
         out = tf.transpose(tf_out, perm=[1, 2, 0, 3]).numpy()
-        out = out  # / ((self.__size_kernel[0] * self.__size_kernel[1]) * (grad.shape[1] * grad.shape[2]))
         self.__kernel.adjust(out)
-        self.__bias.adjust(grad)
+        # self.__bias.adjust(grad)
 
     def backward_propagate(self, grad):
         tf_kernel = tf.constant(self.__kernel.get_value(), dtype=tf.float32)
