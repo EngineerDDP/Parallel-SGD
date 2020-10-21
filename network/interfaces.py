@@ -76,8 +76,8 @@ class AbsCommunicationProcess(Thread, metaclass=ABCMeta):
         super().__init__(name=name, daemon=True)
         self.__exit = Value(c_bool, 0)
         self.__alive = Value(c_bool, 0)
-        self.__recv_que = Queue(maxsize=24)
-        self.__send_que = Queue(maxsize=24)
+        self.__recv_que = Queue(maxsize=128)
+        self.__send_que = Queue(maxsize=128)
 
     @property
     @abstractmethod
