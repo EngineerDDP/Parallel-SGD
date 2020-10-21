@@ -119,8 +119,6 @@ class Communication_Controller(ICommunication_Controller):
             Get one json like object from target nodes.
         :return: a tuple, which first element is the sender id, second element is the json object.
         """
-        if self.is_closed():
-            raise ConnectionAbortedError('Connection has already been closed.')
         if self.__com.recv_que.empty() and not blocking and not self.is_closed():
             return None, None
         while not self.is_closed():
@@ -130,21 +128,22 @@ class Communication_Controller(ICommunication_Controller):
                 continue
         raise ConnectionAbortedError('Connection is closed.')
 
-    def send_one(self, target, dic):
+    def send_one(self, target: [int, list], obj: object):
         """
             send one json like object to target nodes
-        :param target: target node list, must be a list : list[int]
-        :param dic: json like object : encode
+        :param target: target node list
+        :param obj: any object that supports serialization.
         :return: None
         """
-        if self.is_closed():
-            raise ConnectionAbortedError('Connection has already been closed.')
-        if isinstance(target, list):
-            self.__com.send_que.put((target, dic))
-        else:
-            self.__com.send_que.put(([target], dic))
-
-        return None
+        if not isinstance(target, list):
+            target = [target]
+        while not self.is_closed():
+            try:
+                self.__com.send_que.put((target, obj), timeout=1)
+                return None
+            except queue.Full:
+                continue
+        raise ConnectionAbortedError('Connection has already been closed.')
 
     @property
     def available_clients(self):
@@ -182,9 +181,10 @@ def get_repr():
         if addr not in {"127.0.0.1", "127.0.1.1"}:
             return addr
 
-
-if __name__ == "__main__":
-    from threading import Lock
-
-    a = Lock()
-    a.acquire()
+# ----------------------------------------
+# Fix 2020年10月21日
+# send_one 方法中无有效的阻断机制
+# 现添加阻断机制和循环判断，当send_que 满时能够正确检查 connection 的状态并给出错误信息。
+# BUG表现，大量发送的时候，send_que 很快灌满，且阻塞，无法判断连接是否失效，阻塞无法退出，
+# 且不在托管状态无法使用断点调试。
+# ----------------------------------------
