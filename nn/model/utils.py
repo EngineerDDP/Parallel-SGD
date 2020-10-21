@@ -1,3 +1,6 @@
+import time
+
+
 class FitResultHelper:
 
     def __init__(self):
@@ -10,7 +13,7 @@ class FitResultHelper:
 
     @property
     def title(self):
-        return self.__title
+        return ["Time"] + self.__title
 
     @property
     def count(self):
@@ -22,6 +25,7 @@ class FitResultHelper:
     def append_row(self, row: list):
         eval_str = ', '.join(["{}:{:.4f}".format(key, val) if isinstance(val, float) else "{}:{}".format(key, val)
                               for key, val in zip(self.__title, row)])
+        row.insert(0, time.time())
         self.__history_result.append(row)
         return eval_str
 
