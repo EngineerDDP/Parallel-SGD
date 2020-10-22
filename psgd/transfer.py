@@ -120,5 +120,7 @@ class NTransfer(ITransfer):
                     for line in exc_tb:
                         self.__log.log_message(line)
                     # print DEBUG message
+        except Exception as e:
+            self.__log.log_error("Transfer thread reported an error:{}".format(e))
         except ConnectionAbortedError as err:
             self.__log.log_message('Transfer thread exited safely.')
