@@ -39,6 +39,9 @@ class OpContainer(IOpContainer):
     def __str__(self):
         return "<Optimizer Container, (OP:{}), (GD:{})>".format(self.__op_type.__name__, self.__gd_type.__name__)
 
+    def __repr__(self):
+        return "<Optimizer Container, (OP:{}), (GD:{})>".format(self.__op_type.__name__, self.__gd_type.__name__)
+
 
 # for general usage
 from nn.optimizer.gradient_descent import GDOptimizer
