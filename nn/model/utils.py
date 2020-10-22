@@ -36,3 +36,4 @@ class FitResultHelper:
     def __setstate__(self, state):
         self.__title = state
         self.__history_result = []
+        self.__start_time = time.time()
