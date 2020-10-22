@@ -37,10 +37,10 @@ class OpContainer(IOpContainer):
         self.__init__(*state)
 
     def __str__(self):
-        return "<Optimizer Container, (OP:{}), (GD:{})>".format(self.__op_type.__name__, self.__gd_type.__name__)
+        return "<Optimizer Container, (OP:{}), (GD:{})>".format(self.__op_type.__name__, self.__gd_type)
 
     def __repr__(self):
-        return "<Optimizer Container, (OP:{}), (GD:{})>".format(self.__op_type.__name__, self.__gd_type.__name__)
+        return "<Optimizer Container, (OP:{}), (GD:{})>".format(self.__op_type.__name__, self.__gd_type)
 
 
 # for general usage
