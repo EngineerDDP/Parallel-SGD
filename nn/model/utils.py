@@ -6,6 +6,7 @@ class FitResultHelper:
     def __init__(self):
         self.__history_result = []
         self.__title = []
+        self.__start_time = time.time()
 
     @property
     def history(self):
@@ -25,7 +26,7 @@ class FitResultHelper:
     def append_row(self, row: list):
         eval_str = ', '.join(["{}:{:.4f}".format(key, val) if isinstance(val, float) else "{}:{}".format(key, val)
                               for key, val in zip(self.__title, row)])
-        row.insert(0, time.time())
+        row.insert(0, float(time.time() - self.__start_time))
         self.__history_result.append(row)
         return eval_str
 
