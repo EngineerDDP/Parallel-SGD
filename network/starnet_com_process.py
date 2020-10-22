@@ -262,8 +262,10 @@ class CommunicationProcess(AbsCommunicationProcess):
             if len(active_connections) == 0:
                 self.Exit = True
                 break
-
-            readable, _, excepts = select.select(active_connections, [], active_connections, 1)
+            try:
+                readable, _, excepts = select.select(active_connections, [], active_connections, 1)
+            except ValueError:
+                continue
             # read
             for fd in readable:
                 try:
@@ -376,7 +378,10 @@ class CommunicationProcess(AbsCommunicationProcess):
                             pass
             # do send jobs
             if len(active_connections) > 0:
-                _, writable, _ = select.select([], active_connections, [], 1)
+                try:
+                    _, writable, excepts = select.select([], active_connections, [], 1)
+                except ValueError:
+                    continue
 
                 for fd in writable:
                     try:
@@ -387,6 +392,9 @@ class CommunicationProcess(AbsCommunicationProcess):
                     # ignore exceptions and left it for main thread to handle.
                     except OSError:
                         active_connections.remove(fd)
+
+                for fd in excepts:
+                    active_connections.remove(fd)
 
         for buf in writing_list.values():
             buf.close()
@@ -454,3 +462,12 @@ class Promoter(IPromoter):
             return com
         else:
             raise OSError('Some of workers didnt respond properly.')
+
+# ----------------------------------------
+# Fix 2020年10月22日
+# 为主发送线程添加异常捕捉机制
+# __run_deque 方法中无有效的异常处理机制
+# 为 __run_deque 方法添加两个异常处理机制：
+# 1. 当正在发送的发送列表失效，使用select做exception捕捉
+# 2. 当正在发送的发送列表fd失效，使用try catch 捕捉 select 异常
+# ----------------------------------------
