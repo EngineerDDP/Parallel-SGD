@@ -1,3 +1,7 @@
+from typing import Dict
+
+import numpy as np
+
 from codec import GlobalSettings
 from codec.interfaces import Codec
 from codec.essential import BlockWeight
@@ -9,13 +13,13 @@ class MyComCtrl(Codec):
     def __init__(self, node_id):
         super().__init__(node_id)
         # 保存并记录当前批次已经收到了多少份结果
-        self.__global_weights = 0
-        self.__current_recv = 0
+        self.__global_weights: np.ndarray = np.asarray(0.0)
+        self.__current_recv: int = 0
 
     def dispose(self):
         print('my communication controller is disposed.')
 
-    def update_blocks(self, block_weight: BlockWeight):
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[Dict[str, np.ndarray]]:
         print('Weights delta received.')
         print('from block: {}'.format(block_weight.block_id))
         print('It has a content with shape: {}'.format(block_weight.content.shape))
@@ -32,9 +36,9 @@ class MyComCtrl(Codec):
         # 检查是否接受完所有数据
         self.__do_grad_average()
         # 发送梯度
-        yield netEncapsulation(send_to, pkg)
+        return netEncapsulation(send_to, pkg)
 
-    def receive_blocks(self, json_dict: dict):
+    def receive_blocks(self, json_dict: Dict[str, np.ndarray]) -> None:
         print('I have received an package.')
         print('It has a content with shape: {}'.format(json_dict['data'].shape))
         # 我们使用上述定义的 'data' 字符串获取我们更新的梯度内容
@@ -50,5 +54,5 @@ class MyComCtrl(Codec):
             # 执行梯度平均
             self.set_result(self.__global_weights / how_much_nodes)
             # 重设梯度值，等待下一批次的循环
-            self.__global_weights = 0
+            self.__global_weights = np.asarray(0.0)
             self.__current_recv = 0
