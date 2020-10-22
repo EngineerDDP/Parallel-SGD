@@ -173,4 +173,4 @@ class Codec(metaclass=ABCMeta):
 
         with self.__rw_lock:
             tmp = self.__updated_weight_buffer
-            self.__updated_weight_buffer = operation(tmp if tmp else np.asarray(0.0), content)
+            self.__updated_weight_buffer = operation(tmp if tmp is not None else np.asarray(0.0), content)
