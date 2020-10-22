@@ -70,7 +70,7 @@ for i in range(TEST_ROUNDS):
                     assert tgt in range(SLAVE_CNT)
                     recv = slave_codec[tgt]
                     # recv pkg
-                    recv.receive_blocks(package.content())
+                    recv.receive_blocks(package.content)
                     print("INFO: ----------- Node:{} Transmitting to {} successful -----------".format(node_id, tgt))
 
         node_id += 1
@@ -98,7 +98,7 @@ for i in range(TEST_ROUNDS):
                         assert tgt in range(SLAVE_CNT)
                         recv = slave_codec[tgt]
                         # recv pkg
-                        recv.receive_blocks(package.content())
+                        recv.receive_blocks(package.content)
                         print("INFO: ----------- Node:{} Backup to {} successful -----------".format(node_id, tgt))
                 time_out = 0
                 retried = True

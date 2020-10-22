@@ -1,8 +1,10 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Iterable, Union, Generic, TypeVar
-from multiprocessing import Value
+from typing import List, Iterable, Union, Generic, TypeVar, Callable
 
+import numpy as np
 from numpy import ndarray
+
+from threading import Lock
 
 from codec.essential import BlockWeight
 
@@ -81,8 +83,8 @@ class Codec(metaclass=ABCMeta):
         :param node_id: id of current worker.
         """
         self.__node_id = node_id
-        self.__updated_weight_buffer = None
-        self.__update_complete = False
+        self.__updated_weight_buffer: [ndarray] = None
+        self.__rw_lock = Lock()
 
     @property
     def node_id(self):
@@ -142,27 +144,33 @@ class Codec(metaclass=ABCMeta):
             Check if all the coding and decoding process is done.
         :return: True if done, False if not done.
         """
-        return self.__update_complete
+        return self.__updated_weight_buffer is not None
 
-    def get_result(self) -> Union[float, ndarray]:
+    def get_result(self) -> ndarray:
         """
             Clear current weights buffer and return.
         :return: weights buffer: ndarray
         """
         assert self.__updated_weight_buffer is not None, 'No weights buffer available.'
-        tmp = self.__updated_weight_buffer
-        self.__updated_weight_buffer = None
-        self.__update_complete = False
+
+        with self.__rw_lock:
+            tmp = self.__updated_weight_buffer
+            self.__updated_weight_buffer = None
 
         return tmp
 
-    def set_result(self, content: Union[float, ndarray]) -> None:
+    def set_result(self, content: ndarray, operation: Callable[[ndarray, ndarray], ndarray] = None):
         """
-            Add current delta to old ones
+            Do some operations on current data.
+        :param content: content used to modify
+        :param operation: modify operation. Callable object, obtain the old result and content,
+                          and returns a newer object.
+                          def func(old_result: ndarray, new_content: ndarray) -> ndarray: # returns new result
+        :return: None
         """
-        if self.__updated_weight_buffer is None:
-            self.__updated_weight_buffer = content
-        else:
-            self.__updated_weight_buffer += content
+        if operation is None:
+            def operation(x: ndarray, y: ndarray) -> ndarray: return x + y
 
-        self.__update_complete = True
+        with self.__rw_lock:
+            tmp = self.__updated_weight_buffer
+            self.__updated_weight_buffer = operation(tmp if tmp else np.asarray(0.0), content)

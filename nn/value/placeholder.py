@@ -6,7 +6,7 @@ from nn.value.abstract import AbsValue
 from nn.operation.abstract import OperandHelper
 
 
-class Placeholder(OperandHelper, AbsValue):
+class Placeholder(OperandHelper):
 
     def __init__(self, shape=None):
         super().__init__()
@@ -68,4 +68,9 @@ class Placeholder(OperandHelper, AbsValue):
         return self.__input_shape
 
     def __setstate__(self, state):
-        self.__init__(state)
+        self.__hold = None
+        self.__gradient_attachment = None
+        self.__input_shape = state
+
+    def __repr__(self):
+        return "<Placeholder shape={}>".format(self.__input_shape)

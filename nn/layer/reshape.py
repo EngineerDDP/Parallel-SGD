@@ -39,4 +39,4 @@ class Reshape(AbsLayer):
         return "<ReShape Layer, shape: {}>".format(self.__shape_out)
 
     def __repr__(self):
-        print(self.__str__())
+        return "<ReShape Layer, shape: {}>".format(self.__shape_out)

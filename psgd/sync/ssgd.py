@@ -1,14 +1,13 @@
 import time
-from queue import Queue
-from time import sleep
-from typing import Dict, List, Set, Iterable, Union
+from queue import Queue, Empty
+from typing import List, Set, Iterable, Union
 
 from numpy import ndarray
 
 from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation, T
 from psgd.sync.interface import IParallelSGD
-from psgd.sync.interface import ReadTimeOut, AsyncDetected, OutdatedUpdates
+from psgd.sync.interface import ReadTimeOut, AsyncDetected
 from utils.constants import SSGD_Sync_Timeout_Limit_MSec
 
 
@@ -45,7 +44,7 @@ class SynchronizedSGD(IParallelSGD):
         self.__current_batch: int = 0
         self.__company_list: List[Set[int]] = []
         self.__adversary_list: List[Set[int]] = []
-        self.__receive_buffer: Dict[int, Queue] = {}
+        self.__receive_buffer: Queue[netEncapsulation[T]] = Queue(maxsize=256)
 
     @property
     def batch_updater(self):
@@ -56,9 +55,8 @@ class SynchronizedSGD(IParallelSGD):
             release out-dated memory for local batch buffer and codec buffer.
         """
         # remove outdated buffer
-        for key in self.__receive_buffer.keys():
-            if key < self.__current_batch - 10:
-                del self.__receive_buffer[key]
+        while not self.__receive_buffer.empty():
+            self.__receive_buffer.get()
 
     def update_weights(self, content: ndarray, batch_no: int, block_id: int) -> Iterable[dict]:
         """
@@ -85,11 +83,10 @@ class SynchronizedSGD(IParallelSGD):
             is way ahead of current working progress.
         """
         sender_batch: int = content[SynchronizedSGD.STR_BATCH_NO]
-        if sender_batch >= self.__current_batch:
-            self.__receive_buffer[sender_batch] = self.__receive_buffer.get(sender_batch, Queue())
-            self.__receive_buffer[sender_batch].put(content[SynchronizedSGD.DATA])
+        if self.__current_batch <= sender_batch <= self.__current_batch + 1:
+            self.__receive_buffer.put(content[SynchronizedSGD.DATA])
         else:
-            raise OutdatedUpdates()
+            raise AsyncDetected()
 
     def require_weights(self, batch_no: int) -> ndarray:
         """
@@ -103,16 +100,15 @@ class SynchronizedSGD(IParallelSGD):
 
         while not self.batch_updater.is_done():
             # wait until more data is available
-            if self.__receive_buffer.get(self.__current_batch) is None \
-                    or self.__receive_buffer[self.__current_batch].empty():
-                sleep(0.1)
-                if time.time() >= time_out_end:
-                    # read time out after INT_READ_TIMEOUT_MS million seconds
-                    raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
-
-            else:
-                pkg: netEncapsulation[T] = self.__receive_buffer[self.__current_batch].get()
+            try:
+                pkg: netEncapsulation[T] = self.__receive_buffer.get(timeout=1)
                 self.batch_updater.receive_blocks(pkg.content)
+            except Empty:
+                pass
 
-        if self.batch_updater.is_done():
-            return self.batch_updater.get_result()
+            if time.time() >= time_out_end:
+                # read time out after INT_READ_TIMEOUT_MS million seconds
+                raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
+
+        self.release_memory()
+        return self.batch_updater.get_result()

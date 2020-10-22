@@ -54,7 +54,7 @@ class MaxPool(AbsLayer):
         return "<MaxPool Layer, filter_size: {}>".format(self.__size)
 
     def __repr__(self):
-        print(self.__str__())
+        return "<MaxPool Layer, filter_size: {}>".format(self.__size)
 
 
 if __name__ == '__main__':

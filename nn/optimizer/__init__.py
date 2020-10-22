@@ -45,5 +45,5 @@ from nn.optimizer.gradient_descent import GDOptimizer
 from nn.optimizer.gradient_ascent import GAOptimizer
 from nn.optimizer.parallel_sgd import PSGDOptimizer
 from nn.optimizer.double_buffering import DoubleBufferingOptimizer
-from nn.optimizer.parameter_average import PAOptimizer
+from nn.optimizer.parameter_average import ParameterAveragingOptimizer
 from nn.optimizer.gradient_average import GradientAveragingOptimizer

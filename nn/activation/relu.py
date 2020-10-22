@@ -27,7 +27,7 @@ class ReLU(AbsActivation):
 
 class LeakReLU(AbsActivation):
 
-    def __init__(self, leak_coefficient: int = 1e-2, op: IOperator = None):
+    def __init__(self, leak_coefficient: float = 1e-2, op: IOperator = None):
         super().__init__(op)
         self.__leak_coef: float = leak_coefficient
         self.__mask: np.ndarray = np.ones(1)

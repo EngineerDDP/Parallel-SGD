@@ -38,10 +38,10 @@ class Flatten(AbsLayer):
         return self.__shape_out
 
     def __str__(self):
-        return "<Flatten Layer, shape: {}>".format(self.__shape_out)
+        return "<Flatten Layer>"
 
     def __repr__(self):
-        print(self.__str__())
+        return "<Flatten Layer>"
 
 
 if __name__ == '__main__':
