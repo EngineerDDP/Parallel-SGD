@@ -24,7 +24,9 @@ class ADAMOptimizer(IGradientDescent):
     def delta(self, gradient):
         self.__t = self.__t + 1
         self.__mt = self.__beta1 * self.__mt + (1 - self.__beta1) * gradient
-        self.__vt = self.__beta2 * self.__vt + (1 - self.__beta2) * np.square(gradient)
+        _vt = self.__beta2 * self.__vt + (1 - self.__beta2) * np.square(gradient)
+        if np.sum(np.abs(_vt)) > np.sum(np.abs(self.__vt)):
+            self.__vt = _vt
         _mt = self.__mt / (1 - self.__beta1 ** self.__t)
         _vt = self.__vt / (1 - self.__beta2 ** self.__t)
         return self.__alpha * _mt / (np.sqrt(_vt) + self.__epsilon)
