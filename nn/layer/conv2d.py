@@ -103,4 +103,4 @@ class Conv2D(AbsLayer):
         return "<2D Convolution Layer, kernel size: {}, count: {}>".format(self.__size_kernel, self.__count_kernel)
 
     def __repr__(self):
-        return self.__str__()
+        return "<2D Convolution Layer, kernel size: {}, count: {}>".format(self.__size_kernel, self.__count_kernel)

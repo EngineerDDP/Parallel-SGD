@@ -46,4 +46,4 @@ class Dense(AbsLayer):
         return "<Dense Layer, Units: {}>".format(self.__layer_units)
 
     def __repr__(self):
-        print(self.__str__())
+        return "<Dense Layer, Units: {}>".format(self.__layer_units)

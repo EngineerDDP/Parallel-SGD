@@ -44,4 +44,4 @@ class BatchNorm(AbsLayer):
         return "<BatchNorm Layer>"
 
     def __repr__(self):
-        print(self.__str__())
+        return "<BatchNorm Layer>"
