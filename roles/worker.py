@@ -127,7 +127,7 @@ class Worker:
         replies = []
         # Ask for replies
         for req in requests:
-            com.send_one(Initialization_Server, req)
+            com.send_one(Initialization_Server, RequestPackage(req))
 
         req_format = "\tRequests List:\n\t\t--> {}".format("\n\t\t--> ".join([str(req) for req in requests]))
         self.client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
@@ -146,7 +146,7 @@ class Worker:
                 if len(replies) == len(requests):
                     requests = self.__job_executor.satisfy(replies)
                     for req in requests:
-                        com.send_one(Initialization_Server, req)
+                        com.send_one(Initialization_Server, RequestPackage(req))
                     self.client_logger.log_message('Request data: ({}).'.format(requests))
                     self.client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
                     replies.clear()

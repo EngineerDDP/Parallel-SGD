@@ -1,9 +1,3 @@
-import numpy as np
-
-from typing import Type, Tuple, Optional
-
-from codec.interfaces import Codec
-from codec.plain import Plain
 from codec.dummy import DummyCodec
 from executor.psgd.net_package import *
 from executor.psgd.parameter_server import PSGDPSExecutor
@@ -161,5 +155,5 @@ class ParallelSGD:
                 coordinator.submit_single(PSGDPSExecutor, Parameter_Server, self.__data.estimate_size())
             coordinator.submit_group(PSGDWorkerExecutor, assignment.nodes, self.__data.estimate_size())
 
-            coordinator.resources_dispatch(lambda x: replies[x.content()])
+            coordinator.resources_dispatch(lambda _id, x: replies[x])
             coordinator.join()

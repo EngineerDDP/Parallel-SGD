@@ -28,7 +28,7 @@ class Coordinator:
     def allocated_nodes(self):
         return self.__global_allocated | self.__group_allocated
 
-    def resources_dispatch(self, dispatch_map: Callable[[IRequestPackage], IReplyPackage]):
+    def resources_dispatch(self, dispatch_map: Callable[[int, object], IReplyPackage]):
         """
             Reply to worker's requirements, prepare for the job
         :param dispatch_map: Callable object, receive a IRequestPackage instance and returns IReplyPackage instance
@@ -45,7 +45,7 @@ class Coordinator:
                 reply = None
 
                 if isinstance(data, IRequestPackage):
-                    reply = dispatch_map(data)
+                    reply = dispatch_map(id_from, data.content())
 
                     self.__log.log_message(
                         'Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))

@@ -2,7 +2,8 @@ from time import sleep
 
 from codec import GlobalSettings
 from executor.abstract import AbsExecutor
-from executor.psgd.net_package import Requests, Req, net_setting
+from executor.psgd.net_package import Req, net_setting
+from models import RequestPackage
 from network import ICommunication_Controller
 from psgd.interface import ITransfer
 from utils.log import Logger
@@ -17,8 +18,8 @@ class PSGDPSExecutor(AbsExecutor):
         self.__done: [bool] = False
         self.__transfer: [ITransfer] = None
 
-    def requests(self) -> list:
-        return [Requests(Req.Setting), Requests(Req.Transfer_PS)]
+    def requests(self):
+        return [Req.Setting, Req.Transfer_PS]
 
     def satisfy(self, reply:list) -> list:
         # check list
