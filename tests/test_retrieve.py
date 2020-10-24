@@ -1,4 +1,4 @@
-import executor.psgd as PSGD
+import executor.psgd as parallel
 import roles
 import network
 

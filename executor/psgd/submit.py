@@ -147,7 +147,7 @@ class ParallelSGD:
 
         req = Request()
         self.__log.log_message("Start job.")
-        self.__log.log_message(nodes)
+        self.__log.log_message("Workers: {}".format(nodes))
 
         with req.request(nodes) as com:
             coordinator = Coordinator(com, estimate_bandwidth=network_bandwidth, logger=self.__log)

@@ -50,6 +50,7 @@ class ReadyType:
 class DoneType(IReplyPackage):
 
     def __init__(self, node_id, posted_files):
+        self.__node_id = node_id
         self.__header = "./Node-{}-Retrieve/".format(node_id)
         self.__contents = [BinaryFilePackage(f) for f in posted_files]
 
@@ -62,6 +63,12 @@ class DoneType(IReplyPackage):
     def file_list(self):
         for bf in self.__contents:
             yield bf.filename
+
+    def __str__(self):
+        return "<Node({}) Reply: All Task is Completed.>".format(self.__node_id)
+
+    def __repr__(self):
+        return "<DoneType from Node({})>".format(self.__node_id)
 
 
 class BinaryFilePackage(IReplyPackage):

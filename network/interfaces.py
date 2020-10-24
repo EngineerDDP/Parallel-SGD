@@ -31,9 +31,12 @@ class NodeAssignment:
         return len(self.__unique)
 
     def __repr__(self):
-        str = "({}) nodes has been assigned:\n".format(len(self))
-        str += ',\n'.join(["ID:{}, Address:{}".format(id, addr) for id, addr in self])
+        str = "({}) nodes has been assigned:\n\t\t-->".format(len(self))
+        str += '\n\t\t-->'.join(["ID:{:>4d}\t\tAddress:  {}".format(id, addr) for id, addr in self])
         return str
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class IWorker_Register(metaclass=ABCMeta):
