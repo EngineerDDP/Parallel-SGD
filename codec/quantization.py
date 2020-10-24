@@ -13,7 +13,7 @@ def q1(arr: np.ndarray):
 
 def q2(arr: np.ndarray):
     std = np.std(arr)
-    weights = (arr - np.mean(arr)) / std
+    weights = arr / std
     # be aware, this will change the value of referenced object.
     weights[weights > std] = 1
     weights[weights < -std] = -1
