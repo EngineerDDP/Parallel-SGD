@@ -1,68 +1,64 @@
-import time
-
+import nn
 from dataset import CIFAR, MNIST
 from dataset.transforms import ImageCls, Shuffle
-from nn.activation import Softmax, LeakReLU
-from nn.gradient_descent import ADAMOptimizer
-from nn.layer import Conv2D, MaxPool, Reshape, Dense, Flatten
+from nn.layer import Conv2D, Reshape, Dense, Flatten
 from nn.loss import Cross_Entropy_With_Softmax
-from nn.metric import CategoricalAccuracy
+from nn.metric import CategoricalAccuracy, np
 from nn.model import SequentialModel
-from nn.optimizer import OpContainer, GDOptimizer
-
-import nn
-import numpy as np
+import tensorflow as tf
 
 if __name__ == '__main__':
-    import os
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
-    # -------------------------------------------------------------------------
-    # 逐层测试收敛，使其输入与输出均为1
+    # r_x = np.random.uniform(low=-1, high=1, size=[10, 5, 5, 10])
+    # r_w = np.random.uniform(low=-1, high=1, size=[3, 3, 10, 10])
+    # # r_x = np.arange(0, 2.5, 0.1).reshape([1,5,5,1])
+    # # r_w = np.arange(0, 0.9, 0.1).reshape([3,3,1,1])
     #
-    # x = np.random.normal(loc=1, scale=0, size=(1, 32, 32, 1))
+    # x = tf.Variable(tf.constant(r_x))
+    # w = tf.Variable(tf.constant(r_w))
+    # # y = tf.ones(shape=[])
+    # with tf.GradientTape() as tape:
+    #     y_ = tf.nn.conv2d(x, w, strides=1, padding="VALID")
+    #     label = tf.reduce_sum(y_)
     #
-    # inputs = nn.value.Placeholder()
-    # inputs.set_value(x)
-    # conv = nn.layer.Conv2DLayer(inputs=inputs, kernel=1, kernel_size=[5, 5], activation=LeakReLU())
-    # conv = nn.layer.Conv2DLayer(inputs=conv, kernel=1, kernel_size=[5, 5], activation=LeakReLU())
-    # Optimize(nn.optimizer.GDOptimizer, nn.gradient_descent.SGDOptimizer, gd_params=(1., )).optimize(*conv.variables)
-    # while True:
-    #     y_p = conv.F()
-    #     conv.G(y_p - 1)
-    #     print(np.square(y_p - 1).sum())
-    #     # print(conv.variables[0].get_value().sum())
-    #     time.sleep(0.5)
+    # y_g = tf.ones_like(y_)
+    # grad = tape.gradient(label, w)
+    #
+    # tf_out = tf.nn.conv2d(tf.transpose(x[:, :, :, :], perm=[3, 1, 2, 0]),
+    #                       tf.transpose(y_g, perm=[1, 2, 0, 3]), 1, "VALID")
+    # out = tf.transpose(tf_out, perm=[1, 2, 0, 3])
+    #
+    # err = np.sum(np.abs(grad.numpy() - out.numpy()))
+    # print(grad[:, :, 0, 0])
+    # print(out[:, :, 0, 0])
 
-    # -------------------------------------------------------------------------
-    # 模型测试
+    # model = SequentialModel()
+    # # model.add(Reshape(shape=[-1, 28, 28, 1]))
+    # model.add(Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+    # model.add(Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+    # model.add(Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+    # model.add(Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+    # model.add(Flatten())
+    # model.add(Dense(units=128, activation=nn.activation.HTanh(leak_coefficient=0.2)))
+    # model.add(Dense(units=10, activation=nn.activation.Softmax()))
 
-    model = SequentialModel()
-    model.add(Reshape(shape=[-1, 28, 28, 1]))
-    model.add(Conv2D(kernel=64, kernel_size=[3, 3], activation=nn.activation.LeakReLU()))
-    model.add(Conv2D(kernel=64, kernel_size=[3, 3], activation=nn.activation.LeakReLU()))
-    # # model.add(MaxPool(strides=[1, 2, 2, 1], padding="VALID", size=[2, 2]))
-    model.add(Conv2D(kernel=64, kernel_size=[3, 3], activation=LeakReLU()))
-    model.add(Conv2D(kernel=64, kernel_size=[3, 3], activation=LeakReLU()))
-    # # model.add(MaxPool(strides=[1, 2, 2, 1], padding="VALID", size=[2, 2]))
-    model.add(Flatten())
-    # model.add(Dense(units=12800, activation=nn.activation.HTanh()))
-    # model.add(Dense(units=12800, activation=nn.activation.HTanh()))
-    # model.add(Dense(units=12800, activation=nn.activation.HTanh()))
-    # model.add(Dense(units=12800, activation=nn.activation.HTanh()))
-    model.add(Dense(units=128, activation=nn.activation.HTanh()))
-    model.add(Dense(units=10, activation=Softmax()))
+    model = nn.model.Model.load("CIFARNET.model")
 
-    trans = Shuffle().add(ImageCls())
+    trans = ImageCls()
 
-    x, y, x_t, y_t = trans(*MNIST().load())
-    x = x[:1000]
-    y = y[:1000]
-    x_t = x_t - 0.5
+    x, y, x_t, y_t = trans(*CIFAR().load())
+    # x = x[:10000]
+    # y = y[:10000]
     model.setup(Cross_Entropy_With_Softmax(), CategoricalAccuracy())
     model.compile(nn.gradient_descent.ADAMOptimizer())
-    for i in range(100):
-        model.fit(x, label=y, epoch=10, batch_size=100)
-        model.evaluate(x, y)
+    model.fit(x, label=y, epoch=10, batch_size=100)
+    model.evaluate(x, y)
 
+    # import tensorflow as tf
+    #
+    # x = tf.constant(np.arange(0, 2.5, 0.1).reshape([1,5,5,1]))
+    # y = tf.constant(np.arange(0, 0.9, 0.1).reshape([1,3,3,1]))
+    # w = tf.constant(np.ones(shape=[3,3,1,1]))
+    #
+    # x_ = tf.nn.conv2d_transpose(y, w, x.shape, [1,1], padding="VALID")
+    #
+    # print(x_.shape)

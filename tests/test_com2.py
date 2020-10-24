@@ -1,13 +1,7 @@
-import network
 import time
-import models
 
-
-class F:
-
-    def do(self, a, b):
-        print("Hello")
-        return a + b
+import network
+import numpy as np
 
 
 if __name__ == '__main__':
@@ -16,11 +10,9 @@ if __name__ == '__main__':
     node.add(0, '127.0.0.1')
 
     with request.request(node) as com:
-        com.send_one(0, models.ClassSerializer(F))
-        time.sleep(2)
-
         while not com.is_closed():
-            s = input("->")
-            com.send_one(0, s)
-            print(":{}".format(s))
-            print(com.get_one()[1])
+            com: network.ICommunication_Controller
+            for i in range(100):
+                com.send_one(0, np.random.uniform(size=[100000]))
+                print(i)
+            time.sleep(1)

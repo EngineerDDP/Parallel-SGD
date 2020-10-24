@@ -5,7 +5,7 @@ import network
 
 if __name__ == '__main__':
 
-    nodes = PSGD.parse_worker(worker_cnt=9, ps=True)
+    nodes = parallel.parse_worker(worker_cnt=9, ps=True)
 
     req = network.Request()
 

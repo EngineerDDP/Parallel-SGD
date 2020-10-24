@@ -1,17 +1,23 @@
+import time
+
 import executor.psgd as PSGD
 import nn
-from codec.plain import Plain
-from dataset import MNIST, CIFAR, SimLin
+from codec.quantization import *
+from dataset import MNIST
 from dataset.transforms import ImageCls, Shuffle
 
 if __name__ == '__main__':
-    model = nn.model.Model.load('abc.model')
+    model = nn.model.Model.load('MNISTDNN.model')
 
-    job = PSGD.ParallelSGD(model, data=CIFAR(), transform=Shuffle().add(ImageCls()))
-    nodes = PSGD.parse_worker(worker_cnt=1, ps=False)
-    for i in range(1):
+    job = PSGD.ParallelSGD(model, data=MNIST(), transform=Shuffle().add(ImageCls()))
+    for i in range(1, 11):
         try:
-            job.parallel(nodes, codec=Plain, epoch=1, op_type=nn.optimizer.PSGDOptimizer,
-                         gd_type=nn.gradient_descent.ADAMOptimizer)
+            nodes = PSGD.parse_worker(worker_cnt=i, ps=True)
+            job.parallel(nodes, codec=Quantization2BitPSCodec, epoch=10, op_type=nn.optimizer.GradientAveragingOptimizer,
+                         ps_codec=Q1WParaServer,
+                         gd_type=nn.gradient_descent.SGDOptimizer,
+                         gd_params=(0.005,),
+                         mission_title="FP[{}nodes]".format(i))
         except ConnectionAbortedError:
             print("Worker exited without reports.")
+        time.sleep(10)
