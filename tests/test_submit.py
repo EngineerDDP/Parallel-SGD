@@ -2,7 +2,7 @@ import time
 
 import executor.psgd as PSGD
 import nn
-from codec.quantization import *
+from codec.tqn import TQNClient, TQNServer
 from dataset import MNIST
 from dataset.transforms import ImageCls, Shuffle
 
@@ -13,8 +13,10 @@ if __name__ == '__main__':
     for i in range(1, 11):
         try:
             nodes = PSGD.parse_worker(worker_cnt=i, ps=True)
-            job.parallel(nodes, codec=Quantization2BitPSCodec, epoch=10, op_type=nn.optimizer.GradientAveragingOptimizer,
-                         ps_codec=Q1WParaServer,
+            job.parallel(nodes, codec=TQNClient,
+                         epoch=80,
+                         op_type=nn.optimizer.GradientAveragingOptimizer,
+                         ps_codec=TQNServer,
                          gd_type=nn.gradient_descent.SGDOptimizer,
                          gd_params=(0.005,),
                          mission_title="FP[{}nodes]".format(i))
