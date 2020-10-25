@@ -307,9 +307,12 @@ class CommunicationProcess(AbsCommunicationProcess):
 
         __write_thread.join()
 
-        for fd in self.__connections.to_list():
-            BufferWriter.request_close(fd)
-            fd.close()
+        try:
+            for fd in self.__connections.to_list():
+                BufferWriter.request_close(fd)
+                fd.close()
+        except ConnectionResetError:
+            pass
 
         # self.recv_que.close()
         # self.send_que.close()
@@ -470,4 +473,9 @@ class Promoter(IPromoter):
 # 为 __run_deque 方法添加两个异常处理机制：
 # 1. 当正在发送的发送列表失效，使用select做exception捕捉
 # 2. 当正在发送的发送列表fd失效，使用try catch 捕捉 select 异常
+# ----------------------------------------
+# ----------------------------------------
+# Fix 2020年10月25日
+# 为主发送线程添加异常捕捉机制
+# 用于在被动退出时防止fd失效导致的崩溃
 # ----------------------------------------
