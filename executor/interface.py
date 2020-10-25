@@ -1,18 +1,19 @@
 from abc import ABCMeta, abstractmethod
+from typing import List
 
 
 class IExecutor(metaclass=ABCMeta):
 
     @abstractmethod
-    def requests(self):
+    def requests(self) -> List[object]:
         """
             Requested types
-        return: list of Req(Enum) objects.
+        return: list of objects.
         """
         pass
 
     @abstractmethod
-    def satisfy(self, reply):
+    def satisfy(self, reply) -> List[object]:
         """
             Satisfy requested data.
         :return: list of Req(Enum) contains requests which cannot be satisfied.
@@ -27,21 +28,21 @@ class IExecutor(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def ready(self):
+    def ready(self) -> bool:
         """
             Is the executor ready for the job.
         """
         pass
 
     @abstractmethod
-    def done(self):
+    def done(self) -> bool:
         """
             Is job done?
         """
         pass
 
     @abstractmethod
-    def trace_files(self):
+    def trace_files(self) -> List[str]:
         """
             Return the filename list or executing trace.
         """

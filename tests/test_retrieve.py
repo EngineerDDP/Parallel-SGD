@@ -1,11 +1,11 @@
-import executor.psgd as PSGD
+import executor.psgd as parallel
 import roles
 import network
 
 
 if __name__ == '__main__':
 
-    nodes = PSGD.parse_worker(worker_cnt=9, ps=True)
+    nodes = parallel.parse_worker(worker_cnt=9, ps=True)
 
     req = network.Request()
 

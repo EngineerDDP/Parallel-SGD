@@ -51,7 +51,7 @@ class Worker:
         # requests with timeout check
         while data is None:
             id_from, data = com.get_one(blocking=False)
-            time.sleep(0.1)
+            time.sleep(0.01)
             # Assertion, this node count as one
             assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
             assert time.time() < time_out_end, "Maximum waiting time exceed."
@@ -127,7 +127,7 @@ class Worker:
         replies = []
         # Ask for replies
         for req in requests:
-            com.send_one(Initialization_Server, req)
+            com.send_one(Initialization_Server, RequestPackage(req))
 
         req_format = "\tRequests List:\n\t\t--> {}".format("\n\t\t--> ".join([str(req) for req in requests]))
         self.client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
@@ -146,7 +146,7 @@ class Worker:
                 if len(replies) == len(requests):
                     requests = self.__job_executor.satisfy(replies)
                     for req in requests:
-                        com.send_one(Initialization_Server, req)
+                        com.send_one(Initialization_Server, RequestPackage(req))
                     self.client_logger.log_message('Request data: ({}).'.format(requests))
                     self.client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
                     replies.clear()
@@ -175,21 +175,20 @@ class Worker:
         :param timeout: timeout limit in seconds, vaguely accuracy
         :return:
         """
-        timeout_clock = 0
+        dead_line = time.time() + timeout
 
         ready_state.add(com.Node_Id)
         for id in com.available_clients:
             com.send_one(id, ReadyType(ready_state))
 
         while ready_state & total_nodes != total_nodes:
-            assert timeout_clock < timeout, "Maximum waiting time exceed."
+            assert time.time() < dead_line, "Maximum waiting time exceed."
 
             current_active = set(com.available_clients) | {com.Node_Id}
             assert current_active & total_nodes == total_nodes, \
                 "Current nodes: {}, required nodes: {}.".format(current_active, total_nodes)
             # inc time clock
-            time.sleep(1)
-            timeout_clock += 1
+            time.sleep(0.01)
 
             # check ready state
             id_from, data = com.get_one(blocking=False)

@@ -9,7 +9,7 @@ from dataset.interfaces import IDataset
 from executor.abstract import AbsExecutor
 from executor.psgd.net_package import IPSGDOpContainer, misc_package, Requests, Req
 from executor.psgd.net_package import net_model, net_setting
-from models import IRequestPackage
+from models import RequestPackage, IRequestPackage
 from network import ICommunication_Controller
 from nn import IModel
 from nn.data import PSGDBlockDataFeeder
@@ -35,9 +35,8 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__misc: [misc_package] = None
         self.__done: bool = False
 
-    def requests(self) -> List[IRequestPackage]:
-        return [Requests(Req.Setting), Requests(Req.Model), Requests(Req.Optimizer),
-                Requests(Req.Transfer), Requests(Req.Data_Package), Requests(Req.Other_Stuff)]
+    def requests(self) -> List[object]:
+        return [Req.Setting, Req.Model, Req.Optimizer, Req.Transfer, Req.Data_Package, Req.Other_Stuff]
 
     def satisfy(self, reply: list) -> list:
         unsatisfied = []

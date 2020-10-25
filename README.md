@@ -7,46 +7,75 @@
 
 ### 工作节点参数
 　　所有的参数都通过 job_submit.py 传入，worker节点无需传入任何参数。启动时，使用以下命令启动Worker，无需传入参数。当任务提交时，节点会自动申请并获取工作状态信息。  
-**注意**：每个worker所在的计算机都需要允许15387端口的TCP传入。  
+
 ```shell script
 python worker.py 
 ```
 
-### 任务提交
+**注意**：每个worker所在的计算机都需要允许15387端口的TCP传入。  
+**注意**：Worker启动后就进入无人值守状态，可以反复提交任务无需重启。  
+
+### 任务提交 (已弃用)
 　　提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
 ```shell script
-python job_submit.py 
-    --node-count 4  
-    --batch-size 128  
-    --redundancy 1  
-    --codec plain,plain,plain,plain,ccdc,ps  
-    --optimizer psgd  
-    --psgd ssgd  
-    --learn-rate 0.05  
-    --epochs 10  
-    --dataset mnist
-    --non-iid 
-    --block-assignment iid 
-    --server-codec grad 
-    --workers worker.json
+usage: job_submit.py [-h] [--non-iid] -m MODEL_FILE [-n N] [-b B] [-r R]
+                     [-C CODEC] [-O OP] [-E EPOCHS] [-D DATASET]
+                     [--gradient-descent GD] [--psgd PSGD] [--learn-rate LR]
+                     [--block-assignment ASSIGNMENT]
+                     [--server-codec SERVER_CODEC] [--workers WORKERS]
+                     [--network-bandwidth BANDWIDTH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --non-iid             Set this flag to make the dataset non-iid compatible.
+  -m MODEL_FILE, --model MODEL_FILE
+                        Model file
+  -n N, --node-count N  Worker node count
+  -b B, --batch-size B  Batch size
+  -r R, --redundancy R  Redundancy
+  -C CODEC, --codec CODEC
+                        Initial communication codec and protocol {ccdc, plain,
+                        ps}
+  -O OP, --optimizer OP
+                        Set optimizer used for model training.
+  -E EPOCHS, --epochs EPOCHS
+                        Train epochs
+  -D DATASET, --dataset DATASET
+                        Dataset in use.
+  --gradient-descent GD
+                        Gradient optimizing method used in training
+  --psgd PSGD           Parallel stochastic gradient descent synchronization
+                        type {asgd, ssgd}
+  --learn-rate LR       Learining rate
+  --block-assignment ASSIGNMENT
+                        Block assignment strategy
+  --server-codec SERVER_CODEC
+                        Server codec for parameter averaging
+  --workers WORKERS     Worker list file, json type
+  --network-bandwidth BANDWIDTH
+                        Network bandwidth in Mbps.
 ```
+* *-h* *--help*  
+显示命令使用帮助。  
+
+* *--non-iid*  
+使用非 i.i.d. 数据集划分方式对数据集进行分发。  
+
+* *-m* *--model*  
+指定要进行分布式并行化的模型文件，模型文件由 *nn.model.Model.save()* 生成。  
+
 * *-n* *--node-count*  
 节点数目，当前任务需要占用的节点数目。  
-该参数需要与代码适配，在 GlobalSetting 中默认的每个节点编号是连续的且从0开始。
+该参数需要与代码适配，在 GlobalSetting 中默认的每个节点编号是连续的且从0开始。  
 
-* *-G* *--batch_size*  
-批次大小，当前任务训练批次的大小。  
-**注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为 *batch_size* / *node_count*。
+* *-b* *--batch-size*  
+训练批次大小，每个Worker上都以这个迭代规模进行批次迭代训练。  
+**注意**：批次在每个节点上是均分的，当冗余设置为 1 倍时，每个节点上的训练样本数目为 *$batch-size* / *$node-count*。  
 
 * *-r* *--redundancy*  
 样本冗余份数，当前任务所需的样本冗余份数。  
 样本冗余份数会按要求传送给 GlobalSetting ，具体的冗余分配方案仍然依赖 *block_assignment* 参数，当 *block_assignment* 参数提供的处理方法无法处理冗余分配时，设置的冗余级别事实上是无效的。  
-**注意**：如果编码控制器无法处理冗余分配情况，可能会导致全局死锁。
-
-* *-O* *--optimizer*  
-使用的梯度下降优化器。  
-选用并行梯度下降优化器以实现并行计算，选用单机梯度下降优化器只能执行单机计算。  
-（关于可用的梯度下降优化器，请参阅 [梯度下降优化器类型](./nn/LIST.md) ）
+**注意**：如果编码控制器无法处理冗余分配情况，可能会导致全局死锁。  
 
 * *-C* *--codec*  
 worker上执行的实际编码器。  
@@ -57,23 +86,39 @@ worker上执行的实际编码器。
 **注意**：第一个编码器参数对应第一个层，以此类推。  
 **注意**：当需要引入参数服务器时，确保给定的编码器能与参数服务器正常交互。  
 （关于编码器设计的详情，请参阅 [编码控制器教程](./codec/README.md) ）  
-（关于可用的已实现的编码器，请参阅 [编码器类型](./codec/LIST.md) ）  
 
-* *--psgd*  
-worker上执行的实际SGD同步器。  
-asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当超出SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法尝试补救，当两次超时并且无法挽回后，ssgd 会报告超时错误。  
-
-* *--learn_rate*  
-worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。  
+* *-O* *--optimizer*  
+使用的梯度下降优化器，选用并行梯度下降优化器以实现并行计算。  
+    - **Parallel-SGD** （参数："*parallel_sgd*"） 并行梯度下降，Worker之间通过传输梯度来决定迭代方向。
+    - **Gradient Averaging** （参数："*gradient_averaging*"） 为带参数服务器的并行算法提供的迭代算法，Worker上传本地计算所得的梯度，Parameter Server 回复给Worker当前的最新模型参数。
+    - **Parameter Averaging** （参数："*parameter_averaging*"） 参数平均化方法，Worker之间通过传输模型参数来决定迭代方向。
+    - **Double Buffering** （参数："*double_buffering_gradient_averaging*"） 使用一个批次的延迟，换取计算与I/O的并行化，每次更新只发送上一个批次的计算结果。更新策略为梯度传输。
 
 * *-E* *--epochs*  
 worker上执行的训练轮次。
 
 * *-D* *--dataset*  
-训练所使用的数据集，目前内置有 **MNIST** （参数："*mnist*"）数据集，**CIFAR-10** （参数："*cifar*"）数据集。   
+训练所使用的数据集。  
+    - **MNIST** （参数："*mnist*"）数据集，
+    - **CIFAR-10** （参数："*cifar*"）数据集。   
 
-* *--non-iid*  
-加入此选项，使用非i.i.d.数据集划分。  
+* *--gradient-descent*  
+迭代时使用的梯度优化算法。  
+    - **Adaptive Moment Estimation** （参数："*adam*"） 使用ADAM优化算法。
+    - **Stochastic Gradient Descent** （参数："*sgd*"） 使用朴素的SGD优化算法
+    - **Adaptive Learning Rate Method** （参数："*adadelta*"） 使用AdaDelta优化算法。
+    - **Adaptive Gradient Algorithm** （参数："*adagrad*"） 使用AdaGrad优化算法。
+    - **Root Mean Square Prop** （参数："*rmsprop*"） 使用RMSProp优化算法。
+    - **Gradient Decay** （参数："*decay*"） 使用朴素的学习率衰减SGD算法。
+
+* *--psgd*  
+worker上执行的实际SGD同步器。  
+asgd 对应异步梯度下降算法，执行异步更新策略，非阻塞立即返回能够获取到的最新权重；ssgd 对应同步梯度下降算法，执行同步更新策略，当且仅当已经和必要节点执行完参数同步后才会释放锁，继续进行训练，ssgd 同样有保底重传策略，当超出SGD 最长同步等待时间后，ssgd 会调用每一层编码器的 ICommunicationCtrl.do_something_to_save_yourself 方法尝试补救，当两次超时并且无法挽回后，ssgd 会报告超时错误。  
+    - **Synchronized Stochastic Gradient Descent** （参数："*ssgd*"） 使用强同步约束的并行策略，所有进行直接通讯的Worker之间进度差距不允许大于1批次。
+    - **Asynchronous Stochastic Gradient Descent** （参数："*asgd*"） 使用异步约束的并行策略，在任意时刻，Codec必须能够提供可用的计算结果。
+
+* *--learn_rate*  
+worker上执行的学习率，当受参数服务器控制更新时，此参数相当于无效。  
 
 * *--block_assignment*  
 全局训练样本分配策略。  
@@ -101,47 +146,181 @@ worker.json格式如下：
 　　主体为一个数组，每行包含两个信息，分别是该节点的工作角色和IP地址，您要保证这些IP地址均可以互相访问。目前支持的角色类型只有两种，"PS"代表该节点以参数服务器的形式工作，"Worker"代表该节点以计算节点的形式工作。   
 **注意**：无需在每个节点上配置worker.json，只需要在提交任务时配置了worker.json即可。  
 
+* *--network-bandwidth*  
+给出当前环境下的网络传输带宽估计值，用于设置Worker在Commit阶段的超时计时器。  
+
+## 快速上手
+
+　　下面演示一个快速上手执行P-SGD的例程。  
+
+### 模型构建
+
+　　使用自建的nn模块构建模型，使用方法和keras一样简单，下面构建了一个可用于识别MNIST数据集的两层DNN网络结构。  
+
+```python
+import nn
+
+model = nn.model.SequentialModel(input_shape=[-1, 784])
+model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
+model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
+model.add(nn.layer.Dense(10, activation=nn.activation.Softmax()))
+
+model.setup(nn.loss.Cross_Entropy_With_Softmax(), nn.metric.CategoricalAccuracy())
+```
+
+调用model.setup()之后，该模型就准备进行P-SGD并行化训练了。可以使用*save*方法保存模型，来保证我们每次训练时的起始状态是一样的。  
+
+```python
+import nn
+
+model.save("dnn.model")  # 使用save保存
+nn.model.Model.load("dnn.model")  # 使用load加载
+```
+**附**：详细的模型构建以及nn模块的API说明请参照（[人工神经网络](./nn/README.md)）
+
+### 数据集处理
+
+使用内置的数据集，获取数据集和数据集处理方案。  
+
+```python
+from dataset import MNIST
+from dataset.transforms import ImageCls, Shuffle
+
+data = MNIST()  # 使用MNIST数据集
+trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
+```
+
+### 并行化方案
+
+创建并行化方案。  
+
+```python
+import executor.psgd as parallel
+
+job = parallel.ParallelSGD(model, data, trans)
+```
+
+配置 *worker.json* 如下，并在当前计算机运行一个Worker。  
+
+```json
+{
+  "Worker": [
+    "127.0.0.1"
+  ]
+}
+```
+
+Worker启动后，正常情况下应显示如下内容：  
+
+```shell script
+INFO Worker-127.0.0.1@16:01:01 : Working started and ready for job submission.
+INFO Worker-127.0.0.1@16:01:02 : Worker started with network type 'FCNet'.
+```
+
+选取并行规模，使用特定的Codec执行并行化训练。  
+
+```python
+import executor.psgd as parallel
+
+from codec.plain import Plain
+
+nodes = parallel.parse_worker(worker_cnt=1)
+job.parallel(nodes, codec=Plain, epoch=10)
+```
+
+执行结束后，程序会返回训练好的模型和训练过程中产生的log文件。  
+控制台输出应当如下所示：  
+
+```shell script
+INFO P-SGD Submit@16:33:09 : Start job.
+INFO P-SGD Submit@16:33:09 : Workers: (1) nodes has been assigned:
+		-->ID:   0		Address:  127.0.0.1
+INFO P-SGD Submit@16:33:11 : Group submission complete ({0}).
+INFO P-SGD Submit@16:33:14 : Reply requirements to node(0), type(net_setting).
+INFO P-SGD Submit@16:33:14 : Reply requirements to node(0), type(net_model).
+INFO P-SGD Submit@16:33:14 : Reply requirements to node(0), type(net_optimizer).
+INFO P-SGD Submit@16:33:14 : Reply requirements to node(0), type(net_transfer).
+INFO P-SGD Submit@16:33:14 : Reply requirements to node(0), type(data_package).
+INFO P-SGD Submit@16:33:14 : Reply requirements to node(0), type(misc_package).
+INFO P-SGD Submit@16:33:14 : Node(0) is ready, {0} is ready.
+INFO P-SGD Submit@16:33:14 : Dispatch complete.
+INFO P-SGD Submit@16:33:14 : Waiting for ({0}) ...
+INFO P-SGD Submit@16:35:04 : Restoring data (<Node(0) Reply: All Task is Completed.>) from 0.
+INFO P-SGD Submit@16:35:04 : Save file for 0.
+	List:
+		--> ./Node-0-Retrieve/./tmp_log/Worker-192.168.1.101 2020-10-24 1632.log
+		--> ./Node-0-Retrieve/./tmp_log/Fit-0 2020-10-24 1633.log
+		--> ./Node-0-Retrieve/TR-P-SGD-N(0).csv
+		--> ./Node-0-Retrieve/EV-P-SGD-N(0).csv
+		--> ./Node-0-Retrieve/MODEL-P-SGD-N(0).model
+INFO P-SGD Submit@16:35:04 : Node(0) is done, {0} is done.
+INFO P-SGD Submit@16:35:04 : All task is complete.
+```
+
+完整代码如下：  
+
+```python
+import nn
+import executor.psgd as parallel
+
+from codec.plain import Plain
+from dataset import MNIST
+from dataset.transforms import ImageCls, Shuffle
+
+model = nn.model.SequentialModel(input_shape=[-1, 784])
+model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
+model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
+model.add(nn.layer.Dense(10, activation=nn.activation.Softmax()))
+
+model.setup(nn.loss.Cross_Entropy_With_Softmax(), nn.metric.CategoricalAccuracy())
+
+data = MNIST()  # 使用MNIST数据集
+trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
+
+job = parallel.ParallelSGD(model, data, trans)
+nodes = parallel.parse_worker(worker_cnt=1)
+
+job.parallel(nodes, codec=Plain, epoch=10)
+```
+
 ### 工作与等待
 
 　　根据控制台的输出，您可以确定已经成功提交任务至多少个节点，当所有节点都准备就绪时，您提交的任务就在集群上正常运行。
 当一个Worker已经初始化完成后，会输出相应的信息，以及总共需要初始化的Worker数目，输出如下。
 ```shell script
-INFO Coordinator-192.168.1.1@10:49:55 : Add worker (Rule: PS, Id: -2, Address: 192.168.1.2).
-INFO Coordinator-192.168.1.1@10:58:38 : Add worker (Rule: Worker, Id: 0, Address: 192.168.1.3).
-INFO Coordinator-192.168.1.1@10:49:55 : Try connecting to the cluster.
-INFO Coordinator-192.168.1.1@10:49:55 : Connection with cluster established.
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(global_setting_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(codec_and_sgd_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(weights_and_layers_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Reply requirements to node(-2), type(misc_package).
-INFO Coordinator-192.168.1.1@10:49:57 : Node(-2) is ready, 2 nodes total, {-2} is ready.
-INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(global_setting_package).
-INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(codec_and_sgd_package).
-INFO Coordinator-192.168.1.1@10:50:39 : Reply requirements to node(0), type(weights_and_layers_package).
-INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(misc_package).
-INFO Coordinator-192.168.1.1@10:50:40 : Reply requirements to node(0), type(data_sample_package).
-INFO Coordinator-192.168.1.1@10:50:44 : Node(0) is ready, 2 nodes total, {-2, 0} is ready.
+INFO P-SGD Submit@08:37:49 : Start job.
+INFO P-SGD Submit@08:37:49 : Workers: (9) nodes has been assigned:
+		-->ID:  -2		Address:  192.168.1.175
+		-->ID:   0		Address:  192.168.1.165
+		-->ID:   1		Address:  192.168.1.166
+		-->ID:   2		Address:  192.168.1.167
+		-->ID:   3		Address:  192.168.1.168
+		-->ID:   4		Address:  192.168.1.169
+		-->ID:   5		Address:  192.168.1.170
+		-->ID:   6		Address:  192.168.1.171
+		-->ID:   7		Address:  192.168.1.172
+INFO P-SGD Submit@08:37:51 : Single node submission complete.
+INFO P-SGD Submit@08:37:51 : Group submission complete ({0, 1, 2, 3, 4, 5, 6, 7}).
+
+ ... ...
+
+INFO P-SGD Submit@08:37:52 : Waiting for ({0, 1, 2, 3, 4, 5, 6, 7, -2}) ...
 ```
-　　此时您可以选择通过按下 Ctrl+C 键手动退出 job_submit，也可以选择等待所有Worker返回数据集给您。当您选择提前退出job_submit
-时，您需要在任务运行完成之后通过以下命令从每个节点上回收上次执行的训练数据。
-```shell script
-python job_submit.py --retrieve_data --worker ./worker.json
+　　当进入Waiting状态时，您可以选择退出Submit进程，当结果计算完成后，使用如下代码便可以取回训练数据。  
+
+```python
+import executor.psgd as parallel
+import roles
+import network
+
+nodes = parallel.parse_worker(worker_cnt=9, ps=True)
+req = network.Request()
+
+with req.request(nodes) as com:
+    roles.Reclaimer(com).require_client_log()
+
 ```
-　　连接无误的话，输出应当如下所示：
-```shell script
-INFO Coordinator-192.168.1.1@11:12:26 : Add worker (Rule: Worker, Id: 0, Address: 192.168.1.3).
-INFO Coordinator-192.168.1.1@11:12:26 : Add worker (Rule: PS, Id: -2, Address: 192.168.1.2).
-INFO Coordinator-192.168.1.1@11:12:26 : Try connecting to the cluster.
-INFO Coordinator-192.168.1.1@11:12:26 : Connection with cluster established.
-INFO Coordinator-192.168.1.1@11:12:27 : Acquire log file from worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Acquire log file from worker(-2).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(0).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
-INFO Coordinator-192.168.1.1@11:12:27 : Save log file for worker(-2).
-```
+
 **注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。  
 **注意**：参数服务器只有Worker工作记录和简要的Training日志，没有详细的训练过程报表。  
 **注意**：在Sync-SGD强一致性约束下，集群可以保证每个Worker给出的Evaluation报表是一致的。  

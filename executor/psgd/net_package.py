@@ -7,7 +7,7 @@ from numpy import ndarray
 from codec.interfaces import Codec
 from dataset.interfaces import AbsDataset, IDataset
 from dataset.transforms.interface import ITransformer
-from models import IReplyPackage, ClassSerializer, IRequestPackage, BinaryFilePackage
+from models import IReplyPackage, ClassSerializer, BinaryFilePackage
 from network import ICommunication_Controller
 from nn import IModel, IOptimizer, ITrainable
 from nn.data.block_data_feeder import IPSGDBlockMgr
@@ -39,12 +39,13 @@ class Req(Enum):
     Other_Stuff = "MISC"
 
 
-class Requests(IRequestPackage):
+class Requests:
 
     def __init__(self, req: Req):
         self.__req = req
 
-    def content(self) -> object:
+    @property
+    def key(self) -> Req:
         return self.__req
 
     def __repr__(self):

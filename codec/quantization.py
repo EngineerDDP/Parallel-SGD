@@ -13,7 +13,7 @@ def q1(arr: np.ndarray):
 
 def q2(arr: np.ndarray):
     std = np.std(arr)
-    weights = (arr - np.mean(arr)) / std
+    weights = arr / std
     # be aware, this will change the value of referenced object.
     weights[weights > std] = 1
     weights[weights < -std] = -1
@@ -49,7 +49,7 @@ class Quantization1BitPSCodec(Codec):
         weights, std = q1(block_weight.content)
         weights = weights.astype('int8')
 
-        yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
+        yield netEncapsulation(Parameter_Server, QuantizedPack(self.node_id, weights, std).pack())
 
     def receive_blocks(self, content: list):
         content = QuantizedPack.unpack(content)
@@ -73,7 +73,7 @@ class Quantization2BitPSCodec(Codec):
         weights, std = q2(block_weight.content)
         weights = weights.astype('int8')
 
-        yield netEncapsulation(Parameter_Server, QuantizedPack(self.__node_id, weights, std).pack())
+        yield netEncapsulation(Parameter_Server, QuantizedPack(self.node_id, weights, std).pack())
 
     def receive_blocks(self, content: list):
         content = QuantizedPack.unpack(content)

@@ -77,12 +77,15 @@ def sync_type_parser(name) -> Type[IParallelSGD]:
 
 
 def optimizer_parser(name) -> Type[IOptimizer]:
-    if name == 'gradient_averaging':
+    if name == 'parallel_sgd':
         from nn.optimizer import PSGDOptimizer
         return PSGDOptimizer
     elif name == 'double_buffering_gradient_averaging':
         from nn.optimizer import DoubleBufferingOptimizer
         return DoubleBufferingOptimizer
+    elif name == 'gradient_averaging':
+        from nn.optimizer import GradientAveragingOptimizer
+        return GradientAveragingOptimizer
     elif name == 'parameter_averaging':
         from nn.optimizer import ParameterAveragingOptimizer
         return ParameterAveragingOptimizer
@@ -104,6 +107,9 @@ def gradient_descent_parser(name) -> Type[IGradientDescent]:
     elif name == 'rmsprop':
         from nn.gradient_descent import RMSPropOptimizer
         return RMSPropOptimizer
+    elif name == 'decay':
+        from nn.gradient_descent import GradientDecay
+        return GradientDecay
 
 
 def block_assignment_parser(name) -> Type[AbsBlockAssignment]:
