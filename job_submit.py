@@ -40,27 +40,6 @@ def codec_parser(name) -> [Type[Codec]]:
     elif name == 'dc_asgd':
         from codec.dc_asgdcodec import DCASGDServerCodec
         return DCASGDServerCodec
-    elif name == 'binarySGD':
-        from codec.quantization import Quantization1BitPSCodec
-        return Quantization1BitPSCodec
-    elif name == 'ternarySGD':
-        from codec.quantization import Quantization2BitPSCodec
-        return Quantization2BitPSCodec
-    elif name == 'stochastic_ternary_SGD':
-        from codec.tqn import TQNClient
-        return TQNClient
-    elif name == '1bit_weights_averaging':
-        from codec.quantization import Q1WParaServer
-        return Q1WParaServer
-    elif name == '2bit_weights_averaging':
-        from codec.quantization import Q2WParaServer
-        return Q2WParaServer
-    elif name == 'low_precision_weights_averaging':
-        from codec.quantization import LPWParaServer
-        return LPWParaServer
-    elif name == 'high_precision_weights_averaging':
-        from codec.quantization import FPWParaServer
-        return FPWParaServer
     elif name == 'null':
         return None
     else:
