@@ -32,7 +32,7 @@ def stochastic_ternarization(arr):
     return np.asarray((np.random.random(arr.shape) < np.abs(arr)) * np.sign(arr))
 
 
-def quantize(arr, space, epsilon=1e-9):
+def quantize(arr, space, epsilon: float = 1e-9, iterations: int = 3):
     """
         TERNARIZATION TQN implementation based on chapter 3.1.1 in
         L. Hou and J. T. Kwok. Loss-aware weight quantization of deep networks.
@@ -40,7 +40,7 @@ def quantize(arr, space, epsilon=1e-9):
     """
     a = 0.7
     b = stochastic_quantization(arr / a, space)
-    for i in range(3):
+    for i in range(iterations):
         a = np.sum(np.multiply(b, arr)) / (np.sum(np.square(b)) + 1)
         b = stochastic_quantization(arr / (a + epsilon), space)
     return a, b
