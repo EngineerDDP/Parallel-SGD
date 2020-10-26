@@ -136,7 +136,7 @@ model.compile(nn.gradient_descent.ADAMOptimizer)
 model.fit(x, label=y, epoch=1, batch_size=64)
 ```
 #### 5. evaluate
-   该步骤用于评估模型在测试集上的表现，输出指标依然优setup阶段确认
+   该步骤用于评估模型在测试集上的表现，输出指标依然由setup阶段确认
 
 ```python
 model.evaluate(x_t, y_t)
@@ -580,7 +580,7 @@ from nn.metric import MeanSquareError, CategoricalAccuracy, BinaryAccuracy, Rela
 ```
 ### 5. model
 #### 5.1 接口定义
-​    model接口`IModel`继承了操作符：`IOperator`和懒加载初始化接口:`ILazyInitialization`，下面为`AbsLayer`接口。
+​    model接口`IModel`定义如下，可以从该接口中看到模型的各种方法。
 ```python
 class IModel(metaclass=ABCMeta):
 
