@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Iterable, Union, Generic, TypeVar, Callable
+from typing import List, Iterable, Union, Generic, TypeVar, Callable, Optional
 
 import numpy as np
 from numpy import ndarray
@@ -159,7 +159,7 @@ class Codec(metaclass=ABCMeta):
 
         return tmp
 
-    def set_result(self, content: ndarray, operation: Callable[[[ndarray], ndarray], ndarray] = None):
+    def set_result(self, content: ndarray, operation: Callable[[Optional[ndarray], ndarray], ndarray] = None):
         """
             Do some operations on current data.
             Be aware: the content may be None if the value hasn't been settled.
