@@ -58,8 +58,7 @@ class Model(IModel):
         return self.__metrics
 
     def setup(self, loss: ILoss, *metrics: IMetric):
-        if self.__ref_output is None:
-            self.__ref_output = self.call(self.__placeholder_input)
+        self.__ref_output = self.call(self.__placeholder_input)
         # validate model
         if self.__placeholder_input.get_shape() is not None:
             self.__placeholder_input.set_value()
