@@ -1,4 +1,5 @@
-from typing import Sequence
+from abc import ABCMeta, abstractmethod
+from typing import Sequence, Tuple
 
 import numpy as np
 
@@ -30,27 +31,13 @@ def stochastic_quantization(arr: np.ndarray, space: list):
     :param space: quantization space.
     :return: the base vector or quantized array.
     """
-    arr_in = np.abs(arr)
-    for x in np.nditer(arr_in, op_flags=["readwrite"]):
-        lo = 0.0
-        hi = 0.0
-        for i in space:
-            if i < x:
-                lo = i
-            else:
-                hi = i
-                break
+    _floor = np.floor(deterministic_quantization(arr, space))
+    _rand = np.random.uniform(low=0.0, high=1.0, size=_floor.shape)
 
-        rnd = np.random.uniform(lo, hi)
-        if rnd > x:
-            x[...] = lo
-        else:
-            x[...] = hi
-
-    return np.sign(arr) * arr_in
+    return (_floor + _rand < arr).astype('int') + _floor
 
 
-def quantize(arr, space, epsilon: float = 1e-9, iterations: int = 3):
+def quantize(arr, space, epsilon: float = 1e-9, iterations: int = 3) -> Tuple[float, np.ndarray]:
     """
         TERNARIZATION TQN implementation based on chapter 3.1.1 in
         L. Hou and J. T. Kwok. Loss-aware weight quantization of deep networks.
@@ -63,14 +50,14 @@ def quantize(arr, space, epsilon: float = 1e-9, iterations: int = 3):
         vector or quantized array.
     """
     a = 0.7
-    b = deterministic_quantization(arr / a, space)
+    b = stochastic_quantization(arr / a, space)
     for i in range(iterations):
         a = np.sum(np.multiply(b, arr)) / (np.sum(np.square(b)) + 1)
-        b = deterministic_quantization(arr / (a + epsilon), space)
+        b = stochastic_quantization(arr / (a + epsilon), space)
     return a, b
 
 
-def binarize(arr: np.ndarray):
+def binarize(arr: np.ndarray) -> Tuple[float, np.ndarray]:
     """
         M. Courbariaux, Y. Bengio, and J. P. David. BinaryConnect:
         Training deep neural networks with binary weights during propagations.
@@ -80,24 +67,54 @@ def binarize(arr: np.ndarray):
     :return: alpha, b.  alpha for the coefficient of quantized array, b for the base
         vector or quantized array.
     """
-    std = np.std(arr)
-    weights = np.sign(arr)
-    return weights, std
+    alpha: float = np.std(arr)[()]
+    b = np.sign(arr)
+    return alpha, b
 
 
-class QuantizedPack:
+class IPack(metaclass=ABCMeta):
 
-    def __init__(self, node_id, content, std):
-        self.node_id = node_id
-        self.content = content
-        self.std = std
+    @property
+    @abstractmethod
+    def content(self):
+        pass
 
-    def pack(self):
-        return [self.node_id, self.content, self.std]
+    @property
+    @abstractmethod
+    def node_id(self):
+        pass
 
-    @staticmethod
-    def unpack(content):
-        return QuantizedPack(content[0], content[1], content[2])
+
+class NormalPack(IPack):
+
+    def __init__(self, node_id: int, data: np.ndarray):
+        self.__content = data
+        self.__node_id = node_id
+
+    @property
+    def content(self):
+        return self.__content
+
+    @property
+    def node_id(self):
+        return self.__node_id
+
+
+class QuantizedPack(IPack):
+
+    def __init__(self, node_id: int, alpha: float, b: np.ndarray):
+        self.__node_id = node_id
+        self.__alpha = alpha
+        # Use int8 for fast serialization.
+        self.__b = b.astype('int8')
+
+    @property
+    def content(self):
+        return self.__alpha * self.__b.astype('float64')
+
+    @property
+    def node_id(self):
+        return self.__node_id
 
 
 class BinaryNetCodec(Codec):
@@ -109,16 +126,12 @@ class BinaryNetCodec(Codec):
     def dispose(self):
         pass
 
-    def update_blocks(self, block_weight):
-        weights, std = binarize(block_weight.content)
-        # Use int8 for fast serialization.
-        weights = weights.astype('int8')
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
+        package = QuantizedPack(self.node_id, *binarize(block_weight.content))
+        return netEncapsulation(Parameter_Server, package)
 
-        return netEncapsulation(Parameter_Server, QuantizedPack(self.node_id, weights, std).pack())
-
-    def receive_blocks(self, content: list):
-        content = QuantizedPack.unpack(content)
-        self.set_result(content.content * content.std)
+    def receive_blocks(self, package: IPack):
+        self.set_result(package.content, lambda x, y: y)
 
 
 class QuantizedClient(Codec):
@@ -126,31 +139,22 @@ class QuantizedClient(Codec):
     def __init__(self, node_id):
         super().__init__(node_id)
 
-        self.epsilon = 0.1
-
-        self.Block_Weights_Std = 0
-        self.Block_Weights_Mean = 0
-
     def dispose(self):
         pass
 
-    def update_blocks(self, block_weight):
-        weights, std = quantize(block_weight.content, q_space)
-        # Use int8 for fast serialization.
-        weights = weights.astype('int8')
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
+        package = QuantizedPack(self.node_id, *quantize(block_weight.content, q_space))
+        return netEncapsulation(Parameter_Server, package)
 
-        return netEncapsulation(Parameter_Server, QuantizedPack(self.node_id, weights, std).pack())
-
-    def receive_blocks(self, content: list):
-        content = QuantizedPack.unpack(content)
-        self.set_result(content.content * content.std)
+    def receive_blocks(self, package: IPack):
+        self.set_result(package.content, lambda x, y: y)
 
 
 class FullPrecisionParaServer(Codec):
 
     def __init__(self, node_id):
         super().__init__(node_id)
-        self.__global_weights = 0
+        self.__global_weights: np.ndarray = 0
 
     def dispose(self):
         pass
@@ -158,18 +162,17 @@ class FullPrecisionParaServer(Codec):
     def update_blocks(self, block_weight: BlockWeight):
         pass
 
-    def receive_blocks(self, content: list):
-        content = QuantizedPack.unpack(content)
-        # Full precision uses float64 for transmission.
-        self.__global_weights -= content.content.astype('double') * content.std
-        return netEncapsulation(content.node_id, QuantizedPack(Parameter_Server, self.__global_weights, 1).pack())
+    def receive_blocks(self, package: IPack):
+        self.__global_weights -= package.content
+        reply = NormalPack(Parameter_Server, self.__global_weights)
+        return netEncapsulation(package.node_id, reply)
 
 
 class LowPrecisionParaServer(Codec):
 
     def __init__(self, node_id):
         super().__init__(node_id)
-        self.__global_weights = 0
+        self.__global_weights: np.ndarray = 0
 
     def dispose(self):
         pass
@@ -177,11 +180,10 @@ class LowPrecisionParaServer(Codec):
     def update_blocks(self, block_weight: BlockWeight):
         pass
 
-    def receive_blocks(self, content: list):
-        pkg = QuantizedPack.unpack(content)
-        # Low precision uses float16 for transmission
-        self.__global_weights -= (pkg.content.astype('double') * pkg.std).astype('float16')
-        return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, self.__global_weights, 1).pack())
+    def receive_blocks(self, package: IPack):
+        self.__global_weights -= package.content
+        reply = NormalPack(Parameter_Server, self.__global_weights.astype('float16'))
+        return netEncapsulation(package.node_id, reply)
 
 
 class QuantizedParaServer(Codec):
@@ -196,15 +198,10 @@ class QuantizedParaServer(Codec):
     def update_blocks(self, block_weight: BlockWeight):
         pass
 
-    def receive_blocks(self, content: list):
-        pkg = QuantizedPack.unpack(content)
-        # apply quantized gradients
-        self.__global_weights -= pkg.content.astype('double') * pkg.std
-        # quantize global weights
-        weights, std = quantize(self.__global_weights, q_space)
-        # Use int8 for fast serialization.
-        weights = weights.astype('int8')
-        return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, weights, std).pack())
+    def receive_blocks(self, package: IPack):
+        self.__global_weights -= package.content
+        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, q_space))
+        return netEncapsulation(package.node_id, reply)
 
 
 class BinaryParaServer(Codec):
@@ -219,12 +216,7 @@ class BinaryParaServer(Codec):
     def update_blocks(self, block_weight: BlockWeight):
         pass
 
-    def receive_blocks(self, content: list):
-        pkg = QuantizedPack.unpack(content)
-        # apply quantized gradients
-        self.__global_weights -= pkg.content.astype('double') * pkg.std
-        # quantize global weights
-        weights, std = binarize(self.__global_weights)
-        # Use int8 for fast serialization.
-        weights = weights.astype('int8')
-        return netEncapsulation(pkg.node_id, QuantizedPack(Parameter_Server, weights, std).pack())
+    def receive_blocks(self, package: IPack):
+        self.__global_weights -= package.content
+        reply = QuantizedPack(Parameter_Server, *binarize(self.__global_weights))
+        return netEncapsulation(package.node_id, reply)
