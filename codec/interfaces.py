@@ -159,18 +159,22 @@ class Codec(metaclass=ABCMeta):
 
         return tmp
 
-    def set_result(self, content: ndarray, operation: Callable[[ndarray, ndarray], ndarray] = None):
+    def set_result(self, content: ndarray, operation: Callable[[[ndarray], ndarray], ndarray] = None):
         """
             Do some operations on current data.
+            Be aware: the content may be None if the value hasn't been settled.
+            Make sure you has properly handled the null pointer exception in your
+            callable object.
         :param content: content used to modify
         :param operation: modify operation. Callable object, obtain the old result and content,
                           and returns a newer object.
-                          def func(old_result: ndarray, new_content: ndarray) -> ndarray: # returns new result
+                          def func(old_result: Optional[ndarray], new_content: ndarray) -> ndarray:
+                          returns new result
         :return: None
         """
         if operation is None:
-            def operation(x: ndarray, y: ndarray) -> ndarray: return x + y
+            def operation(x: [ndarray], y: ndarray) -> ndarray:
+                return y if x is None else x + y
 
         with self.__rw_lock:
-            tmp = self.__updated_weight_buffer
-            self.__updated_weight_buffer = operation(tmp if tmp is not None else 0, content)
+            self.__updated_weight_buffer = operation(self.__updated_weight_buffer, content)
