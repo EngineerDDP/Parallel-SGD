@@ -1,236 +1,156 @@
-# 教程
+* [Parallel\-SGD\-docs\-zh\_CN](#parallel-sgd-docs-zh_cn)
+  * [codec(编码控制器)](#codec%E7%BC%96%E7%A0%81%E6%8E%A7%E5%88%B6%E5%99%A8)
+    * [codec使用样例](#codec%E4%BD%BF%E7%94%A8%E6%A0%B7%E4%BE%8B)
+      * [1\. Parameter server](#1-parameter-server)
+        * [1\.1 Server](#11-server)
+        * [1\.2 Worker](#12-worker)
+      * [2\. Peer to peer](#2-peer-to-peer)
+    * [调试](#%E8%B0%83%E8%AF%95)
+    * [部署](#%E9%83%A8%E7%BD%B2)
+      * [1\. 部署 Worker](#1-%E9%83%A8%E7%BD%B2-worker)
+      * [2\. 配置 Cluster](#2-%E9%85%8D%E7%BD%AE-cluster)
+      * [3\. 提交任务](#3-%E6%8F%90%E4%BA%A4%E4%BB%BB%E5%8A%A1)
+    * [API](#api)
+      * [1\. BlockWeight](#1-blockweight)
+    * [2\.Synchronized &amp; asynchronous](#2synchronized--asynchronous)
+    * [3\. netEncapsulation](#3-netencapsulation)
+    * [4\. set\_result](#4-set_result)
 
-　　本段教您如何创建一个 P-SGD 编码传输控制器，P-SGD 编码控制器是 P-SGD 的核心组件，负责控制两个神经网络层（Layer）的参数同步过程。本文创建的编码控制器完整代码在 [tutorial_codec](./tutorial_codec.py) 。  
-　　
-## 注解
+# Parallel-SGD-docs-zh_CN
 
-### 关键词
-　　文中提到了一些关键词，其对应的含义如下表：
+## codec(编码控制器)
+> codec是本项目的核心，通过编写不同的codec可以实现任意的网络拓扑、神经网络更新策略等等，支持同步、异步，支持传递神经网络权重、梯度，实现较为完善。
 
-|名字|对应类（实体）|描述|
-|----|----|----|
-|P-SGD Transfer|psgd.interfaces.ITransfer|与神经网络 Optimizer 直接互操作的接口，包含 put_weights 和 get_weights 方法|
-|ISync-SGD|psgd.interfaces.IParallelSGD|P-SGD Transfer 中的子控制器，每个 ISync-SGD 掌管着一个权重参数的分布式交互策略|
-|Async-SGD|psgd.asgd.AsynchronizedSGD|ISync-SGD 的一个实现，使用异步策略执行节点之间的数据更新|
+### codec使用样例
 
-### 文献
-　　关于 Async-SGD 的其他细节，请参考文献：  
-　　Recht, Benjamin and Re, Christopher and Wright, Stephen and Feng Niu. Hogwild: A Lock-Free Approach to Parallelizing Stochastic Gradient Descent. Advances in Neural Information Processing Systems (NIPS). Curran Associates, Inc. 2011.
+#### 1. Parameter server
+> 参数服务器结构是传统机器学习的经典结构，要实现这种结构需要分别实现Client codec和Server codec，下面将简单介绍这种结构的fedavg实现。
 
-### Warning
+##### 1.1 Server
 
-　　**注意**：本测试器只测试类的完整性，并不会测试编码过程的统计有效性，您需要使用数学证明来确认您的编码过程是完整有效的。
-
-## 接口
-
-　　编码控制器继承自 codec.interfaces.ICommunication_Ctrl 抽象类，当需要创建新的编码控制器时，需要继承自抽象类，抽象类负责了参数提交与更新的判断。P-SGD Transfer保证了对编码器的调用是串行化的，所以无需在编码控制器中考虑并行因素的影响。  
-　　运行以下代码导入编码控制器抽象。
-
-```python
-from codec.interfaces import Codec
-```
-
-## 参数
-
-　　编码控制器总是需要接受一个 node_id 来创建，当需要创建编码控制器时，P-SGD Transfer 会创建编码控制器并给一个 node_id 的参数，代表了当前节点在集群中的唯一识别编号。  
+参数服务器只需要实现`receive_blocks`即可，其他方法可以按照需求进行编写，不需要实现的函数使用pass略过，每当参数服务器接收到新的参数就会触发该方法，content的结构由发送者确定，这里采用典型的[0]存储发送这node_id，[1]存储网络参数的方式。
 
 ```python
-from codec.interfaces import Codec
-
-class MyComCtrl(Codec):
+class FedAvgServer(Codec):
 
     def __init__(self, node_id):
-        super().__init__(node_id)
-```
+        Codec.__init__(self, node_id)
+        # 用于临时存储接到的参数
+        self.Bak_Weights_Node: Dict[int, Union[ndarray, float]] = {}
 
-## 处理资源释放
-
-　　当 P-SGD Transfer 终止一个编码控制器的生命周期时，调用 dispose() 接口执行释放，需要在您的类中实现该接口以正确配置资源释放。
-
-```python
-from codec.interfaces import Codec
-
-class MyComCtrl(Codec):
-
-    def __init__(self, node_id):
-        super().__init__(node_id)
-    
     def dispose(self):
-        print('my communication controller is disposed.')
+        self.Bak_Weights_Node.clear()
+
+    def update_blocks(self, block_weight: BlockWeight) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+        """
+            PA Server Cannot update blocks!
+        :param block_weight:
+        :return:
+        """
+        pass
+
+    def receive_blocks(self, content: Tuple[int, ndarray]) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+        """
+            PA Server receive a json_dict and send back a request
+        :param content:
+        :return:
+        """
+        # update global current state
+        self.Bak_Weights_Node[content[0]] = content[1]
+        # 参数服务器需要收齐才进行整体的更新，分发新模型
+        if len(self.Bak_Weights_Node) == GlobalSettings.get_default().node_count:
+            global_weight = np.mean(list(self.Bak_Weights_Node.values()), axis=0)
+            self.dispose()
+            return netEncapsulation(GlobalSettings.get_default().nodes, (Parameter_Server, global_weight))
+
 ```
 
-## 处理数据
+##### 1.2 Worker
 
-　　现在我们已经配置好了对象的构造与释放方法，下面就可以实现核心内容了，即如何处理数据。发送给编码控制器的数据总是有两个来源，一个是由本机提交，另一个是从其他计算节点获取，分别对应两个接口：update_blocks(self, block_weight) 和 receive_blocks(self, json_dict)。  
+工作节点需要实现`update_blocks`、`receive_blocks`即可，其他方法可以按照需求进行编写，不需要实现的函数使用pass略过，`receive_blocks`可以参考上面的Server的实现，`update_blocks`用于发送自身更新的梯度，注意下面的例子因为是联邦学习，所以工作节点训练了大约2个epoch才进行发送梯度到参数服务器。
 
-### 数据的提交
-
-　　当本机提交计算完成的权重时，P-SGD Transfer 会将事件转发给对应层的编码控制器，其中 block_weight 是 codec.essential.Block_Weight 的对象，保存了本机能够获取到的与该参数关联的信息。其中有：  
-
-| 成员 | 类型 | 注释 |
-| ---- | ---- | ---- |
-|content|int| 权重参数的内容 |
-|block_id|int| 标明该权重参数是模型训练编号为 block_id 的样本后生成的 |
-
-**注意**：block_id 仅指模型刚刚获取了编号为 block_id 的样本进行了训练，并不代表该参数完全由编号为 block_id 的样本生成，仅仅代指生成该参数之前最后一个训练的样本。  
-
-　　下面的代码接收了梯度平均化方法的参数提交：  
 ```python
-from codec.interfaces import Codec
-from codec.essential import BlockWeight
-
-class MyComCtrl(Codec):
+class FedAvgServer(Codec):
 
     def __init__(self, node_id):
-        super().__init__(node_id)
-    
+        Codec.__init__(self, node_id)
+        # 用于临时存储接到的参数
+        self.Bak_Weights_Node: Dict[int, Union[ndarray, float]] = {}
+
     def dispose(self):
-        print('my communication controller is disposed.')
+        self.Bak_Weights_Node.clear()
 
-    def update_blocks(self, block_weight:BlockWeight):
-        print('Weights delta received.')
-        print('from block: {}'.format(block_weight.block_id))
-        print('has content: {}'.format(block_weight.content))
+    def update_blocks(self, block_weight: BlockWeight) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+        """
+            PA Server Cannot update blocks!
+        :param block_weight:
+        :return:
+        """
+        pass
+
+    def receive_blocks(self, content: Tuple[int, ndarray]) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+        """
+            PA Server receive a json_dict and send back a request
+        :param content:
+        :return:
+        """
+        # update global current state
+        self.Bak_Weights_Node[content[0]] = content[1]
+        # 参数服务器需要收齐才进行整体的更新，分发新模型
+        if len(self.Bak_Weights_Node) == GlobalSettings.get_default().node_count:
+            global_weight = np.mean(list(self.Bak_Weights_Node.values()), axis=0)
+            self.dispose()
+            return netEncapsulation(GlobalSettings.get_default().nodes, (Parameter_Server, global_weight))
+
 ```
-**注意**：使用 self.record(message: str) 方法记录信息，这些信息会被回馈给 Coordinator，直接调用 print() 打印的数据仅在 Worker 上显示，不会回传至 Coordinator。  
-
-　　当您需要将数据发送到网络上时，您需要几个特别的参数。首先，您需要知道您的数据要送给哪些节点。要获取全局已申请的节点编号，调用以下代码：  
-```python
-from codec import GlobalSettings
-
-print('Workers in current job: {}'.format(GlobalSettings.get_default().nodes))
-```
- 
-　　要将您的数据返回给 P-SGD Transfer 处理，您还需要将其封装成 netEncapsulation 对象。依照梯度平均化编码控制器的任务提交逻辑，应当将本节点计算所得的梯度传输给参数服务器或其他没有该数据的执行节点，我们先实现一个无参数服务器的简单模型，代码如下：  
+#### 2. Peer to peer
+> P2P是另一种经典的分布式结构，不需要server，只需要实现worker即可。
 
 ```python
-from codec import GlobalSettings
-from codec.interfaces import Codec
-from codec.essential import BlockWeight
-from codec.interfaces import netEncapsulation
-
-class MyComCtrl(Codec):
+class Plain(Codec):
 
     def __init__(self, node_id):
-        super().__init__(node_id)
-    
-    def dispose(self):
-        print('my communication controller is disposed.')
 
-    def update_blocks(self, block_weight:BlockWeight):
-        print('Weights delta received.')
-        print('from block: {}'.format(block_weight.block_id))
-        print('has content: {}'.format(block_weight.content))
-        
+        super().__init__(node_id)
+        self.BlockWeights: Dict[int, ndarray] = dict()
+
+    def dispose(self):
+        """
+            Dispose this object
+        :return: None
+        """
+        self.BlockWeights.clear()
+
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[Tuple[int, ndarray]]:
+        """
+            Try collect all blocks.
+        """
+        self.BlockWeights[block_weight.block_id] = block_weight.content
+        self.check_for_combine()
         send_to = GlobalSettings.get_default().get_adversary(block_weight.block_id)
-        pkg = {
-            'data': block_weight.content
-        }
-        
-        yield netEncapsulation(send_to, pkg)
-```
-**注意**：在打包时应当发送可被序列化的 python 或 numpy 类型，不应当发送自定义类型，如果要发送自定义类型，请保证该类型是可序列化的，且对每个Worker都是可见的。   
-**注意**：update_block 和 receive_blocks 都返回迭代器对象，当有多个数据包需要发送的时候，使用 yield 逐个生成，当无数据包需要发送的时候，可以返回 None。
+        return netEncapsulation(send_to, (block_weight.block_id, block_weight.content))
 
-　　至此，我们就完成了将数据送至网络的过程，生成好数据包后，您的数据包会被 ISync-SGD获取并进行时效性编号，并交由 P-SGD Transfer 进行转发，P-SGD Transfer 获取并将数据包放置到ICommunication_Control 的发送队列，当发送连接可用时，您的数据会被序列化并发送给指定的节点。
+    def receive_blocks(self, content: Tuple[int, ndarray]) -> None:
+        """
+            Try collect all blocks.
+        """
+        self.BlockWeights[content[0]] = content[1]
+        self.check_for_combine()
 
-### 数据的接收
+    def check_for_combine(self):
 
-　　当接收到其他工作节点的数据时，P-SGD Transfer 会将事件转发给对应的编码器控制层，由 ISync-SGD 决定是否将该事件转发给编码控制器，SSGD 会将数据保留直到下一次全局更新开始时才会将数据转发给编码控制器，ASGD 则会在每次数据到达时直接将数据转发给编码控制器。选择合适的 ISync-SGD 类型，使得您的编码控制器能够有效的运作。（参考 [主页](../README.md)了解如何从参数配置 SGD-Type）  
-　　当您完成一批数据的处理时，调用 set_result 方法来提交您的结果，当神经网络端需要更新权值时，会调用 get_result 方法直接获取数据，如果获取不到数据则会进行超时计数，超过一个SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，ISync-SGD 会尝试调用编码器的do_something_to_save_yourself 方法试图恢复集群的稳定状态，当超出两个 SynchronizedSGD.INT_READ_TIMEOUT_MS 周期后，P-SGD Transfer 就会报告超时错误，与集群的连接就会断开。  
-　　当有消息需要处理时，P-SGD Transfer 会调用 receive_blocks 方法，实现该方法并与您的 update_blocks 匹配，就可以完成一次任务的转发。要注意的是，节点不一定会在接收消息的时候完成参数的归一，可能会有其他比较快的计算节点抢先完成计算，本节点在自己计算完成并提交之后才完成参数的归一，因此我们要在参数提交和参数接收两个方法中都定义归一操作。利用全局节点总数来判断我们是否需要进行梯度平均化操作，实现如下：  
-```python
-from codec import GlobalSettings
-from codec.interfaces import Codec
-from codec.essential import BlockWeight
-from codec.interfaces import netEncapsulation
+        if len(self.BlockWeights) < GlobalSettings.get_default().block_count:
+            return
 
+        res = 0
+        for val in self.BlockWeights.values():
+            res += val
+        self.set_result(res / len(self.BlockWeights))
+        self.BlockWeights.clear()
 
-class MyComCtrl(Codec):
-
-    def __init__(self, node_id):
-        super().__init__(node_id)
-        # 保存并记录当前批次已经收到了多少份结果
-        self.__global_weights = 0
-        self.__current_recv = 0
-
-    def __do_grad_average(self):
-        how_much_nodes = GlobalSettings.get_default().node_count
-        if self.__current_recv == how_much_nodes:
-            # 执行梯度平均
-            self.set_result(self.__global_weights / how_much_nodes)
-            # 重设梯度值，等待下一批次的循环
-            self.__global_weights = 0
-            self.__current_recv = 0
-```
-**注意**：*set_result()* 方法调用时会将结果累加起来，本次调用传入的值会和上次剩余的值累加，而不是覆盖。  
-
-
-　　如果当前的节点工作的比其他节点快，那么当前节点就会在接收到其他节点发来的消息时完成梯度平均化，如果当前的节点工作的比其他节点慢，那么当前节点需要在完成本地更新之后完成梯度平均化。因此我们在 update_blocks 方法和 receive_blocks 方法中都调用了梯度平均化判断。  
-　　完整的代码如下：
-
-```python
-from codec import GlobalSettings
-from codec.interfaces import Codec
-from codec.essential import BlockWeight
-from codec.interfaces import netEncapsulation
-
-
-class MyComCtrl(Codec):
-
-    def __init__(self, node_id):
-        super().__init__(node_id)
-        # 保存并记录当前批次已经收到了多少份结果
-        self.__global_weights = 0
-        self.__current_recv = 0
-    
-    def dispose(self):
-        print('my communication controller is disposed.')
-
-    def update_blocks(self, block_weight:BlockWeight):
-        print('Weights delta received.')
-        print('from block: {}'.format(block_weight.block_id))
-        print('It has a content with shape: {}'.format(block_weight.content.shape))
-        
-        # 获取没有该数据的节点
-        send_to = GlobalSettings.get_default().get_adversary(block_weight.block_id)
-        # 我们使用 'data' 字符串来标记我们的梯度内容
-        pkg = {
-            'data': block_weight.content
-        }
-        # 记录本机梯度
-        self.__global_weights += block_weight.content
-        self.__current_recv += 1
-        # 检查是否接受完所有数据
-        self.__do_grad_average()
-        # 发送梯度
-        yield netEncapsulation(send_to, pkg)
-
-    def receive_blocks(self, json_dict:dict):
-        print('I have received an package.')
-        print('It has a content with shape: {}'.format(json_dict['data'].shape))
-        # 我们使用上述定义的 'data' 字符串获取我们更新的梯度内容
-        self.__global_weights += json_dict['data']
-        # 记录已经接收到多少个梯度了
-        self.__current_recv += 1
-        # 检查是否接受完所有数据
-        self.__do_grad_average()
-        
-    def __do_grad_average(self):
-        how_much_nodes = GlobalSettings.get_default().node_count
-        if self.__current_recv == how_much_nodes:
-            # 执行梯度平均
-            self.set_result(self.__global_weights / how_much_nodes)
-            # 重设梯度值，等待下一批次的循环
-            self.__global_weights = 0
-            self.__current_recv = 0
 ```
 
-**注意**：在 Async-SGD 执行模式下，数据的产生与接收是异步的，update_blocks 与 receive_blocks方法可能会同时被不同的线程调用，需要额外考虑数据的线程安全性。  
-**注意**：receive_blocks 方法中同样可以使用 yield netEncapsulation() 来发送数据，您可以借助这种形式实现数据包的二次加工和转发。
-
-
-## 调试
+### 调试
 
 　　完成了编码控制器的编写后，我们需要对编码控制器进行 DEBUG，直接将其放入分布式集群进行测试肯定不是一个好的选择。codec.test_codec 中提供了不同类型的自动化测试脚本，在上述教程中我们编写了一个梯度平均化编码控制器，且不使用参数服务器，那么现在使用codec.test_codec.p2p_test_script.py 执行一下编码控制器的测试。  
 　　找到测试脚本的第 11-22 行，用我们编写的编码控制器替换掉原有的配置，使用您的IDE进行DEBUG 或 RUN 该脚本，如果未出现错误，则证明该编码控制器在同步环境下是可用的。（注意：异步环境下的线程安全性问题比较隐蔽且难以探查，需要异步编码控制器时您应当反复检查其线程安全性，不安全的代码可能会导致意想不到的效果）  
@@ -255,23 +175,27 @@ ASSIGNMENTS = DuplicateAssignment
 # more codes below ......
 ```
 
-## 部署
+### 部署
 
-### 部署 Worker
+#### 1. 部署 Worker
 　　当调试完成且没有错误时，我们就可以将编码控制器部署至集群正式运行了。在可以直接互相访问的计算机上启动我们的Worker。执行以下语句：  
 ```shell script
 python worker.py
 ```
-### 配置 Cluster
+#### 2. 配置 Cluster
 　　记录这些Worker在同一网段内的ip地址，写入一个worker.json。假设我们的ip配置如下：
 ```json
-[
-  ["Worker", "192.168.1.2"],
-  ["Worker", "192.168.1.3"]
-]
+{
+  "PS": "192.168.128.1",
+  "Worker": [
+    "192.168.128.121",
+    "192.168.1.159"
+  ]
+}
 ```
 　　通过上述配置，我们将ip为*192.168.1.2*和*192.168.1.3*两台计算机配置为Worker节点。
-### 提交任务
+　　
+#### 3. 提交任务
 　　将 *worker.json* 和 *job_submit.py* 放置到同一个目录，使用以下命令以默认数据集（MNIST数据集）和网络结构（Multi-Layer Perceptron）启动我们的训练集群。（假设我们新建的编码控制器在目录 *./codec/tutorial_codec.py* 中）
 　　
 ```shell script
@@ -316,24 +240,55 @@ INFO User Submit@16:54:49 : Restoring data (./tmp_log/Training log @ node-1_16-5
 Connection with worker (id: 0, address: ('192.168.1.2', 15387)) has been lost.
 Connection with worker (id: 1, address: ('192.168.1.3', 15387)) has been lost. 
 ```
+### API
 
-## 其他
-　　关于分配策略（IBlockAssignment）的详情，请参阅 [分配策略](../profiles/blockassignment/README.md)。
+#### 1. BlockWeight
 
-　　编码控制器仅需要控制一层网络的权重交互，P-SGD Worker 在初始化运行环境之前会为每个神经网络层的每个参数创建一个编码控制器，P-SGD Transfer 会保证每个编码控制器接收到的权重总是来自同一个神经网络层（无论这段数据是来源于本机还是其他 Worker，P-SGD Transfer总是保证将其转发给唯一的编码控制器）。  
-　　通过更改每个节点发送数据的目的地，可以实现改变整个P-SGD网络的通信模式。通过对通信过程中的数据包进行编解码操作，可以改变数据传输的编码形式。无论是在接收数据还是在发送数据，框架都会检查ICommunication_Ctrl是否有需要传递的数据，因此可以实现节点对数据的路由和转发，进而实现P-SGD下的SDN网络，进一步提高实验的灵活性。  
-　　基于编码控制器的数据管控和目标定向功能，可以实现类似通信链路协议和SDN网络两层功能。  
-　　在数据控制方面，可以实现：
-* 数据压缩  
-![Data Compression](../.readme/data_compress.png)
-* 数据加密  
-![Data Encryption](../.readme/data_encrypt.png)
+> BlockWeight是本项目传递消息的封装结构,其中content是一个列表，通常情况下存储该包发送的node_id,以及要发送的梯度。
 
-　　在SDN角度，可以实现：
-* 数据转发  
-![Data Forward](../.readme/sdn_forward.png)
-* 数据选择  
-![Selective Connection](../.readme/sdn_select.png)
-* 数据阻塞  
-![Blocking Connection](../.readme/sdn_block.png)
+```python
+class BlockWeight:
+    """
+        Weights calculated using one block
+    """
+
+    def __init__(self, content: ndarray, block_id: int):
+        self.block_id = block_id
+        self.content = content
+```
+
+### 2.Synchronized & asynchronous
+
+**注意**：在 Async-SGD 执行模式下，数据的产生与接收是异步的，update_blocks 与 receive_blocks方法可能会同时被不同的线程调用，需要额外考虑数据的线程安全性。  
+**注意**：receive_blocks 方法中同样可以使用 yield netEncapsulation() 来发送数据，您可以借助这种形式实现数据包的二次加工和转发。
+
+### 3. netEncapsulation
+
+> 该类用来包裹要发送的数据，第一个参数用来指定发送的接收者，第二个参数用来发送自定义的数据，一般情况下封装自身node_id以及要发送的参数。
+
+```python
+def __init__(self, send_to_who: Union[Iterable[int], int], content: T):
+    ...
+```
+### 4. set_result
+
+> 该方法用于更新自身操作，如果是同步的调用的话，每一轮计算后都需要执行一次set_result,set_result的方法定义如下，可以看到如果里面已经有值，就直接做一个相加，如果需要其他更复杂的逻辑，可以传入一个lambda表达式。
+
+```python
+def set_result(self, content: ndarray, operation: Callable[[ndarray, ndarray], ndarray] = None):
+    """
+            Do some operations on current data.
+        :param content: content used to modify
+        :param operation: modify operation. Callable object, obtain the old result and content,
+                          and returns a newer object.
+                          def func(old_result: ndarray, new_content: ndarray) -> ndarray: # returns new result
+        :return: None
+        """
+    if operation is None:
+        def operation(x: ndarray, y: ndarray) -> ndarray: return x + y
+
+        with self.__rw_lock:
+            tmp = self.__updated_weight_buffer
+            self.__updated_weight_buffer = operation(tmp if tmp is not None else np.asarray(0.0), content)
+```
 
