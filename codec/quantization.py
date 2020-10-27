@@ -31,7 +31,9 @@ def stochastic_quantization(arr: np.ndarray, space: list):
     :param space: quantization space.
     :return: the base vector or quantized array.
     """
-    _floor = np.floor(deterministic_quantization(arr, space))
+    arr[arr > space[-1]] = space[-1]
+    arr[arr < space[0]] = space[0]
+    _floor = np.floor(arr)
     _rand = np.random.uniform(low=0.0, high=1.0, size=_floor.shape)
 
     return (_floor + _rand < arr).astype('int') + _floor

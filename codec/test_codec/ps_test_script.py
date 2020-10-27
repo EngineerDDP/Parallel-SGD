@@ -22,11 +22,11 @@ from utils.constants import Parameter_Server
 """
     ---------------DEFINE HERE---------------
 """
-from codec.naive_ps import PSClient, GradDiffPS
+from codec.quantization import QuantizedClient, QuantizedParaServer
 
 # Type
-SLAVE_CODEC = PSClient
-MASTER_CODEC = GradDiffPS
+SLAVE_CODEC = QuantizedClient
+MASTER_CODEC = QuantizedParaServer
 """
     ---------------DEFINE HERE---------------
 """
@@ -51,7 +51,7 @@ for i in range(TEST_ROUNDS):
     node_id = 0
     for slave in slave_codec:
         # get random
-        arr = np.random.random(size=WEIGHTS_SHAPE)
+        arr = np.random.normal(size=WEIGHTS_SHAPE)
         # build BlockWeight
         block_weight = BlockWeight(content=arr, block_id=node_id)
         # send consensus package
