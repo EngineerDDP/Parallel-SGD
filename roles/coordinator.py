@@ -1,5 +1,6 @@
-from typing import Iterable, Callable, Dict
+from typing import Iterable, Callable, Dict, Type
 
+from executor.interface import IExecutor
 from models import *
 
 from network.interfaces import ICommunication_Controller
@@ -107,7 +108,7 @@ class Coordinator:
         self.__log.log_message("All task is complete.")
         return results
 
-    def submit_group(self, worker_executor: type, working_group: Iterable[int] = None, package_size: int = 1e9):
+    def submit_group(self, worker_executor: Type[IExecutor], working_group: Iterable[int] = None, package_size: int = 1e9):
         """
             Submit a job to a specified worker group.
             Nodes inside this group will wait for each other and synchronize start time.
@@ -133,7 +134,7 @@ class Coordinator:
         self.__group_allocated = self.__group_allocated | working_group
         self.__log.log_message("Group submission complete ({}).".format(working_group))
 
-    def submit_single(self, worker_executor: type, worker_id: int, package_size: int = 1e9):
+    def submit_single(self, worker_executor: Type[IExecutor], worker_id: int, package_size: int = 1e9):
         """
             Submit a job to a specified node.
             This global node will start execution immediately when itself was ready.
