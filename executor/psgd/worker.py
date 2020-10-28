@@ -121,6 +121,7 @@ class PSGDWorkerExecutor(AbsExecutor):
 
         evaluation_history = []
         title = []
+        r = {}
         # do until reach the target accuracy
         for i in range(self.__misc.epoch):
             # change title
@@ -172,6 +173,9 @@ class PSGDWorkerExecutor(AbsExecutor):
         # dispose
         self.__model.clear()
         del train_x, train_y, test_x, test_y
+
+        # return last evaluation result
+        return r
 
     def trace_files(self) -> list:
         return self.__trace_filename

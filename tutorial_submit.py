@@ -25,12 +25,11 @@ class WordCount(AbsSimpleExecutor):
     def ready(self) -> bool:
         return self.__data is not None
 
-    def run(self, com: ICommunication_Controller) -> None:
+    def run(self, com: ICommunication_Controller) -> object:
         cnt = dict()
         for line in self.__data:
             cnt[line] = cnt.get(line, 0) + 1
-        with open("result.txt", 'w') as file:
-            file.write(str(len(cnt)))
+        return len(cnt)
 
     def trace_files(self) -> list:
         return ["result.txt"]
@@ -60,4 +59,6 @@ if __name__ == '__main__':
         # 分发数据
         master.resources_dispatch(lambda x, y: ReplyPackage(lines))
         # 等待执行完成
-        master.join()
+        cnt = master.join()
+
+        print(cnt)

@@ -156,4 +156,4 @@ class ParallelSGD:
             coordinator.submit_group(PSGDWorkerExecutor, assignment.nodes, self.__data.estimate_size())
 
             coordinator.resources_dispatch(lambda _id, x: replies[x])
-            coordinator.join()
+            return coordinator.join()
