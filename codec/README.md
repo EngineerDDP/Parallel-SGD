@@ -31,6 +31,17 @@
 参数服务器只需要实现`receive_blocks`即可，其他方法可以按照需求进行编写，不需要实现的函数使用pass略过，每当参数服务器接收到新的参数就会触发该方法，content的结构由发送者确定，这里采用典型的[0]存储发送这node_id，[1]存储网络参数的方式。
 
 ```python
+import numpy as np
+
+from numpy import ndarray
+from typing import Tuple, Dict, Union, Iterable
+
+from codec import GlobalSettings
+from codec.interfaces import Codec, netEncapsulation
+from codec.essential import BlockWeight
+from utils.constants import Parameter_Server
+
+
 class FedAvgServer(Codec):
 
     def __init__(self, node_id):
@@ -70,43 +81,47 @@ class FedAvgServer(Codec):
 工作节点需要实现`update_blocks`、`receive_blocks`即可，其他方法可以按照需求进行编写，不需要实现的函数使用pass略过，`receive_blocks`可以参考上面的Server的实现，`update_blocks`用于发送自身更新的梯度，注意下面的例子因为是联邦学习，所以工作节点训练了大约2个epoch才进行发送梯度到参数服务器。
 
 ```python
-class FedAvgServer(Codec):
+from numpy import ndarray
+from typing import Union, Iterable, Tuple
+
+from codec.interfaces import Codec, netEncapsulation
+from codec.essential import BlockWeight
+from utils.constants import Parameter_Server
+
+
+class FedAvgClient(Codec):
 
     def __init__(self, node_id):
         Codec.__init__(self, node_id)
-        # 用于临时存储接到的参数
-        self.Bak_Weights_Node: Dict[int, Union[ndarray, float]] = {}
+        self.__local_turn = 0
+        self.__TURN = 150
 
     def dispose(self):
-        self.Bak_Weights_Node.clear()
-
-    def update_blocks(self, block_weight: BlockWeight) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
-        """
-            PA Server Cannot update blocks!
-        :param block_weight:
-        :return:
-        """
         pass
 
-    def receive_blocks(self, content: Tuple[int, ndarray]) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
-        """
-            PA Server receive a json_dict and send back a request
-        :param content:
-        :return:
-        """
-        # update global current state
-        self.Bak_Weights_Node[content[0]] = content[1]
-        # 参数服务器需要收齐才进行整体的更新，分发新模型
-        if len(self.Bak_Weights_Node) == GlobalSettings.get_default().node_count:
-            global_weight = np.mean(list(self.Bak_Weights_Node.values()), axis=0)
-            self.dispose()
-            return netEncapsulation(GlobalSettings.get_default().nodes, (Parameter_Server, global_weight))
+    def update_blocks(self, block_weight: BlockWeight) -> Union[Iterable[netEncapsulation], netEncapsulation, None]:
+        self.__local_turn += 1
+        if self.__local_turn >= self.__TURN:
+            return netEncapsulation(Parameter_Server, (self.node_id, block_weight.content))
+        else:
+            self.set_result(block_weight.content)
 
+    def receive_blocks(self, content: Tuple[int, ndarray]) -> None:
+        self.__local_turn = 0
+        self.set_result(content[1])
 ```
 #### 2. Peer to peer
 > P2P是另一种经典的分布式结构，不需要server，只需要实现worker即可。
 
 ```python
+from typing import Dict, Tuple
+from numpy import ndarray
+
+from codec import GlobalSettings
+from codec.essential import BlockWeight
+from codec.interfaces import Codec, netEncapsulation
+
+
 class Plain(Codec):
 
     def __init__(self, node_id):
@@ -203,7 +218,7 @@ python job_submit.py --codec tutorial_codec.myComCtrl --node_count 2
 ```
 　　至此，我们已经成功提交myComCtrl至集群上运行了。job_submit不会实时展示结果，要实时查看结果，可以查看worker端的控制台或worker端的log文件（在./tmp_log/目录下），当任务执行完成后，job_submit会取回log文件和训练记录csv文件，csv文件保存在根目录，log文件保存在 ./tmp_log/ 目录。  
 **注意**：您需要及时收集训练信息，未收集的训练信息可能会被覆盖。  
-　　执行后的输出如下所示，您也可以在 ./tmp_log/ 文件夹下找到前缀为 User Submit 的log记录。
+　　执行后的输出如下所示，您也可以在 ./tmp_log/ 文件夹下找到前缀为 P-SGD Submit 的log记录。
 ```shell script
 INFO User Submit@16:53:29 : 	 --node_count <node count 2>
 INFO User Submit@16:53:29 : 	 --batch_size <batch size 64>
