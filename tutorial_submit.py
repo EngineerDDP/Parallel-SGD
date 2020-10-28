@@ -103,7 +103,7 @@ if __name__ == '__main__':
         # 如果需要 "Words" 则返回
         if request == "Words":
             # 返回值需要匹配 IReplyPackage 接口，可以自定义类型。在自定义类型时，
-            # 定义放在 Executor 上面，实现 IReplyPackage 接口。
+            # 定义放在 .py 文件的其他声明的之前，实现 IReplyPackage 接口。
             # 不需要自定义类型时，可以使用默认的 ReplyPackage 类，该类实现了
             # IReplyPackage 接口。
             return ReplyPackage(lines)
