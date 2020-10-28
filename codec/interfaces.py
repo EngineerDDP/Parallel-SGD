@@ -35,6 +35,8 @@ class netEncapsulation(Generic[T]):
             self.__target = [send_to_who]
         elif isinstance(send_to_who, set):
             self.__target = list(send_to_who)
+        elif isinstance(send_to_who, tuple):
+            self.__target = list(send_to_who)
         else:
             raise InvalidArguments("Send to an unidentified node: {}".format(send_to_who), netEncapsulation)
         if isinstance(content, object):
