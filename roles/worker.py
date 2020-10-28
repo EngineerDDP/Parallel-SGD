@@ -1,13 +1,14 @@
 import time
 
 from executor.abstract import AbsExecutor
+from executor.interface import IExecutor
 
 from models import *
 
 from network.communications import get_repr
 from network import ICommunication_Controller, Serve
 
-from utils.constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec
+from utils.constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec, VERSION
 from utils.log import Logger
 
 
@@ -15,8 +16,8 @@ class Worker:
 
     def __init__(self):
         self.client_logger = Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
-        self.client_logger.log_message('Working started and ready for job submission.')
-        self.__job_executor = None
+        self.client_logger.log_message('Worker version: {}.'.format(VERSION))
+        self.__job_executor: [IExecutor] = None
 
     def slave_forever(self):
         # set up listening port
@@ -66,6 +67,7 @@ class Worker:
         :param com:
         :return:
         """
+        results = None
         try:
             id_from = com.Node_Id
             req = None
@@ -75,7 +77,7 @@ class Worker:
             if isinstance(req, SubmitJob):
                 self.client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
-                    self.do_training(com)
+                    results = self.do_training(com)
 
             if isinstance(req, RequestWorkingLog):
                 self.client_logger.log_message('ACK logfile reclaim.')
@@ -90,11 +92,12 @@ class Worker:
             self.client_logger.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
             # print DEBUG message
 
-        self.post_log(com)
+        self.post_log(com, results)
 
-    def post_log(self, com: ICommunication_Controller):
+    def post_log(self, com: ICommunication_Controller, other_contents: object):
         """
             Post worker log file to coordinator.
+        :param other_contents: other content can be attached
         :param com:
         :return:
         """
@@ -104,7 +107,7 @@ class Worker:
                 posting_files.append(filename)
 
         # Post files
-        com.send_one(Initialization_Server, DoneType(com.Node_Id, posting_files))
+        com.send_one(Initialization_Server, DoneType(com.Node_Id, posting_files, other_contents))
 
     def initialize(self, com: ICommunication_Controller, job_info: SubmitJob) -> bool:
         """
@@ -122,6 +125,8 @@ class Worker:
 
         self.__job_executor: AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
 
+        # Report Version
+        com.send_one(Initialization_Server, Version(node_id=com.Node_Id))
         # Acknowledge requests
         requests = self.__job_executor.requests()
         replies = []
@@ -195,16 +200,18 @@ class Worker:
             if isinstance(data, ReadyType):
                 ready_state = ready_state | data.current_ready()
 
-    def do_training(self, com: ICommunication_Controller):
+    def do_training(self, com: ICommunication_Controller) -> object:
         """
             Execute job.
         """
         self.client_logger.log_message('Execution process started.')
         begin = time.time()
-        self.__job_executor.start(com)
+        result = self.__job_executor.start(com)
         end = time.time()
 
         self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))
-        self.client_logger.log_message('Training stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
-        self.client_logger.log_message('Training stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
+        self.client_logger.log_message('Execution stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
+        self.client_logger.log_message('Execution stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
         self.client_logger.log_message('Execution process exited.')
+
+        return result

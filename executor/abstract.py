@@ -35,7 +35,7 @@ class AbsExecutor(IExecutor, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def start(self, com: ICommunication_Controller) -> None:
+    def start(self, com: ICommunication_Controller) -> object:
         """
             Do the job.
         """
@@ -81,12 +81,13 @@ class AbsSimpleExecutor(AbsExecutor):
     def done(self) -> bool:
         return self.__done
 
-    def start(self, com: ICommunication_Controller) -> None:
-        self.run(com)
+    def start(self, com: ICommunication_Controller) -> object:
+        result = self.run(com)
         self.__done = True
+        return result
 
     @abstractmethod
-    def run(self, com: ICommunication_Controller) -> None:
+    def run(self, com: ICommunication_Controller) -> object:
         pass
 
     @abstractmethod

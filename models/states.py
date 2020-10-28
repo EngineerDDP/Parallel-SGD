@@ -1,3 +1,5 @@
+from typing import List
+
 from models.binary_file import BinaryFilePackage
 from models.interface import IReplyPackage
 
@@ -13,15 +15,20 @@ class ReadyType:
 
 class DoneType(IReplyPackage):
 
-    def __init__(self, node_id, posted_files):
+    def __init__(self, node_id: int, posted_files: List[str], returns: object = None):
         self.__node_id = node_id
         self.__header = "./Node-{}-Retrieve/".format(node_id)
         self.__contents = [BinaryFilePackage(f) for f in posted_files]
+        self.__returns = returns
 
     def restore(self) -> None:
         for bf in self.__contents:
             bf.filename = self.__header + bf.filename
             bf.restore()
+
+    @property
+    def result(self):
+        return self.__returns
 
     @property
     def file_list(self):

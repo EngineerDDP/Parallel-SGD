@@ -1,9 +1,10 @@
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Dict
 
 from models import *
 
 from network.interfaces import ICommunication_Controller
 from utils.log import IPrinter, Logger
+from utils.constants import VERSION, Initialization_Server
 
 
 class Coordinator:
@@ -23,6 +24,7 @@ class Coordinator:
         self.__estimate_bandwidth = estimate_bandwidth
         self.__group_allocated = set()
         self.__global_allocated = set()
+        self.__log.log_message("Coordinator version: {}.".format(VERSION))
 
     @property
     def allocated_nodes(self):
@@ -59,6 +61,11 @@ class Coordinator:
                     node_ready.add(id_from)
                     self.__log.log_message('Node({}) is ready, {} is ready.'.format(id_from, node_ready))
 
+                elif isinstance(data, Version):
+                    reply = Version(Initialization_Server)
+
+                    self.__log.log_message("{}".format(data))
+
                 self.__com.send_one(id_from, reply)
 
             except KeyboardInterrupt:
@@ -68,12 +75,15 @@ class Coordinator:
 
         self.__log.log_message('Dispatch complete.')
 
-    def join(self) -> None:
+    def join(self) -> Dict[int, object]:
         """
             Join all workers, wait for all task.
+            :return: Returns a dict, indicates what has been returned from executor on each worker.
         """
-        # dispatch to certain group
+        # Join all nodes.
         node_ready = set()
+        # Collect result.
+        results: Dict[int, object] = {}
 
         self.__log.log_message("Waiting for ({}) ...".format(self.allocated_nodes))
 
@@ -88,10 +98,14 @@ class Coordinator:
             if isinstance(data, DoneType):
                 file_format = "\n\t\t--> ".join([filename for filename in data.file_list])
                 self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
+
                 node_ready.add(id_from)
                 self.__log.log_message('Node({}) is done, {} is done.'.format(id_from, node_ready))
 
+                results[id_from] = data.result
+
         self.__log.log_message("All task is complete.")
+        return results
 
     def submit_group(self, worker_executor: type, working_group: Iterable[int] = None, package_size: int = 1e9):
         """
