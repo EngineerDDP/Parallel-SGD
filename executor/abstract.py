@@ -90,6 +90,5 @@ class AbsSimpleExecutor(AbsExecutor):
     def run(self, com: ICommunication_Controller) -> object:
         pass
 
-    @abstractmethod
     def trace_files(self) -> list:
-        pass
+        return []
