@@ -77,7 +77,10 @@ if __name__ == '__main__':
 
     # 添加一个ip作为Worker
     nodes = NodeAssignment()
+    # 分配 Worker 的 ID 和 IP 地址
+    # ID 为整型，不可重复
     nodes.add(101, '127.0.0.1')
+    # 请求类
     net = Request()
 
     # 增加协调者角色
@@ -89,6 +92,14 @@ if __name__ == '__main__':
 
     # 配置数据集分发逻辑
     def dispatch(node_id: int, request: object) -> ReplyPackage:
+        """
+            Dispatch 函数，本函数为最简单的实现，暂不关注Worker ID，为每个 Worker 分配
+            一样的数据，进而执行一样的操作。
+        :param node_id: 忽略掉了 node_id 参数。该参数为节点 id 信息，为 int 型。
+        :param request: 请求的类型，即 Executor 中 requests 的返回值。
+                        注意：这里 request 不是一个列表，是逐条确认的。
+        :return: 返回 IReplyPackage 类型，将有 Coordinator 回复给 Worker 并确认。
+        """
         # 如果需要 "Words" 则返回
         if request == "Words":
             # 返回值需要匹配 IReplyPackage 接口，可以自定义类型。在自定义类型时，
