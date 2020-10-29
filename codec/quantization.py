@@ -14,7 +14,8 @@ def build_quantization_space(bits: int = 2) -> Sequence[int]:
     return np.arange(min_v, max_v + 1, 1)
 
 
-q_space = build_quantization_space(3)
+q_space_client = build_quantization_space(2)
+q_space_server = build_quantization_space(2)
 
 
 def deterministic_quantization(arr: np.ndarray, space: Sequence[int]):
@@ -145,7 +146,7 @@ class QuantizedClient(Codec):
         pass
 
     def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
-        package = QuantizedPack(self.node_id, *quantize(block_weight.content, q_space))
+        package = QuantizedPack(self.node_id, *quantize(block_weight.content, q_space_client))
         return netEncapsulation(Parameter_Server, package)
 
     def receive_blocks(self, package: IPack):
@@ -202,7 +203,7 @@ class QuantizedParaServer(Codec):
 
     def receive_blocks(self, package: IPack):
         self.__global_weights -= package.content
-        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, q_space))
+        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, q_space_server))
         return netEncapsulation(package.node_id, reply)
 
 
