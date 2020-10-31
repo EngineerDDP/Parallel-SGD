@@ -14,10 +14,6 @@ def build_quantization_space(bits: int = 2) -> Sequence[int]:
     return np.arange(min_v, max_v + 1, 1)
 
 
-q_space_client = build_quantization_space(2)
-q_space_server = build_quantization_space(2)
-
-
 def deterministic_quantization(arr: np.ndarray, space: Sequence[int]):
     arr[arr > space[-1]] = space[-1]
     arr[arr < space[0]] = space[0]
@@ -139,6 +135,8 @@ class BinaryNetCodec(Codec):
 
 class QuantizedClient(Codec):
 
+    q_space = build_quantization_space(6)
+
     def __init__(self, node_id):
         super().__init__(node_id)
 
@@ -146,7 +144,39 @@ class QuantizedClient(Codec):
         pass
 
     def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
-        package = QuantizedPack(self.node_id, *quantize(block_weight.content, q_space_client))
+        package = QuantizedPack(self.node_id, *quantize(block_weight.content, QuantizedClient.q_space))
+        return netEncapsulation(Parameter_Server, package)
+
+    def receive_blocks(self, package: IPack):
+        self.set_result(package.content, lambda x, y: y)
+
+
+class LowPrecisionClient(Codec):
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+
+    def dispose(self):
+        pass
+
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[NormalPack]:
+        package = NormalPack(self.node_id, block_weight.content.astype('float16'))
+        return netEncapsulation(Parameter_Server, package)
+
+    def receive_blocks(self, package: IPack):
+        self.set_result(package.content, lambda x, y: y)
+
+
+class FullPrecisionClient(Codec):
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+
+    def dispose(self):
+        pass
+
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[NormalPack]:
+        package = NormalPack(self.node_id, block_weight.content.astype('float64'))
         return netEncapsulation(Parameter_Server, package)
 
     def receive_blocks(self, package: IPack):
@@ -191,6 +221,8 @@ class LowPrecisionParaServer(Codec):
 
 class QuantizedParaServer(Codec):
 
+    q_space = build_quantization_space(6)
+
     def __init__(self, node_id):
         super().__init__(node_id)
         self.__global_weights: np.ndarray = 0
@@ -203,7 +235,7 @@ class QuantizedParaServer(Codec):
 
     def receive_blocks(self, package: IPack):
         self.__global_weights -= package.content
-        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, q_space_server))
+        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, QuantizedParaServer.q_space))
         return netEncapsulation(package.node_id, reply)
 
 
