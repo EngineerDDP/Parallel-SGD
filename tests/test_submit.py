@@ -2,7 +2,7 @@ import time
 
 import executor.psgd as PSGD
 import nn
-from codec.quantization import QuantizedClient, QuantizedParaServer
+from codec.q_ext import QuantizedClient, QuantizedParaServer
 from dataset import MNIST
 from dataset.transforms import ImageCls, Shuffle
 
@@ -12,7 +12,7 @@ if __name__ == '__main__':
     job = PSGD.ParallelSGD(model, data=MNIST(), transform=Shuffle().add(ImageCls()))
     for i in range(1, 11):
         try:
-            nodes = PSGD.parse_worker(worker_cnt=i, ps=False)
+            nodes = PSGD.parse_worker(worker_cnt=i, ps=True)
             job.parallel(nodes, codec=QuantizedClient,
                          epoch=80,
                          op_type=nn.optimizer.GradientAveragingOptimizer,
