@@ -128,7 +128,7 @@ class DC_QSGDServer(Codec):
             self.__weights_states[package.node_id] = self.__global_weights
         elif isinstance(package, SignalPack):
             # returns Q(w_t+\tau - w_t)
-            if self.__global_weights == 0:
+            if not isinstance(self.__global_weights, np.ndarray):
                 reply = SignalPack(Parameter_Server)
             else:
                 reply = QuantizedPack(Parameter_Server,
