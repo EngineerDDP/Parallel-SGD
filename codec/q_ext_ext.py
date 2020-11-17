@@ -109,7 +109,7 @@ class DC_QSGDClient(Codec):
 
 class DC_QSGDServer(Codec):
 
-    codex = quant(build_quantization_space(3))
+    codex = quant(build_quantization_space(6))
 
     def __init__(self, node_id):
         super().__init__(node_id)
