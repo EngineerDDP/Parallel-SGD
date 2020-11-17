@@ -49,7 +49,10 @@ class NTransfer(ITransfer):
             Blocking method will wait until result is available or time limit exceed.
         """
         try:
-            return self.__type_weights_controller[var_id].require_weights(batch_no)
+            content, packages = self.__type_weights_controller[var_id].require_weights(batch_no)
+            for sender, dic in packages:
+                self.__send(sender, dic, layer_no=var_id)
+            return content
         except ReadTimeOut as e:
             if e.retry() is None:
                 self.__log.log_error('Time out while getting result, retry not available.')
@@ -57,7 +60,15 @@ class NTransfer(ITransfer):
             for sender, dic in e.retry():
                 self.__send(sender, dic, layer_no=var_id)
                 self.__log.log_error('Message retry to node {}'.format(sender))
-            return self.__type_weights_controller[var_id].require_weights(batch_no)
+
+        # second chance
+        try:
+            content, packages = self.__type_weights_controller[var_id].require_weights(batch_no)
+            for sender, dic in packages:
+                self.__send(sender, dic, layer_no=var_id)
+            return content
+        except ReadTimeOut:
+            raise TimeoutError('Time out while get weights.')
 
     def start_transfer(self, com: ICommunication_Controller,  group_offset: int, printer: IPrinter):
         """

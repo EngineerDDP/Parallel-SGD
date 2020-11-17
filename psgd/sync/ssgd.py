@@ -1,6 +1,6 @@
 import time
 from queue import Queue, Empty
-from typing import List, Set, Iterable, Union
+from typing import List, Set, Iterable, Union, Tuple
 
 from numpy import ndarray
 
@@ -42,8 +42,6 @@ class SynchronizedSGD(IParallelSGD):
         """
         self.__batch_updater: Codec = batch_updater
         self.__current_batch: int = 0
-        self.__company_list: List[Set[int]] = []
-        self.__adversary_list: List[Set[int]] = []
         self.__receive_buffer: Queue[netEncapsulation[T]] = Queue(maxsize=256)
 
     @property
@@ -58,26 +56,31 @@ class SynchronizedSGD(IParallelSGD):
         while not self.__receive_buffer.empty():
             self.__receive_buffer.get()
 
-    def update_weights(self, content: ndarray, batch_no: int, block_id: int) -> Iterable[dict]:
+    def pack_packages(self, net_packs: Union[Iterable[netEncapsulation[T]], netEncapsulation[T], None]) -> Iterable[Tuple[List[int], dict]]:
+        """
+            Pack up for transmission.
+        :param net_packs: Iterator for netEncapsulations.
+        """
+        update_packs = iterator_helper(net_packs)
+        for update_pack in update_packs:
+            sender = update_pack.target()
+            pkg = {
+                SynchronizedSGD.STR_BATCH_NO: self.__current_batch,
+                SynchronizedSGD.DATA: update_pack
+            }
+            yield (sender, pkg)
+
+    def update_weights(self, content: ndarray, batch_no: int, block_id: int) -> Iterable[Tuple[List[int], dict]]:
         """
             Update weights to the cluster.
             note: only one working process on each node.
                   there can be different working progress among each nodes.
         """
         self.__current_batch = batch_no
-
         block = BlockWeight(content, block_id)
-        update_packs = iterator_helper(self.batch_updater.update_blocks(block))
+        return self.pack_packages(self.batch_updater.update_blocks(block))
 
-        for update_pack in update_packs:
-            sender = update_pack.target()
-            pkg = {
-                SynchronizedSGD.STR_BATCH_NO: batch_no,
-                SynchronizedSGD.DATA: update_pack
-            }
-            yield (sender, pkg)
-
-    def accept_data(self, content: dict) -> [Iterable[dict]]:
+    def accept_data(self, content: dict) -> None:
         """
             Accept object and put it in the queue if the data
             is way ahead of current working progress.
@@ -88,7 +91,7 @@ class SynchronizedSGD(IParallelSGD):
         else:
             raise AsyncDetected()
 
-    def require_weights(self, batch_no: int) -> ndarray:
+    def require_weights(self, batch_no: int) -> Tuple[ndarray, Iterable[Tuple[List[int], dict]]]:
         """
             Synchronized weights combine.
             Decode all the data after required.
@@ -97,12 +100,14 @@ class SynchronizedSGD(IParallelSGD):
             raise AsyncDetected()
 
         time_out_end = time.time() + SynchronizedSGD.INT_READ_TIMEOUT_MSEC / 1000
+        send_out_ref: List[Tuple[List[int], dict]] = []
 
         while not self.batch_updater.is_done():
             # wait until more data is available
             try:
                 pkg: netEncapsulation[T] = self.__receive_buffer.get(timeout=1)
-                self.batch_updater.receive_blocks(pkg.content)
+                send_out_ref.extend(self.pack_packages(self.batch_updater.receive_blocks(pkg.content)))
+
             except Empty:
                 pass
 
@@ -111,4 +116,4 @@ class SynchronizedSGD(IParallelSGD):
                 raise ReadTimeOut(self.batch_updater.do_something_to_save_yourself)
 
         self.release_memory()
-        return self.batch_updater.get_result()
+        return self.batch_updater.get_result(), send_out_ref
