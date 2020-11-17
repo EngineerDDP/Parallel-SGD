@@ -18,7 +18,7 @@ class ADAMParameterServer(Codec):
         # save previous state for each node
         self.__bak_weights_node: Dict[int, Union[np.ndarray, float]] = {}
         # Adam optimizer
-        self.__adam = ADAMOptimizer()
+        self.__adam = ADAMOptimizer(3e-5)
 
     def dispose(self):
         pass

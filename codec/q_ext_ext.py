@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Dict
 
 import numpy as np
 
@@ -70,31 +70,51 @@ class QuantizedPack(IPack):
         return self.__node_id
 
 
-class QuantizedClient(Codec):
+class SignalPack(IPack):
+
+    def __init__(self, node_id):
+        self.__id = node_id
+
+    def decode(self, decoder):
+        return 0
+
+    @property
+    def node_id(self):
+        return self.__id
+
+
+class DC_QSGDClient(Codec):
 
     codex = quant(build_quantization_space(3))
 
     def __init__(self, node_id):
         super().__init__(node_id)
+        self.__gw_t: np.ndarray = 0
+        self.__lambda = 0.3
 
     def dispose(self):
         pass
 
-    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
-        package = QuantizedPack(self.node_id, block_weight.content, QuantizedClient.codex)
-        return netEncapsulation(Parameter_Server, package)
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[IPack]:
+        self.__gw_t = block_weight.content
+        return netEncapsulation(Parameter_Server, SignalPack(self.node_id))
 
-    def receive_blocks(self, package: IPack):
-        self.set_result(package.decode(QuantizedParaServer.codex), lambda x, y: y)
+    def receive_blocks(self, package: IPack) -> netEncapsulation[IPack]:
+        delta_w = package.decode(DC_QSGDServer.codex)
+        ggw_t = np.multiply(np.multiply(self.__gw_t, self.__gw_t), delta_w)
+        gw_t_tau = self.__gw_t + self.__lambda * ggw_t
+        self.set_result(gw_t_tau - delta_w, lambda x, y: x + y if x is not None else y)
+        return netEncapsulation(Parameter_Server, QuantizedPack(self.node_id, gw_t_tau, DC_QSGDClient.codex))
 
 
-class QuantizedParaServer(Codec):
+class DC_QSGDServer(Codec):
 
-    codex = quant(build_quantization_space(6))
+    codex = quant(build_quantization_space(3))
 
     def __init__(self, node_id):
         super().__init__(node_id)
         self.__global_weights: np.ndarray = 0
+        self.__weights_states: Dict[int, np.ndarray] = {}
 
     def dispose(self):
         pass
@@ -103,6 +123,15 @@ class QuantizedParaServer(Codec):
         pass
 
     def receive_blocks(self, package: IPack):
-        self.__global_weights -= package.decode(QuantizedClient.codex)
-        reply = QuantizedPack(Parameter_Server, self.__global_weights, QuantizedParaServer.codex)
-        return netEncapsulation(package.node_id, reply)
+        if isinstance(package, QuantizedPack):
+            self.__global_weights -= package.decode(DC_QSGDClient.codex)
+            self.__weights_states[package.node_id] = self.__global_weights
+        elif isinstance(package, SignalPack):
+            # returns Q(w_t+\tau - w_t)
+            if self.__global_weights == 0:
+                reply = SignalPack(Parameter_Server)
+            else:
+                reply = QuantizedPack(Parameter_Server,
+                                      self.__global_weights - self.__weights_states.get(package.node_id, 0),
+                                      DC_QSGDServer.codex)
+            return netEncapsulation(package.node_id, reply)

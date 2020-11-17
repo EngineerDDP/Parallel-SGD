@@ -92,7 +92,7 @@ class NormalPack(IPack):
 
     @property
     def content(self):
-        return self.__content
+        return self.__content.astype('float64')
 
     @property
     def node_id(self):
@@ -135,7 +135,7 @@ class BinaryNetCodec(Codec):
 
 class QuantizedClient(Codec):
 
-    q_space = build_quantization_space(6)
+    q_space = build_quantization_space(2)
 
     def __init__(self, node_id):
         super().__init__(node_id)
