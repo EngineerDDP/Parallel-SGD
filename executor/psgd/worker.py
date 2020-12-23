@@ -7,9 +7,8 @@ import nn
 from codec import GlobalSettings
 from dataset.interfaces import IDataset
 from executor.abstract import AbsExecutor
-from executor.psgd.net_package import IPSGDOpContainer, misc_package, Requests, Req
+from executor.psgd.net_package import IPSGDOpContainer, misc_package, Req
 from executor.psgd.net_package import net_model, net_setting
-from models import RequestPackage, IRequestPackage
 from network import ICommunication_Controller
 from nn import IModel
 from nn.data import PSGDBlockDataFeeder
@@ -61,7 +60,7 @@ class PSGDWorkerExecutor(AbsExecutor):
 
             if isinstance(obj, IDataset):
                 if not obj.check():
-                    unsatisfied.append(Requests(Req.Data_Content))
+                    unsatisfied.append(Req.Data_Content)
                 else:
                     self.__data = obj
 
