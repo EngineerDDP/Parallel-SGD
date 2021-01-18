@@ -364,3 +364,13 @@ with req.request(nodes) as com:
 ## 框架结构
 
 　　To be constructed.
+
+
+## 更新日志
+
+### 0.7
+
+#### v0.76
+
+1. 支持从 executor.psgd.submit.ParallelSGD.parallel() 函数的 codec_extra_parameters 传入参数，并从每个节点的 GlobalSettings.get_params(key: Hashable) 调出参数。
+2. 为不同的Requests设置不同的请求顺序，保证参数类在Codec之前初始化。

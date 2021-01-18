@@ -28,6 +28,7 @@ Full_Precision_Server = "FPS"
 
 
 def build_quantization_space(bits: int = 2) -> Sequence[int]:
+    bits = max(bits, 2)
     max_v = (1 << bits - 1) - 1
     min_v = -max_v
     return np.arange(min_v, max_v + 1, 1)
@@ -153,6 +154,7 @@ class BinaryNetCodec(Codec):
 
 
 class QuantizedClient(Codec):
+    codex = build_quantization_space(int(GlobalSettings.get_params(Quantization_Resolution_Client)))
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -161,8 +163,8 @@ class QuantizedClient(Codec):
         pass
 
     def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
-        package = QuantizedPack(self.node_id, *quantize(block_weight.content,
-                                                        GlobalSettings.get_params(Quantization_Resolution_Client)))
+        self.record(str(GlobalSettings.get_params(Quantization_Resolution_Client)))
+        package = QuantizedPack(self.node_id, *quantize(block_weight.content, QuantizedClient.codex))
         return netEncapsulation(Parameter_Server, package)
 
     def receive_blocks(self, package: IPack):
@@ -240,8 +242,7 @@ class LowPrecisionParaServer(Codec):
 
 
 class QuantizedParaServer(Codec):
-
-    q_space = build_quantization_space(6)
+    codex = build_quantization_space(int(GlobalSettings.get_params(Quantization_Resolution_Server)))
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -255,8 +256,8 @@ class QuantizedParaServer(Codec):
 
     def receive_blocks(self, package: IPack):
         self.__global_weights -= package.content
-        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights,
-                                                          GlobalSettings.get_params(Quantization_Resolution_Server)))
+        self.record(str(GlobalSettings.get_params(Quantization_Resolution_Server)))
+        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, QuantizedParaServer.codex))
         return netEncapsulation(package.node_id, reply)
 
 

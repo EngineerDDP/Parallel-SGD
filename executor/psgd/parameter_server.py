@@ -2,8 +2,7 @@ from time import sleep
 
 from codec import GlobalSettings
 from executor.abstract import AbsExecutor
-from executor.psgd.net_package import Req, net_setting
-from models import RequestPackage
+from executor.psgd.net_package import Req, net_setting, extra_package
 from network import ICommunication_Controller
 from psgd.interface import ITransfer
 from utils.log import Logger
@@ -19,20 +18,25 @@ class PSGDPSExecutor(AbsExecutor):
         self.__transfer: [ITransfer] = None
 
     def requests(self):
-        return [Req.Setting, Req.Transfer_PS]
+        return [Req.Setting, Req.Extra_Content]
 
     def satisfy(self, reply:list) -> list:
+        unsatisfied = []
         # check list
         for obj in reply:
 
             if isinstance(obj, net_setting):
                 GlobalSettings.deprecated_default_settings = obj.setting()
 
+            if isinstance(obj, extra_package):
+                GlobalSettings.global_parameters = obj.acquire()
+                unsatisfied.append(Req.Transfer_PS)
+
             if isinstance(obj, ITransfer):
                 self.__transfer = obj
                 self.__log.log_message('Transfer thread is ready.')
 
-        return []
+        return unsatisfied
 
     def ready(self) -> bool:
         return self.__transfer is not None \
