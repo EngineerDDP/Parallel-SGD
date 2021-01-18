@@ -370,7 +370,7 @@ with req.request(nodes) as com:
 
 ### 0.7
 
-### v0.761
+#### v0.761
 1. Worker现在会始终报告自己的版本。
 
 #### v0.76
