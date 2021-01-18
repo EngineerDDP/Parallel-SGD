@@ -163,7 +163,6 @@ class QuantizedClient(Codec):
         pass
 
     def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
-        self.record(str(GlobalSettings.get_params(Quantization_Resolution_Client)))
         package = QuantizedPack(self.node_id, *quantize(block_weight.content, QuantizedClient.codex))
         return netEncapsulation(Parameter_Server, package)
 
@@ -256,7 +255,6 @@ class QuantizedParaServer(Codec):
 
     def receive_blocks(self, package: IPack):
         self.__global_weights -= package.content
-        self.record(str(GlobalSettings.get_params(Quantization_Resolution_Server)))
         reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, QuantizedParaServer.codex))
         return netEncapsulation(package.node_id, reply)
 
