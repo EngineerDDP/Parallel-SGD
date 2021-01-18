@@ -1,21 +1,13 @@
 import time
-from typing import List, Tuple
 
 import pandas as pd
 
 import nn
 from codec import GlobalSettings
-from dataset.interfaces import IDataset
 from executor.abstract import AbsExecutor
-from executor.psgd.net_package import IPSGDOpContainer, misc_package, Req
-from executor.psgd.net_package import net_model, net_setting
-from network import ICommunication_Controller
-from nn import IModel
+from executor.psgd.net_package import *
 from nn.data import PSGDBlockDataFeeder
 from nn.model import Model
-from profiles import ISetting
-from profiles.interface import IBatchIter
-from psgd.interface import ITransfer
 from utils.log import Logger
 
 
@@ -35,7 +27,15 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__done: bool = False
 
     def requests(self) -> List[object]:
-        return [Req.Setting, Req.Model, Req.Optimizer, Req.Transfer, Req.Data_Package, Req.Other_Stuff]
+        """
+            先请求独立项，最后请求Transfer
+        """
+        return [Req.Setting,
+                Req.Model,
+                Req.Optimizer,
+                Req.Data_Package,
+                Req.Other_Stuff,
+                Req.Extra_Content]
 
     def satisfy(self, reply: list) -> list:
         unsatisfied = []
@@ -44,6 +44,10 @@ class PSGDWorkerExecutor(AbsExecutor):
 
             if isinstance(obj, net_setting):
                 GlobalSettings.deprecated_default_settings = obj.setting()
+
+            if isinstance(obj, extra_package):
+                GlobalSettings.global_parameters = obj.acquire()  # Extra package 作为 transfer 的前置条件
+                unsatisfied.append(Req.Transfer)
 
             if isinstance(obj, net_model):
                 self.__model = obj.model
@@ -85,7 +89,9 @@ class PSGDWorkerExecutor(AbsExecutor):
         status.append("Batch Iterator:{}".format("OK" if s6 else "ABSENT"))
         s7 = isinstance(GlobalSettings.deprecated_default_settings, ISetting)
         status.append("Settings:{}".format("OK" if s7 else "ABSENT"))
-        return s1 and s2 and s3 and s4 and s5 and s6 and s7, status
+        s8 = isinstance(GlobalSettings.global_parameters, dict)
+        status.append("Extra Parameters:{}".format("OK" if s8 else "ABSENT"))
+        return s1 and s2 and s3 and s4 and s5 and s6 and s7 and s8, status
 
     def done(self) -> bool:
         return self.__done

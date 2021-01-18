@@ -1,3 +1,5 @@
+from typing import Hashable, SupportsFloat, Dict
+
 from profiles import ISetting
 from utils.log import IPrinter
 
@@ -5,6 +7,7 @@ from utils.log import IPrinter
 class GlobalSettings:
     deprecated_default_settings: ISetting = None
     deprecated_global_logger: IPrinter = None
+    global_parameters: Dict[Hashable, SupportsFloat] = None
 
     @staticmethod
     def get_default() -> ISetting:
@@ -13,3 +16,10 @@ class GlobalSettings:
     @staticmethod
     def global_logger() -> IPrinter:
         return GlobalSettings.deprecated_global_logger
+
+    @staticmethod
+    def get_params(key: Hashable) -> float:
+        if GlobalSettings.global_parameters is not None:
+            return GlobalSettings.global_parameters.get(key, 0)
+        else:
+            return 0
