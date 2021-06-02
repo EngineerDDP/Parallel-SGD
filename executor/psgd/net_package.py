@@ -37,6 +37,7 @@ class Req(Enum):
     Data_Package = "Data"
     Data_Content = "Samples"
     Other_Stuff = "MISC"
+    Extra_Content = "EXTRA"
 
 
 class Requests:
@@ -212,3 +213,20 @@ class misc_package(IReplyPackage):
 
     def __repr__(self):
         return "<Net package (Other stuff)>"
+
+
+class extra_package(IReplyPackage):
+
+    def __init__(self, *params):
+        self.__extra_params = params
+        self.__i = -1
+
+    def restore(self) -> None:
+        pass
+
+    def acquire(self):
+        self.__i += 1
+        return self.__extra_params[self.__i]
+
+    def __repr__(self):
+        return "<Net extra package>"

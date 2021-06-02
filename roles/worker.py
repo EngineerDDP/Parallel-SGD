@@ -2,12 +2,9 @@ import time
 
 from executor.abstract import AbsExecutor
 from executor.interface import IExecutor
-
 from models import *
-
-from network.communications import get_repr
 from network import ICommunication_Controller, Serve
-
+from network.communications import get_repr
 from utils.constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec, VERSION
 from utils.log import Logger
 
@@ -75,6 +72,8 @@ class Worker:
                 id_from, req = Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
 
             if isinstance(req, SubmitJob):
+                # Report Version
+                com.send_one(Initialization_Server, Version(node_id=com.Node_Id))
                 self.client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
                     results = self.do_training(com)
@@ -125,8 +124,6 @@ class Worker:
 
         self.__job_executor: AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
 
-        # Report Version
-        com.send_one(Initialization_Server, Version(node_id=com.Node_Id))
         # Acknowledge requests
         requests = self.__job_executor.requests()
         replies = []

@@ -3,18 +3,35 @@ from typing import Sequence, Tuple
 
 import numpy as np
 
+from codec import GlobalSettings
 from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation
 from utils.constants import Parameter_Server
 
+"""
+    This codec requires specified parameters.
+    Listed as below:
+"""
+
+Quantization_Resolution_Client = "QC"
+Quantization_Resolution_Server = "QS"
+Low_Precision_Client = "LPC"
+Low_Precision_Server = "LPS"
+Full_Precision_Client = "FPC"
+Full_Precision_Server = "FPS"
+
+"""
+    Parameters listed above should be added to GlobalSettings.global_parameters as dict type.
+    Fill the parameter "codec_extra_parameters" while calling executor.psgd.submit.ParallelSGD.parallel()
+    with this codec.
+"""
+
 
 def build_quantization_space(bits: int = 2) -> Sequence[int]:
+    bits = max(bits, 2)
     max_v = (1 << bits - 1) - 1
     min_v = -max_v
     return np.arange(min_v, max_v + 1, 1)
-
-
-q_space = build_quantization_space(3)
 
 
 def deterministic_quantization(arr: np.ndarray, space: Sequence[int]):
@@ -52,10 +69,10 @@ def quantize(arr, space, epsilon: float = 1e-9, iterations: int = 3) -> Tuple[fl
         vector or quantized array.
     """
     a = 0.7
-    b = stochastic_quantization(arr / a, space)
+    b = deterministic_quantization(arr / a, space)
     for i in range(iterations):
         a = np.sum(np.multiply(b, arr)) / (np.sum(np.square(b)) + 1)
-        b = stochastic_quantization(arr / (a + epsilon), space)
+        b = deterministic_quantization(arr / (a + epsilon), space)
     return a, b
 
 
@@ -95,7 +112,7 @@ class NormalPack(IPack):
 
     @property
     def content(self):
-        return self.__content
+        return self.__content.astype('float64')
 
     @property
     def node_id(self):
@@ -137,6 +154,7 @@ class BinaryNetCodec(Codec):
 
 
 class QuantizedClient(Codec):
+    codex = build_quantization_space(int(GlobalSettings.get_params(Quantization_Resolution_Client)))
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -145,7 +163,40 @@ class QuantizedClient(Codec):
         pass
 
     def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[QuantizedPack]:
-        package = QuantizedPack(self.node_id, *quantize(block_weight.content, q_space))
+        package = QuantizedPack(self.node_id, *quantize(block_weight.content, QuantizedClient.codex))
+        return netEncapsulation(Parameter_Server, package)
+
+    def receive_blocks(self, package: IPack):
+        self.set_result(package.content, lambda x, y: y)
+
+
+class LowPrecisionClient(Codec):
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+
+    def dispose(self):
+        pass
+
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[NormalPack]:
+        package = NormalPack(self.node_id, block_weight.content.astype(GlobalSettings.get_params(Low_Precision_Client)))
+        return netEncapsulation(Parameter_Server, package)
+
+    def receive_blocks(self, package: IPack):
+        self.set_result(package.content, lambda x, y: y)
+
+
+class FullPrecisionClient(Codec):
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+
+    def dispose(self):
+        pass
+
+    def update_blocks(self, block_weight: BlockWeight) -> netEncapsulation[NormalPack]:
+        package = NormalPack(self.node_id,
+                             block_weight.content.astype(GlobalSettings.get_params(Full_Precision_Client)))
         return netEncapsulation(Parameter_Server, package)
 
     def receive_blocks(self, package: IPack):
@@ -184,11 +235,13 @@ class LowPrecisionParaServer(Codec):
 
     def receive_blocks(self, package: IPack):
         self.__global_weights -= package.content
-        reply = NormalPack(Parameter_Server, self.__global_weights.astype('float16'))
+        reply = NormalPack(Parameter_Server,
+                           self.__global_weights.astype(GlobalSettings.get_params(Low_Precision_Server)))
         return netEncapsulation(package.node_id, reply)
 
 
 class QuantizedParaServer(Codec):
+    codex = build_quantization_space(int(GlobalSettings.get_params(Quantization_Resolution_Server)))
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -202,7 +255,7 @@ class QuantizedParaServer(Codec):
 
     def receive_blocks(self, package: IPack):
         self.__global_weights -= package.content
-        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, q_space))
+        reply = QuantizedPack(Parameter_Server, *quantize(self.__global_weights, QuantizedParaServer.codex))
         return netEncapsulation(package.node_id, reply)
 
 

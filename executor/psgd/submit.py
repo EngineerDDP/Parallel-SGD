@@ -1,3 +1,5 @@
+from typing import Hashable, SupportsFloat
+
 from codec.dummy import DummyCodec
 from executor.psgd.net_package import *
 from executor.psgd.parameter_server import PSGDPSExecutor
@@ -51,7 +53,8 @@ class ParallelSGD:
                  ps_codec: Union[Dict[int, Type[Codec]], Type[Codec], None] = None,
                  network_bandwidth: int = 1048576,
                  mission_title: str = "P-SGD",
-                 ssgd_timeout_limit: int = 10000):
+                 ssgd_timeout_limit: int = 10000,
+                 codec_extra_parameters: Dict[Hashable, SupportsFloat] = None):
         """
             执行并行化。
         :param ssgd_timeout_limit: Sync-SGD等待超时限制，单位为毫秒，数值为整型。
@@ -85,9 +88,14 @@ class ParallelSGD:
         :param gd_params:       梯度生成器参数
         :param ps_codec:        编码器类型，实现了 codec.interface.Codec 接口的类型。
                                 用于参数服务器进行数据处理。
+        :param codec_extra_parameters:用于Codec接口识别的其他参数列表，为字典形式。该字典将会存储在每个Worker的
+                                codec.GlobalSettings.__global_parameters 参数中，Codec对象可以使用
+                                GlobalSettings.get_params(key: str) -> object 函数获取对应key的值。
         :return:
         """
         # 初始化适合的Codec
+        if codec_extra_parameters is None:
+            codec_extra_parameters = {}
         if codec is None:
             codec = dict()
         if ps_codec is None:
@@ -141,6 +149,7 @@ class ParallelSGD:
             Req.Transfer: transfer_worker,
             Req.Transfer_PS: transfer_ps,
             Req.Other_Stuff: misc,
+            Req.Extra_Content: extra_package(codec_extra_parameters),
             Req.Data_Package: data_package(self.__data, self.__transform),
             Req.Data_Content: data_content(self.__data, self.__transform)
         }

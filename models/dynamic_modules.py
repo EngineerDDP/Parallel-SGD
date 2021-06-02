@@ -1,6 +1,8 @@
 import sys
 import importlib
 
+from typing import TypeVar, Generic, Type
+
 from models.interface import IReplyPackage
 
 
@@ -9,10 +11,12 @@ _spec = importlib.util.spec_from_loader(Dynamic_Module_Name, loader=None)
 _module = importlib.util.module_from_spec(_spec)
 sys.modules[Dynamic_Module_Name] = _module
 
+T = TypeVar("T")
 
-class ClassSerializer(IReplyPackage):
 
-    def __init__(self, cls_name: type):
+class ClassSerializer(IReplyPackage, Generic[T]):
+
+    def __init__(self, cls_name: Type[T]):
         # check module
         execution_dirs = cls_name.__module__.split('.')
         # if its from __main__
@@ -31,16 +35,16 @@ class ClassSerializer(IReplyPackage):
             while line != '' and line[:26] != 'if __name__ == \'__main__\':':
                 self.__mod_content += line
                 line = file.readline()
-        self.__class_type: [type] = None
+        self.__class_type: [Type[T]] = None
 
-    def restore(self) -> type:
+    def restore(self) -> Type[T]:
         definitions = compile(self.__mod_content, self.__mod_name, "exec", optimize=2)
         exec(definitions, _module.__dict__)
         cls_type = getattr(_module, self.__class_name)
         self.__class_type = cls_type
         return cls_type
 
-    def __call__(self, *params, **kwargs):
+    def __call__(self, *params, **kwargs) -> T:
         if self.__class_type:
             return self.__class_type(*params, **kwargs)
         else:

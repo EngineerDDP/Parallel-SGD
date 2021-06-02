@@ -43,4 +43,4 @@ class AsynchronizedSGD(SynchronizedSGD):
                 yield target, pkg
 
     def require_weights(self, tag):
-        return self.batch_updater.get_result()
+        return self.batch_updater.get_result(), []

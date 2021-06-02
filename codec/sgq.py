@@ -1,15 +1,30 @@
 import numpy as np
-
 # customized module
 from utils.huffman import codec
 
-from codec.interfaces import netEncapsulation
-from codec.interfaces import Codec
+from codec import GlobalSettings
 from codec.essential import BlockWeight
-from utils.log import Logger
+from codec.interfaces import Codec
+from codec.interfaces import netEncapsulation
 from utils.constants import Parameter_Server
 
-from codec import GlobalSettings
+"""
+    This class has been deprecated.
+    Quantization with huffman encoding has much better implementations than this.
+"""
+
+"""
+    This codec requires specified parameters.
+    Listed as below:
+"""
+
+Quantization_Resolution_Client = "QC"
+
+"""
+    Parameters listed above should be added to GlobalSettings.global_parameters as dict type.
+    Fill the parameter "codec_extra_parameters" while calling executor.psgd.submit.ParallelSGD.parallel()
+    with this codec.
+"""
 
 
 # based on paper SGQ chapter 3.1
@@ -154,7 +169,6 @@ class SGQServer(Codec):
 
 
 class SGQPackage:
-    __quant_states = 3
     __quant_codec = None
     __quant_code = None
     __quant_space = None
@@ -177,7 +191,8 @@ class SGQPackage:
     @staticmethod
     def build():
         SGQPackage.__quant_codec = codec()
-        SGQPackage.__quant_space = build_quantization_space(SGQPackage.__quant_states)
+        SGQPackage.__quant_space = build_quantization_space(
+            2 ** int(GlobalSettings.get_params(Quantization_Resolution_Client)) - 1)
         SGQPackage.__quant_code = []
         i = -1
 

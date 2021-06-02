@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Iterable, List, Set
+from typing import Iterable, List, Set, Tuple
 
 from numpy import ndarray
 
@@ -39,29 +39,27 @@ class IParallelSGD(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def update_weights(self, content: ndarray, batch_no: int, block_id: int) -> Iterable[dict]:
+    def update_weights(self, content: ndarray, batch_no: int, block_id: int) -> Iterable[Tuple[List[int], dict]]:
         """
             Update a calculated weights to this controller.
             Weights may be calculated throw partial samples.
-        :return: json object to be sent throw network,
-                 None if nothing needs to be sent.
+        :return: data for transmission
         """
         pass
 
     @abstractmethod
-    def require_weights(self, batch_no: int) -> ndarray:
+    def require_weights(self, batch_no: int) -> Tuple[ndarray, Iterable[Tuple[List[int], dict]]]:
         """
             Require a aggregated full calculated newest weights.
-        :return: Weights Matrix: Numpy Array
+        :return: Weights Matrix: Numpy Array and other data for communication
         """
         pass
 
     @abstractmethod
-    def accept_data(self, content: dict) -> [Iterable[dict]]:
+    def accept_data(self, content: dict) -> Iterable[Tuple[List[int], dict]]:
         """
             Receive a decomposable object for local weights update.
             object received from local dispatcher
-        :return: json object to be sent throw network,
-                 None if nothing needs to be sent.
+        :return: data for transmission
         """
         pass
