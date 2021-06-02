@@ -75,7 +75,8 @@ class QuantizedPack(IPack):
     def __init__(self, node_id: int, array: np.ndarray, encoder):
         self.__node_id = node_id
         self.__shape = array.shape
-        # Use int8 for fast serialization.
+        # float64 only
+        array = array.astype('float64')
         self.__alpha, self.__b = QuantizedPack.quantize(array.reshape(-1), encoder)
 
     def decode(self, decoder):

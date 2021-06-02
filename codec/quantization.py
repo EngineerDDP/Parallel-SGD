@@ -69,10 +69,10 @@ def quantize(arr, space, epsilon: float = 1e-9, iterations: int = 3) -> Tuple[fl
         vector or quantized array.
     """
     a = 0.7
-    b = stochastic_quantization(arr / a, space)
+    b = deterministic_quantization(arr / a, space)
     for i in range(iterations):
         a = np.sum(np.multiply(b, arr)) / (np.sum(np.square(b)) + 1)
-        b = stochastic_quantization(arr / (a + epsilon), space)
+        b = deterministic_quantization(arr / (a + epsilon), space)
     return a, b
 
 

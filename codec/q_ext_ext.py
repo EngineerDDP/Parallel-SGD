@@ -2,19 +2,35 @@ from abc import ABCMeta, abstractmethod
 from typing import Sequence, Tuple, Dict
 
 import numpy as np
-
 from utils.quantize import quant
+
+from codec import GlobalSettings
 from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation
 from utils.constants import Parameter_Server
 
+"""
+    This codec requires specified parameters.
+    Listed as below:
+"""
 
-def build_quantization_space(states: int) -> Sequence[float]:
+Quantization_Resolution_Client = "QC"
+Quantization_Resolution_Server = "QS"
+
+"""
+    Parameters listed above should be added to GlobalSettings.global_parameters as dict type.
+    Fill the parameter "codec_extra_parameters" while calling executor.psgd.submit.ParallelSGD.parallel()
+    with this codec.
+"""
+
+
+def build_quantization_space(bits: int) -> Sequence[float]:
     """
         Build quantization space
-    :param states: bits of input
+    :param bits: bits of input
     :return: list of float
     """
+    states = max(bits, 2)
     k_max = (1 << (states - 1)) - 1
     def theta(k): return 1 / (np.tan(k * np.pi / 4))
     space_pos = [theta(k / k_max) for k in range(k_max, 0, -1)]
@@ -84,8 +100,7 @@ class SignalPack(IPack):
 
 
 class DC_QSGDClient(Codec):
-
-    codex = quant(build_quantization_space(3))
+    codex = quant(build_quantization_space(int(GlobalSettings.get_params(Quantization_Resolution_Client))))
 
     def __init__(self, node_id):
         super().__init__(node_id)
@@ -108,8 +123,7 @@ class DC_QSGDClient(Codec):
 
 
 class DC_QSGDServer(Codec):
-
-    codex = quant(build_quantization_space(6))
+    codex = quant(build_quantization_space(int(GlobalSettings.get_params(Quantization_Resolution_Server))))
 
     def __init__(self, node_id):
         super().__init__(node_id)
