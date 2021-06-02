@@ -1,9 +1,9 @@
+import pickle
 import sys
 from abc import abstractmethod
 from typing import Tuple, List, Iterable, Union, Type, Dict
 
 import numpy as np
-import pickle
 from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
@@ -13,7 +13,7 @@ from nn.interface import IOperator, IOptimizer, ITrainable, ModelState
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.model.interface import IModel
-from nn.model.utils import FitResultHelper
+from nn.model.model_history import FitResultHelper
 from nn.optimizer import IOpContainer, OpContainer, GDOptimizer
 from nn.value.placeholder import Placeholder
 from utils.log import IPrinter

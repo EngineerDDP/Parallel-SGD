@@ -1,8 +1,7 @@
 import numpy as np
-
 from numpy import ndarray
+
 from nn.interface import ModelState
-from nn.value.abstract import AbsValue
 from nn.operation.abstract import OperandHelper
 
 
@@ -37,7 +36,7 @@ class Placeholder(OperandHelper):
     def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
         return self.__hold
 
-    def G(self, grad: [float, ndarray] = None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         self.__gradient_attachment = grad
 
     # -------- Operator implementation --------

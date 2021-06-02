@@ -5,7 +5,7 @@ from numpy import ndarray
 
 from nn.activation.interface import IActivation
 from nn.activation.linear import Linear
-from nn.interface import IOperator, ITrainable, IOptimizer, ModelState
+from nn.interface import IOperator, ITrainable, ModelState
 from nn.layer.interface import ILazyInitialization
 
 
@@ -109,7 +109,7 @@ class AbsLayer(IOperator, ILazyInitialization):
         else:
             return self.__activation.do_forward(self.do_forward_train(self.__ref_input))
 
-    def G(self, grad: [float, ndarray] = None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         """
             Do backward and adjust parameters.
         :param grad: Gradients from back-propagation, set to None when this layer doesnt needs

@@ -7,9 +7,9 @@ from nn.data.interface import IDataFeeder
 from nn.gradient_descent.interface import IGradientDescent
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
+from nn.model.model_history import FitResultHelper
 from nn.optimizer import IOpContainer
 from utils.log import IPrinter
-from nn.model.utils import FitResultHelper
 
 
 class IModel(metaclass=ABCMeta):
