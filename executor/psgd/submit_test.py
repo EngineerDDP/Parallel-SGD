@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import shutil
 import unittest
 
 import codec.plain
@@ -35,7 +36,12 @@ class TestCase(unittest.TestCase):
 
         self.assertGreater(job.parallel(nodes, codec=codec.plain.Plain, epoch=2)[0]['accuracy'], 0.95)
 
+        # clear env
         worker.terminate()
+        shutil.rmtree("./Node-0-Retrieve")
+        os.remove("./MODEL-P-SGD-N(0).model")
+        os.remove("./TR-P-SGD-N(0).csv")
+        os.remove("./EV-P-SGD-N(0).csv")
 
 
 if __name__ == '__main__':
