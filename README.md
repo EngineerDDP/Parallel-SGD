@@ -370,6 +370,9 @@ with req.request(nodes) as com:
 
 ### 0.8
 
+#### 0.84
+1. 增加worker编译脚本。
+
 #### 0.83
 1. 将constants移出util包，为以后删除util包做准备。
 
