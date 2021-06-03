@@ -186,7 +186,7 @@ class ICommunication_Controller(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_one(self, blocking=True, timeout: int = 0) -> Tuple[Optional[int], object]:
+    def get_one(self, blocking=True, timeout: int = None) -> Tuple[Optional[int], object]:
         """
             Get one json like object from target nodes.
         :param blocking: Dose this operation block the running process

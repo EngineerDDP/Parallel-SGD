@@ -115,11 +115,16 @@ class Communication_Controller(ICommunication_Controller):
         self.__com.start()
         self.__is_started = True
 
-    def get_one(self, blocking=True, timeout: int = 0) -> Tuple[Optional[int], object]:
-        try:
-            return self.__com.get(blocking=blocking, timeout=timeout)
-        except queue.Empty:
-            return None, None
+    def get_one(self, blocking=True, timeout: int = None) -> Tuple[Optional[int], object]:
+        time_count = 0
+        while time_count != timeout:
+            time_count += 1
+            try:
+                return self.__com.get(blocking=blocking, timeout=1)
+            except queue.Empty:
+                if self.is_closed():
+                    raise ConnectionAbortedError("Connection has already been closed, and no data available.")
+        return None, None
 
     def send_one(self, target: [int, list], obj: object, timeout: int = None) -> bool:
         if not isinstance(target, list):
