@@ -1,9 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from ctypes import c_bool
 # from multiprocessing import Queue
-from queue import Queue
-from multiprocessing import Value, Process
-from threading import Thread
+from typing import Sequence, Tuple, Optional
 from uuid import uuid4
 
 
@@ -73,14 +70,7 @@ class IWorker_Register(metaclass=ABCMeta):
         pass
 
 
-class AbsCommunicationProcess(Thread, metaclass=ABCMeta):
-
-    def __init__(self, name: str):
-        super().__init__(name=name, daemon=True)
-        self.__exit = Value(c_bool, 0)
-        self.__alive = Value(c_bool, 0)
-        self.__recv_que = Queue(maxsize=128)
-        self.__send_que = Queue(maxsize=128)
+class AbsCommunicationProcess(metaclass=ABCMeta):
 
     @property
     @abstractmethod
@@ -92,29 +82,77 @@ class AbsCommunicationProcess(Thread, metaclass=ABCMeta):
     def bytes_read(self):
         pass
 
-    @property
-    def recv_que(self):
-        return self.__recv_que
+    @abstractmethod
+    def start(self):
+        """
+        Start handling traffics from networks
+        :return: None
+        """
+        pass
 
-    @property
-    def send_que(self):
-        return self.__send_que
+    @abstractmethod
+    def get(self, blocking: bool, timeout: int) -> Tuple[int, object]:
+        """
+        Get a object
 
-    @property
-    def Exit(self):
-        return self.__exit.value
+        If optional args 'block' is true and 'timeout' is None (the default),
+        block if necessary until an item is available. If 'timeout' is
+        a non-negative number, it blocks at most 'timeout' seconds and raises
+        the Empty exception if no item was available within that time.
+        Otherwise ('block' is false), return an item if one is immediately
+        available, else raise the Empty exception ('timeout' is ignored
+        in that case).
 
-    @Exit.setter
-    def Exit(self, value):
-        self.__exit.value = value
+        :param blocking:    Dose this operation block the running process
+        :param timeout:     How long would you like to wait
+        :return: Int and Object, int represents the sender's id, object is the object that received.
+        """
+        pass
 
-    @property
-    def Alive(self):
-        return self.__alive.value
+    @abstractmethod
+    def put(self, target: [Sequence[int], int], obj: object, blocking: bool, timeout: int):
+        """
+        Put a object
 
-    @Alive.setter
-    def Alive(self, value):
-        self.__alive.value = value
+        If optional args 'block' is true and 'timeout' is None (the default),
+        block if necessary until an item is available. If 'timeout' is
+        a non-negative number, it blocks at most 'timeout' seconds and raises
+        the Empty exception if no item was available within that time.
+        Otherwise ('block' is false), return an item if one is immediately
+        available, else raise the Empty exception ('timeout' is ignored
+        in that case).
+
+        :param target:      Send to who
+        :param obj:         Send what
+        :param blocking:    Dose this operation block the running process
+        :param timeout:     How long would you like to wait
+        :return: Bool
+        """
+        pass
+
+    @abstractmethod
+    def flush_data_and_quit(self):
+        """
+        Quit from distributed network and flush all unsent data.
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def force_quit(self):
+        """
+        Quit from distributed network instantly, discard all data.
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def has_quit(self) -> bool:
+        """
+        Check if has quited from network.
+        :return: True or False
+        """
+        pass
 
     @property
     @abstractmethod
@@ -130,9 +168,6 @@ class AbsCommunicationProcess(Thread, metaclass=ABCMeta):
     @abstractmethod
     def nodes(self):
         pass
-
-    def closing(self):
-        self.__exit.value = True
 
 
 class ICommunication_Controller(metaclass=ABCMeta):
@@ -151,20 +186,24 @@ class ICommunication_Controller(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_one(self, blocking=True):
+    def get_one(self, blocking=True, timeout: int = 0) -> Tuple[Optional[int], object]:
         """
             Get one json like object from target nodes.
-        :return: a tuple, which first element is the sender id, second element is the json object.
+        :param blocking: Dose this operation block the running process
+        :param timeout: How long would you like to wait
+        :return: a tuple, which first element is the sender id, second element is the object.
+                 (None, None) was returned if data wasn't available.
         """
         pass
 
     @abstractmethod
-    def send_one(self, target, dic):
+    def send_one(self, target, dic, timeout: int = None) -> bool:
         """
             send one json like object to target nodes
         :param target: target node list, must be a list : list[int]
         :param dic: json like object : encode
-        :return: None
+        :param timeout: How long would you like to wait
+        :return: True or False, True means your data has been scheduled and ready to be sent, otherwise not.
         """
         pass
 
@@ -179,9 +218,12 @@ class ICommunication_Controller(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self, force: bool = False, timeout: int = 20):
         """
             Stop communicating with remote nodes.
+        :param force: force quit, discard all data
+        :param timeout: if (@param force) is True, ignore this parameter,
+                        otherwise wait (@param timeout) seconds and do force quit.
         :return: None
         """
         pass
