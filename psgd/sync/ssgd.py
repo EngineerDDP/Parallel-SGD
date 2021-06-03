@@ -1,14 +1,14 @@
 import time
 from queue import Queue, Empty
-from typing import List, Set, Iterable, Union, Tuple
+from typing import List, Iterable, Union, Tuple
 
 from numpy import ndarray
 
 from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation, T
+from constants import SSGD_Sync_Timeout_Limit_MSec
 from psgd.sync.interface import IParallelSGD
 from psgd.sync.interface import ReadTimeOut, AsyncDetected
-from utils.constants import SSGD_Sync_Timeout_Limit_MSec
 
 
 def iterator_helper(objs: Union[Iterable[netEncapsulation[T]], netEncapsulation[T], None]) -> Iterable[netEncapsulation[T]]:

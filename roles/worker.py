@@ -1,11 +1,11 @@
 import time
 
+from constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec, VERSION
 from executor.abstract import AbsExecutor
 from executor.interface import IExecutor
 from models import *
 from network import ICommunication_Controller, Serve
 from network.communications import get_repr
-from utils.constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec, VERSION
 from utils.log import Logger
 
 

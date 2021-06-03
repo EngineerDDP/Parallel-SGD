@@ -6,7 +6,7 @@ import numpy as np
 from codec import GlobalSettings
 from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation
-from utils.constants import Parameter_Server
+from constants import Parameter_Server
 
 """
     This codec requires specified parameters.

@@ -1,16 +1,14 @@
 # import test codec
-from codec.essential import BlockWeight
-from codec.interfaces import netEncapsulation
-
 # import np
 import numpy as np
 
 # import event logger
 from codec import GlobalSettings
-from profiles.blockassignment import IIDBlockAssignment
-
+from codec.essential import BlockWeight
+from codec.interfaces import netEncapsulation
 # import network agreements
-from utils.constants import Parameter_Server
+from constants import Parameter_Server
+from profiles.blockassignment import IIDBlockAssignment
 
 # 本模块为参数服务器编码测试模块，导入要测试的编码模块，分为服务器（主机）模块和客户端（工作）模块。
 # 导入并定义 SLAVE_CODEC 变量为您的客户端测试编码类

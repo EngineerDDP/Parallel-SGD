@@ -1,7 +1,7 @@
 import json
 
+from constants import Parameter_Server
 from network import NodeAssignment
-from utils.constants import Parameter_Server
 
 
 def parse_worker(worker_cnt: int, ps: bool = False, filename: str = "worker.json"):

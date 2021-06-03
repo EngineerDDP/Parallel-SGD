@@ -1,11 +1,10 @@
 from typing import Iterable, Callable, Dict, Type
 
+from constants import VERSION, Initialization_Server
 from executor.interface import IExecutor
 from models import *
-
 from network.interfaces import ICommunication_Controller
 from utils.log import IPrinter, Logger
-from utils.constants import VERSION, Initialization_Server
 
 
 class Coordinator:
