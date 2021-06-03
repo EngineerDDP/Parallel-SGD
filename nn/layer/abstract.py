@@ -1,3 +1,4 @@
+import threading
 from abc import abstractmethod
 from typing import Iterable, Union
 
@@ -23,6 +24,7 @@ class AbsLayer(IOperator, ILazyInitialization):
         self.__ref_input = None
         self.__activation = activation if activation else Linear()
         self.__initialized = False
+        self.__back_propagate_gradient: [ndarray] = None
 
     @property
     def input_ref(self):
@@ -118,8 +120,20 @@ class AbsLayer(IOperator, ILazyInitialization):
         """
         # adjust variables with given gradients.
         gradient = self.__activation.do_backward(None, grad)
+        op_running_back_prop = None
         # adjust previous layers.
         if self.__op_input:
-            self.__op_input.G(self.backward_propagate(gradient))
+            op_running_back_prop = threading.Thread(target=self.__back_propagate, name="BP Thread", args=(grad,))
+            op_running_back_prop.start()
         # adjust current layer.
         self.backward_adjust(gradient)
+        # join bp
+        if op_running_back_prop is not None:
+            op_running_back_prop.join()
+
+    def __back_propagate(self, grad):
+        """
+            Inner back propagate thread
+        :return:
+        """
+        self.__op_input.G(self.backward_propagate(grad))
