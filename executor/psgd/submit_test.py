@@ -11,6 +11,8 @@ import network
 import nn
 import roles
 
+os.chdir("../../")
+
 
 class TestCase(unittest.TestCase):
 
