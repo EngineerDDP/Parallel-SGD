@@ -40,6 +40,7 @@ class TestCase(unittest.TestCase):
         # clear env
         worker.terminate()
         shutil.rmtree("./Node-0-Retrieve")
+        shutil.rmtree("./tmp_log")
         os.remove("./MODEL-P-SGD-N(0).model")
         os.remove("./TR-P-SGD-N(0).csv")
         os.remove("./EV-P-SGD-N(0).csv")
