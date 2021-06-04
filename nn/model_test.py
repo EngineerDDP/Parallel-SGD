@@ -7,12 +7,12 @@ import dataset
 import dataset.transforms
 import nn
 
+os.chdir("../")
+
 
 class TestSequentialModel(unittest.TestCase):
 
     def test_cifarnet(self):
-        os.chdir("../")
-
         model = nn.model.SequentialModel(input_shape=[-1, 32, 32, 3])
         model.add(
             nn.layer.Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
@@ -42,8 +42,6 @@ class TestSequentialModel(unittest.TestCase):
         self.assertGreater(res['accuracy'], 0.5)
 
     def test_dnn(self):
-        os.chdir("../")
-
         model = nn.model.SequentialModel(input_shape=[-1, 784])
         model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
         model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
