@@ -15,7 +15,6 @@ import roles
 class TestCase(unittest.TestCase):
 
     def test_something(self):
-        os.chdir("../../")
 
         model = nn.model.SequentialModel(input_shape=[-1, 784])
         model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
