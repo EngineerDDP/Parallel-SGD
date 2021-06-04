@@ -1,4 +1,4 @@
-import threading
+import concurrent.futures
 from abc import abstractmethod
 from typing import Iterable, Union
 
@@ -14,6 +14,10 @@ class AbsLayer(IOperator, ILazyInitialization):
     """
         Used for lazy initialization.
     """
+    # Used for parallel execution.
+    __layer_bp_executor: concurrent.futures.Executor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=60,
+        thread_name_prefix="BP T")
 
     def __init__(self, inputs: IOperator = None, activation: IActivation = None):
         """
@@ -120,16 +124,15 @@ class AbsLayer(IOperator, ILazyInitialization):
         """
         # adjust variables with given gradients.
         gradient = self.__activation.do_backward(None, grad)
-        op_running_back_prop = None
         # adjust previous layers.
+        op: concurrent.futures.Future = None
         if self.__op_input:
-            op_running_back_prop = threading.Thread(target=self.__back_propagate, name="BP Thread", args=(grad,))
-            op_running_back_prop.start()
+            op: concurrent.futures.Future = AbsLayer.__layer_bp_executor.submit(self.__back_propagate, gradient)
         # adjust current layer.
         self.backward_adjust(gradient)
         # join bp
-        if op_running_back_prop is not None:
-            op_running_back_prop.join()
+        if op is not None:
+            op.result(timeout=None)
 
     def __back_propagate(self, grad):
         """
