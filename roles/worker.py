@@ -1,19 +1,20 @@
 import time
 
+import utils.log
 from constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec, VERSION
 from executor.abstract import AbsExecutor
 from executor.interface import IExecutor
 from models import *
 from network import ICommunication_Controller, Serve
 from network.communications import get_repr
-from utils.log import Logger
 
 
 class Worker:
 
-    def __init__(self):
-        self.client_logger = Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
-        self.client_logger.log_message('Worker version: {}.'.format(VERSION))
+    def __init__(self, logger: utils.log.IPrinter = None):
+        if logger is None:
+            self.__client_logger = utils.log.Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
+        self.__client_logger.log_message('Worker version: {}.'.format(VERSION))
         self.__job_executor: [IExecutor] = None
 
     def slave_forever(self):
@@ -21,24 +22,24 @@ class Worker:
         listener = Serve(net_type='fcnet')
         try:
             while True:
-                self.client_logger.log_message('Worker started with network type \'FCNet\'.')
+                self.__client_logger.log_message('Worker started with network type \'FCNet\'.')
                 try:
                     with listener.acquire() as com:
-                        self.client_logger.log_message(
+                        self.__client_logger.log_message(
                             'Job submission received. Node assigned node_id({})'.format(com.Node_Id))
 
                         self.dispatch(com)
 
-                        self.client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
-                        self.client_logger.log_message('Worker restarting...')
+                        self.__client_logger.log_message('Current session closed, node_id({}).'.format(com.Node_Id))
+                        self.__client_logger.log_message('Worker restarting...')
                         time.sleep(1)
                 except OSError:
-                    self.client_logger.log_message("Initialization server exited without report.")
+                    self.__client_logger.log_message("Initialization server exited without report.")
                 except ConnectionResetError:
-                    self.client_logger.log_message("Initialization server exited without report.")
+                    self.__client_logger.log_message("Initialization server exited without report.")
 
         except KeyboardInterrupt:
-            self.client_logger.log_error('Worker shutdown by interruption.')
+            self.__client_logger.log_error('Worker shutdown by interruption.')
             listener.close()
 
     @staticmethod
@@ -74,12 +75,12 @@ class Worker:
             if isinstance(req, SubmitJob):
                 # Report Version
                 com.send_one(Initialization_Server, Version(node_id=com.Node_Id))
-                self.client_logger.log_message('ACK job submission.')
+                self.__client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
                     results = self.do_training(com)
 
             if isinstance(req, RequestWorkingLog):
-                self.client_logger.log_message('ACK logfile reclaim.')
+                self.__client_logger.log_message('ACK logfile reclaim.')
 
         except Exception as e:
             # print DEBUG message
@@ -88,7 +89,7 @@ class Worker:
             exc_type, exc_value, exc_tb = sys.exc_info()
             exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
             exc_format = "".join(exc_tb)
-            self.client_logger.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
+            self.__client_logger.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
             # print DEBUG message
 
         self.post_log(com, results)
@@ -100,7 +101,9 @@ class Worker:
         :param com:
         :return:
         """
-        posting_files = [self.client_logger.File_Name]
+        posting_files = []
+        if self.__client_logger.ToFile:
+            posting_files.append(self.__client_logger.File_Name)
         if isinstance(self.__job_executor, AbsExecutor):
             for filename in self.__job_executor.trace_files():
                 posting_files.append(filename)
@@ -132,14 +135,14 @@ class Worker:
             com.send_one(Initialization_Server, RequestPackage(req))
 
         req_format = "\tRequests List:\n\t\t--> {}".format("\n\t\t--> ".join([str(req) for req in requests]))
-        self.client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
-        self.client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
+        self.__client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
+        self.__client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
         # Set job executor to ready state
         while not self.__job_executor.ready():
 
             id_from, data = Worker.__recv_pack(com, eta_waiting_time)
 
-            self.client_logger.log_message('Ack package, type: ({})'.format(data.__class__.__name__))
+            self.__client_logger.log_message('Ack package, type: ({})'.format(data.__class__.__name__))
             # restoring data
             if isinstance(data, IReplyPackage):
                 data.restore()
@@ -149,18 +152,18 @@ class Worker:
                     requests = self.__job_executor.satisfy(replies)
                     for req in requests:
                         com.send_one(Initialization_Server, RequestPackage(req))
-                    self.client_logger.log_message('Request data: ({}).'.format(requests))
-                    self.client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
+                    self.__client_logger.log_message('Request data: ({}).'.format(requests))
+                    self.__client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
                     replies.clear()
 
             # pass to sync
             elif isinstance(data, ReadyType):
                 ready_state = ready_state | data.current_ready()
 
-        self.client_logger.log_message('Submit stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
-        self.client_logger.log_message('Submit stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
+        self.__client_logger.log_message('Submit stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
+        self.__client_logger.log_message('Submit stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
 
-        self.client_logger.log_message('Synchronize timeline with cluster.')
+        self.__client_logger.log_message('Synchronize timeline with cluster.')
 
         Worker.synchronize(com, ready_state, total_nodes, eta_waiting_time)
 
@@ -201,14 +204,14 @@ class Worker:
         """
             Execute job.
         """
-        self.client_logger.log_message('Execution process started.')
+        self.__client_logger.log_message('Execution process started.')
         begin = time.time()
         result = self.__job_executor.start(com)
         end = time.time()
 
-        self.client_logger.log_message('Execution complete, time:{}'.format(end - begin))
-        self.client_logger.log_message('Execution stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
-        self.client_logger.log_message('Execution stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
-        self.client_logger.log_message('Execution process exited.')
+        self.__client_logger.log_message('Execution complete, time:{}'.format(end - begin))
+        self.__client_logger.log_message('Execution stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
+        self.__client_logger.log_message('Execution stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
+        self.__client_logger.log_message('Execution process exited.')
 
         return result

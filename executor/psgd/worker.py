@@ -173,11 +173,13 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__log.log_message('Execution complete, Total bytes read: {}.'.format(data_recv_end - data_recv_start))
         self.__log.log_message('Trace file has been saved to {}.'.format(trace_head))
 
+        self.__log.flush()
         # set marker
         self.__done = True
         # dispose
         self.__model.clear()
         del train_x, train_y, test_x, test_y
+        del self.__model, self.__log
 
         # return last evaluation result
         return r

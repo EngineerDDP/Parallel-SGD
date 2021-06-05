@@ -1,4 +1,5 @@
-from roles import Worker
+import roles
+
 
 if __name__ == '__main__':
-    Worker().slave_forever()
+    roles.Worker().slave_forever()

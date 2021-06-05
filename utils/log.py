@@ -2,6 +2,8 @@ import datetime
 import os
 from abc import ABCMeta, abstractmethod
 
+BUFFERED_MESSAGE_MAX = 1000
+
 
 class IPrinter(metaclass=ABCMeta):
 
@@ -14,6 +16,7 @@ class IPrinter(metaclass=ABCMeta):
         pass
 
 
+
 class Logger(IPrinter):
 
     def __init__(self, title_info, log_to_file=False):
@@ -22,6 +25,10 @@ class Logger(IPrinter):
         self.ToFile = log_to_file
         self.Folder = './tmp_log/'
         self.File_Name = self.Folder + '{} {}.log'.format(title_info, datetime.datetime.now().strftime('%Y-%m-%d %H%M'))
+
+        self.__buffer = ''
+        self.__buffered_msg_count = 0
+        self.__buffered_msg_max = BUFFERED_MESSAGE_MAX
 
     def log_message(self, msg):
 
@@ -41,13 +48,31 @@ class Logger(IPrinter):
         print(str)
         self.__log_to_file(str)
 
+    def flush(self):
+        # flush all
+        self.__buffered_msg_max = 1
+        self.__log_to_file('')
+        self.__buffered_msg_max = BUFFERED_MESSAGE_MAX
+
+    def __del__(self):
+        self.flush()
+
     def __log_to_file(self, msg):
+        # Use buffer
+        if self.__buffered_msg_count < self.__buffered_msg_max:
+            self.__buffered_msg_count += 1
+            self.__buffer += msg + '\n'
+            return
+
         if not os.path.exists(self.Folder):
             os.mkdir(self.Folder)
 
         if self.ToFile:
             with open(self.File_Name, 'a+') as file:
-                file.write(msg + '\n')
+                file.write(self.__buffer)
+
+        self.__buffer = ''
+        self.__buffered_msg_count = 0
 
 
 class MutePrinter(IPrinter):
