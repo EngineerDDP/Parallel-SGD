@@ -2,7 +2,7 @@ import numpy as np
 
 from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation
-from utils.constants import Parameter_Server
+from constants import Parameter_Server
 
 
 def stochastic_ternarization(arr):

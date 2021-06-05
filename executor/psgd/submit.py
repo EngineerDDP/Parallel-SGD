@@ -1,6 +1,7 @@
 from typing import Hashable, SupportsFloat
 
 from codec.dummy import DummyCodec
+from constants import Parameter_Server
 from executor.psgd.net_package import *
 from executor.psgd.parameter_server import PSGDPSExecutor
 from executor.psgd.worker import PSGDWorkerExecutor
@@ -14,7 +15,6 @@ from profiles.batch_iter import BatchIter
 from profiles.blockassignment.abstract import AbsBlockAssignment
 from psgd.sync import AsynchronizedSGD, SynchronizedSGD, IParallelSGD
 from roles import Coordinator
-from utils.constants import Parameter_Server
 from utils.log import Logger
 
 

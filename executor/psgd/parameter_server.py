@@ -49,7 +49,7 @@ class PSGDPSExecutor(AbsExecutor):
         GlobalSettings.deprecated_global_logger = self.__log
         self.__transfer.start_transfer(com, printer=self.__log, group_offset=0)
 
-        from utils.constants import Initialization_Server
+        from constants import Initialization_Server
         while set(com.available_clients) - {Initialization_Server} != set():
             sleep(7)
 

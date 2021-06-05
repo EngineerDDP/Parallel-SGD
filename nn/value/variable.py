@@ -1,9 +1,9 @@
 import numpy as np
 from numpy import ndarray
 
-from nn.value.abstract import AbsValue
 from nn.interface import IOptimizer, ITrainable, ModelState
 from nn.operation.abstract import OperandHelper
+from nn.value.abstract import AbsValue
 
 
 class Variable(AbsValue, OperandHelper, ITrainable):
@@ -35,7 +35,7 @@ class Variable(AbsValue, OperandHelper, ITrainable):
     def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
         return self.__var
 
-    def G(self, grad: [float, ndarray] = None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         self.__ref_gradient = grad
         if self.__attached_optimizer:
             self.__attached_optimizer.optimize(self)

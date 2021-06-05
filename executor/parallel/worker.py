@@ -1,12 +1,12 @@
 import time
 from typing import List, Iterable, Dict
 
+from constants import Initialization_Server
 from executor.interface import IExecutor
 from executor.parallel.constants import Commands, Drop
 from executor.parallel.map import MapOperator
 from executor.parallel.reduce import ReduceOperator
 from network import ICommunication_Controller
-from utils.constants import Initialization_Server
 
 
 class RDDNode(IExecutor):

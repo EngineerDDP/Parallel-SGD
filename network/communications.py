@@ -1,8 +1,8 @@
 import queue
-import socket
 import select
-
+import socket
 from time import sleep
+from typing import Optional, Tuple
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, AbsCommunicationProcess, ICommunication_Controller
@@ -87,7 +87,7 @@ class Communication_Controller(ICommunication_Controller):
         """
         super().__init__()
         self.__com = com
-        self.__get_queue_buffer = {}
+        self.__is_started = False
 
     def __enter__(self) -> ICommunication_Controller:
         self.establish_communication()
@@ -113,37 +113,29 @@ class Communication_Controller(ICommunication_Controller):
         :return: None
         """
         self.__com.start()
+        self.__is_started = True
 
-    def get_one(self, blocking=True):
-        """
-            Get one json like object from target nodes.
-        :return: a tuple, which first element is the sender id, second element is the json object.
-        """
-        if self.__com.recv_que.empty() and not blocking and not self.is_closed():
-            return None, None
-        while not self.is_closed():
+    def get_one(self, blocking=True, timeout: int = None) -> Tuple[Optional[int], object]:
+        time_count = 0
+        while time_count != timeout:
+            time_count += 1
             try:
-                return self.__com.recv_que.get(timeout=1)
+                return self.__com.get(blocking=blocking, timeout=1)
             except queue.Empty:
-                continue
-        raise ConnectionAbortedError('Connection is closed.')
+                if self.is_closed():
+                    raise ConnectionAbortedError("Connection has already been closed, and no data available.")
+        return None, None
 
-    def send_one(self, target: [int, list], obj: object):
-        """
-            send one json like object to target nodes
-        :param target: target node list
-        :param obj: any object that supports serialization.
-        :return: None
-        """
+    def send_one(self, target: [int, list], obj: object, timeout: int = None) -> bool:
         if not isinstance(target, list):
             target = [target]
-        while not self.is_closed():
-            try:
-                self.__com.send_que.put((target, obj), timeout=1)
-                return None
-            except queue.Full:
-                continue
-        raise ConnectionAbortedError('Connection has already been closed.')
+        try:
+            return self.__com.put(target, obj, blocking=True, timeout=timeout)
+        except queue.Full:
+            if self.is_closed():
+                raise ConnectionAbortedError('Connection has already been closed.')
+            else:
+                return False
 
     @property
     def available_clients(self):
@@ -153,26 +145,31 @@ class Communication_Controller(ICommunication_Controller):
     def available_clients_count(self):
         return self.__com.available_nodes
 
-    def close(self):
+    def close(self, force: bool = False, timeout: int = 20):
         """
             Stop communicating with remote nodes.
-        :return: None
         """
-        self.__com.closing()
-        wait_limit = 20
+        if not self.__is_started:
+            raise AssertionError("Start this process before closing it.")
+
+        if force:
+            self.__com.force_quit()
+        else:
+            self.__com.flush_data_and_quit()
+
+        wait_limit = timeout
         while not self.is_closed() and wait_limit > 0:
             sleep(1)
             wait_limit -= 1
         if wait_limit <= 0:
-            # self.__com.terminate()
-            print('Terminate communication process.')
+            self.__com.force_quit()
 
     def is_closed(self):
         """
             Check if the communication thread is already closed.
         :return: True if closed, False if still running.
         """
-        return not self.__com.Alive
+        return self.__com.has_quit()
 
 
 def get_repr():

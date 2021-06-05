@@ -1,4 +1,4 @@
-from utils.constants import VERSION
+from constants import VERSION
 
 
 class Version:

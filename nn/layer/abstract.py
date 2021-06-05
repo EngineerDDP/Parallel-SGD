@@ -1,3 +1,4 @@
+import concurrent.futures
 from abc import abstractmethod
 from typing import Iterable, Union
 
@@ -5,7 +6,7 @@ from numpy import ndarray
 
 from nn.activation.interface import IActivation
 from nn.activation.linear import Linear
-from nn.interface import IOperator, ITrainable, IOptimizer, ModelState
+from nn.interface import IOperator, ITrainable, ModelState
 from nn.layer.interface import ILazyInitialization
 
 
@@ -13,6 +14,10 @@ class AbsLayer(IOperator, ILazyInitialization):
     """
         Used for lazy initialization.
     """
+    # Used for parallel execution.
+    __layer_bp_executor: concurrent.futures.Executor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=60,
+        thread_name_prefix="BP T")
 
     def __init__(self, inputs: IOperator = None, activation: IActivation = None):
         """
@@ -23,6 +28,7 @@ class AbsLayer(IOperator, ILazyInitialization):
         self.__ref_input = None
         self.__activation = activation if activation else Linear()
         self.__initialized = False
+        self.__back_propagate_gradient: [ndarray] = None
 
     @property
     def input_ref(self):
@@ -109,7 +115,7 @@ class AbsLayer(IOperator, ILazyInitialization):
         else:
             return self.__activation.do_forward(self.do_forward_train(self.__ref_input))
 
-    def G(self, grad: [float, ndarray] = None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         """
             Do backward and adjust parameters.
         :param grad: Gradients from back-propagation, set to None when this layer doesnt needs
@@ -119,7 +125,18 @@ class AbsLayer(IOperator, ILazyInitialization):
         # adjust variables with given gradients.
         gradient = self.__activation.do_backward(None, grad)
         # adjust previous layers.
+        op: concurrent.futures.Future = None
         if self.__op_input:
-            self.__op_input.G(self.backward_propagate(gradient))
+            op: concurrent.futures.Future = AbsLayer.__layer_bp_executor.submit(self.__back_propagate, gradient)
         # adjust current layer.
         self.backward_adjust(gradient)
+        # join bp
+        if op is not None:
+            op.result(timeout=None)
+
+    def __back_propagate(self, grad):
+        """
+            Inner back propagate thread
+        :return:
+        """
+        self.__op_input.G(self.backward_propagate(grad))

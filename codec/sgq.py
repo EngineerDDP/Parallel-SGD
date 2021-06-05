@@ -6,7 +6,7 @@ from codec import GlobalSettings
 from codec.essential import BlockWeight
 from codec.interfaces import Codec
 from codec.interfaces import netEncapsulation
-from utils.constants import Parameter_Server
+from constants import Parameter_Server
 
 """
     This class has been deprecated.

@@ -39,7 +39,7 @@ from typing import Tuple, Dict, Union, Iterable
 from codec import GlobalSettings
 from codec.interfaces import Codec, netEncapsulation
 from codec.essential import BlockWeight
-from utils.constants import Parameter_Server
+from constants import Parameter_Server
 
 
 class FedAvgServer(Codec):
@@ -86,7 +86,7 @@ from typing import Union, Iterable, Tuple
 
 from codec.interfaces import Codec, netEncapsulation
 from codec.essential import BlockWeight
-from utils.constants import Parameter_Server
+from constants import Parameter_Server
 
 
 class FedAvgClient(Codec):

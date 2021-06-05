@@ -1,11 +1,12 @@
-import numpy as np
+from typing import Iterable, Tuple, Union, Dict
 
+import numpy as np
 from numpy import ndarray
-from typing import Optional, Iterable, Tuple, Union, Dict
+
+from codec import GlobalSettings
 from codec.essential import BlockWeight
 from codec.interfaces import Codec, netEncapsulation
-from utils.constants import Parameter_Server
-from codec import GlobalSettings
+from constants import Parameter_Server
 
 
 # 本文件力求还原最土味的最原始的FEDAVG

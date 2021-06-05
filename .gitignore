@@ -3,7 +3,6 @@ __pycache__/
 *.csv
 tmp_log/
 *.log
-*.sh
 *.json
 *.txt
 /venv/
