@@ -192,6 +192,107 @@ with req.request(nodes) as com:
 **注意**：在Sync-SGD强一致性约束下，集群可以保证每个Worker给出的Evaluation报表是一致的。  
 **注意**：在ASync-SGD弱一致性约束下，每个Worker给出一个有限的感知范围下最优的Evaluation报表。  
 
+
+　　详细的`parallel`方法参数定义如下：
+```python
+from typing import Type, Tuple, Union, Dict, SupportsFloat, Hashable
+
+import codec.interfaces
+import network
+import nn
+import psgd.sync
+import psgd.sync.interface
+import profiles.blockassignment
+import profiles.blockassignment.abstract
+
+def parallel(self,
+             nodes: network.NodeAssignment,
+             redundancy: int = 1,
+             block_size: int = 64,
+             epoch: int = 10,
+             assignment_type: Type[profiles.blockassignment.abstract.AbsBlockAssignment] = profiles.blockassignment.IIDBlockAssignment,
+             sync_type: Type[psgd.sync.interface.IParallelSGD] = psgd.sync.SynchronizedSGD,
+             op_type: Type[nn.optimizer.IOptimizer] = nn.optimizer.PSGDOptimizer,
+             gd_type: Type[nn.gradient_descent.IGradientDescent] = nn.gradient_descent.ADAMOptimizer,
+             codec: Union[Dict[int, Type[codec.interfaces.Codec]], Type[codec.interfaces.Codec]] = None,
+             gd_params: Tuple[object] = (),
+             ps_codec: Union[Dict[int, Type[codec.interfaces.Codec]], Type[codec.interfaces.Codec], None] = None,
+             network_bandwidth: int = 1048576,
+             mission_title: str = "P-SGD",
+             ssgd_timeout_limit: int = 10000,
+             codec_extra_parameters: Dict[Hashable, SupportsFloat] = None):
+    """
+        执行并行化。
+    :param ssgd_timeout_limit: Sync-SGD等待超时限制，单位为毫秒，数值为整型，控制直接相连的Worker之间的最大执行速度差距。
+                            如果两个Worker没有直接通讯，则不做限制。例如：连在同一个参数服务器下的两个Worker，由于没有
+                            直接通信，则不会限制他们之间的执行速度差异。
+
+    :param network_bandwidth: 可用的网络带宽，用作计算预估传输时间，设置 pre_commit 超时计时器。
+
+    :param mission_title:   任务标题，作为本次任务的log文件文件名。
+
+    :param nodes:           由 network 模块提供的 NodeAssignment 接口，指示了当前并行化操作调用的节点数目。
+                            参数服务器的节点编号由 utils.constant.Parameter_Server 指定，其余工作节点的id
+                            从 0 开始依次递增（为整数型）。
+
+    :param block_size:      节点粒度的 Batch 大小，由 codec 控制具体的更新策略，块大小与批次大小并没有具体对应关系。
+                            若 codec 在每个 Block 后给出结果，则实践意义上 Block size 和 Batch size 是等价的，例如：
+                            异步随机梯度下降算法。
+                            若 codec 总是等待所有 Block 的训练完成后再同步结果，则实践意义上 Batch size 等于 Block size
+                            乘以 Block 总数，例如：Ring AllReduce SGD。
+
+    :param epoch:           训练批次数，由 codec 和 sync type 共同决定 epoch 内的同步策略，当使用参数服务器时，参数服务器
+                            也参与到同步状态的维持中。
+                            若 codec 不允许异步执行，则所有节点都会在同一时刻结束 epoch，若 codec 或 sync type 允许跨批次
+                            执行，则节点会根据自己的计算能立先后结束计算。
+
+    :param assignment_type: 样本分配策略，一般与冗余分配结合使用，需要实现了 profiles.ISetting 接口的类型。
+                            初衷是提供冗余的数据集分配策略，现可以提供静态数据量分配。
+                                主要指定一个内容：数据集是如何划分到每个节点上的。
+
+    :param sync_type:       同步方式。分同步和异步两种，需要实现了 psgd.sync.IParallelSGD 接口的类型。
+                            同步方式下，每个 worker 在调用 get_weights() 获取权重时才会处理接收数据。
+                            异步方式下，每个 Worker 收到数据就处理并更新结果集。
+                            具体的数据处理流程和结果集更新策略都由 codec 定义。
+                                主要指定一个内容：Worker之间的连接是同步的还是异步的，是否会存在某个worker在运行时突然接收到
+                                外部数据。
+
+    :param gd_type:         梯度处理策略类型，实现了 nn.IOptimizer 接口的类型。
+                            这里定义了梯度与迭代增量的关系，我们一般不会使用计算出的梯度直接执行反向传播算法，而是对计算出的
+                            梯度进行一些处理之后再进行迭代。
+                                内置的范式：Adam、RMSProp、AdaDelta、GradientDecay、SGD。
+                                主要指定一个内容：如何处理原始梯度，使其更满足模型的需求。
+
+    :param op_type:         梯度生成策略，实现了 nn.gradient_descent.IGradientDescent 接口的类型。
+                            这里定义了模型如何对待获取到的更新增量。
+                                内置的范式：梯度上升、梯度下降、梯度平均化、并行双重缓冲、参数平均化，联邦学习。
+                                主要指定两个内容：1.模型是如何处理更新量\delta w 的，2.模型是如何执行反向传播的。
+
+    :param codec:           编码器类型，实现了 codec.interface.Codec 接口的类型。
+                            这个Codec在Worker上运行，用于处理一些编码压缩，稀疏化的操作，这里也定义了
+                            Worker要和谁交换数据，如何处理收到的数据。
+                                内置的范式：P2P交换网络、中心化交换网络、联邦平均化、动态量化、三值化、随机量化、Adam PS。
+                                主要指定两个内容：1.如何处理要发送的梯度，2.发送给谁。
+
+    :param redundancy:      冗余设置，适用于能够处理冗余的 codec 和 block assignment。
+                            这个参数会被传递给 @assignment_type，并且要求提供的 @codec 能够处理冗余数据。
+
+    :param gd_params:       梯度生成器参数，传给 @gd_type。
+
+    :param ps_codec:        编码器类型，实现了 codec.interface.Codec 接口的类型。
+                            这个Codec在参数服务器上运行，包含了合并全局模型的逻辑。
+                                内置的范式：中心化交换网络、联邦平均化、动态量化、三值化、随机量化、Adam PS。
+                                主要指定两个内容：1.如何处理全局参数合并，2.如何同步各个Worker的状态。
+
+    :param codec_extra_parameters:用于Codec接口识别的其他参数列表，为字典形式。该字典将会存储在每个Worker的
+                            codec.GlobalSettings.__global_parameters 参数中，Codec对象可以使用
+                            GlobalSettings.get_params(key: str) -> object 函数获取对应key的值。
+
+    :return: Dict，代表全局执行结果，包含平均准确率和损失，以及在Model中定义的其他评判指标。
+    """
+    pass
+```
+
 ### 任务提交 (已弃用)
 　　提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
 ```shell script
@@ -369,6 +470,9 @@ worker.json格式如下：
 ## 更新日志
 
 ### 0.8
+
+#### 0.86
+1. **接口变更**：将 `executor.psgd.ParallelSGD.parallel()` 的返回值从 `Dict[int, Dict[str, SupportsFloat]]` 变更至 `Dict[str, SupportsFloat]`，现在 parallel 方法可以直接返回全局训练结果的平均值，这个更改不会影响生成的文件(`.csv`,`.log`,`.model`)，也不会影响到已有的屏显信息。
 
 #### 0.85
 1. 使用线程池重构了BP调度策略，相比0.76版本提升DNN执行速度21.72%，相比0.84版本提升39.64%DNN执行速度。

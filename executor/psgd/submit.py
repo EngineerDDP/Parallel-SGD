@@ -54,7 +54,7 @@ class ParallelSGD:
                  network_bandwidth: int = 1048576,
                  mission_title: str = "P-SGD",
                  ssgd_timeout_limit: int = 10000,
-                 codec_extra_parameters: Dict[Hashable, SupportsFloat] = None):
+                 codec_extra_parameters: Dict[Hashable, SupportsFloat] = None) -> Dict[str, SupportsFloat]:
         """
             执行并行化。
         :param ssgd_timeout_limit: Sync-SGD等待超时限制，单位为毫秒，数值为整型。
@@ -91,7 +91,7 @@ class ParallelSGD:
         :param codec_extra_parameters:用于Codec接口识别的其他参数列表，为字典形式。该字典将会存储在每个Worker的
                                 codec.GlobalSettings.__global_parameters 参数中，Codec对象可以使用
                                 GlobalSettings.get_params(key: str) -> object 函数获取对应key的值。
-        :return:
+        :return: Dict，代表全局执行结果，平均准确率和损失，以及在Model中定义的其他评判指标。
         """
         # 初始化适合的Codec
         if codec_extra_parameters is None:
@@ -165,4 +165,17 @@ class ParallelSGD:
             coordinator.submit_group(PSGDWorkerExecutor, assignment.nodes, self.__data.estimate_size())
 
             coordinator.resources_dispatch(lambda _id, x: replies[x])
-            return coordinator.join()
+            res = coordinator.join()
+
+        # 获取每个节点的返回值
+        ret: Dict[str, float] = {}
+        for node in res:
+            if isinstance(res, Dict):
+                for key in res[node]:
+                    ret[key] = ret.get(key, 0) + res[node][key]
+
+        # 求平均值
+        for key in ret:
+            ret[key] = ret[key] / len(res)
+
+        return ret
