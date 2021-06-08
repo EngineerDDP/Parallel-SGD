@@ -5,8 +5,12 @@ import network
 
 
 class TestCase(unittest.TestCase):
-    TEST_ROUND = 100
+    TEST_ROUND = 10
     TEST_DATA = b'a' * 1024 * 1024 * 100  # 100 MB data
+
+    def __init__(self, methodName: str):
+        super().__init__(methodName=methodName)
+        self.__count = 0
 
     def run_serve(self):
         serve = network.Serve()
@@ -14,10 +18,13 @@ class TestCase(unittest.TestCase):
 
         with serve.acquire() as com:
             com: network.ICommunication_Controller
-            while not com.is_closed():
-                _, data = com.get_one(blocking=True, timeout=1)
-                if data is not None:
-                    count += 1
+            try:
+                while not com.is_closed():
+                    _, data = com.get_one(blocking=True, timeout=1)
+                    if data is not None:
+                        count += 1
+            except ConnectionAbortedError:
+                pass
         print("{} acquired, {} required".format(count, TestCase.TEST_ROUND))
         self.__count = count
 
@@ -34,6 +41,8 @@ class TestCase(unittest.TestCase):
         com.close(force=False, timeout=100)
 
     def test_something(self):
+        print(network.communications.get_repr())
+
         t_serve = threading.Thread(target=self.run_serve, name="Serve T")
         t_request = threading.Thread(target=self.run_request, name="Request T")
 
