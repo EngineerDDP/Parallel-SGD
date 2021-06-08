@@ -20,6 +20,7 @@ class MyTestCase(unittest.TestCase):
         max_pool.G(y)
         self.assertEqual(x.get_gradient().shape, x.get_shape())
 
+        self.assertEqual(max_pool.output_shape(), (2, 3, 3, 1))
         self.assertEqual(max_pool.variables, ())
         print(max_pool.__repr__())
         print(max_pool.__str__())
