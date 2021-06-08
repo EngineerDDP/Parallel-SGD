@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     # 添加一个ip作为Worker
     nodes = NodeAssignment()
-    nodes.add(0, '192.168.1.116')
+    nodes.add(0, '127.0.0.1')
     net = Request()
 
     # 增加协调者角色
@@ -21,7 +21,7 @@ if __name__ == '__main__':
         # 在请求的集群上创建一个协调者
         master = Coordinator(req)
         # 提交任务
-        master.submit_job(myExecutor)
+        master.submit_group(myExecutor)
         # 等待执行完成
         master.join()
 
