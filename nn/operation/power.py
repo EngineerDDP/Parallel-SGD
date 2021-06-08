@@ -1,7 +1,7 @@
 import numpy as np
 
-from nn.interface import IOperator
 from nn.abstract import AbsFlexibleUnaryNode
+from nn.interface import IOperator
 from nn.operation.abstract import OperandHelper
 
 
@@ -13,11 +13,11 @@ class Square(AbsFlexibleUnaryNode, OperandHelper):
     def output_shape(self) -> [list, tuple, None]:
         return self.op_child.output_shape()
 
-    def do_forward(self, x):
+    def do_forward(self, x: [float, np.ndarray], training: bool = True) -> np.ndarray:
         return np.square(x)
 
-    def do_backward(self, grad):
-        return 2 * self.input_ref * grad
+    def do_backward(self, x: [float, np.ndarray], grad: [float, np.ndarray]) -> [np.ndarray, float]:
+        return 2 * x * grad
 
 
 class Power(AbsFlexibleUnaryNode, OperandHelper):
@@ -29,8 +29,8 @@ class Power(AbsFlexibleUnaryNode, OperandHelper):
     def output_shape(self) -> [list, tuple, None]:
         return self.op_child.output_shape()
 
-    def do_forward(self, x):
+    def do_forward(self, x: [float, np.ndarray], training: bool = True) -> np.ndarray:
         return np.power(x, self.__power)
 
-    def do_backward(self, grad):
-        return self.__power * np.power(self.input_ref, self.__power - 1) * grad
+    def do_backward(self, x: [float, np.ndarray], grad: [float, np.ndarray]) -> np.ndarray:
+        return self.__power * np.power(x, self.__power - 1) * grad
