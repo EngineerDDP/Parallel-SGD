@@ -60,14 +60,14 @@ class Variable(AbsValue, OperandHelper, ITrainable):
     def get_shape(self) -> Tuple[int]:
         return tuple(self.__var.shape) if self.__var is not None else None
 
-    def get_value(self):
+    def get_value(self) -> ndarray:
         return self.__var
 
     def set_value(self, val) -> None:
         self.__var = val
         return None
 
-    def get_gradient(self):
+    def get_gradient(self) -> ndarray:
         return self.__ref_gradient
 
     def __getstate__(self):
