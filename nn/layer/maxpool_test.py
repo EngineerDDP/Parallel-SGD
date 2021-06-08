@@ -20,6 +20,10 @@ class MyTestCase(unittest.TestCase):
         max_pool.G(y)
         self.assertEqual(x.get_gradient().shape, x.get_shape())
 
+        self.assertEqual(max_pool.variables, ())
+        print(max_pool.__repr__())
+        print(max_pool.__str__())
+
     def test_padding(self):
         x = nn.value.Variable(shape=(2, 6, 6, 1))
         y = MaxPool(strides=(2, 2), padding="SAME", size=(2, 2), inputs=x)

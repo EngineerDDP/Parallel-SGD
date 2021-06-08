@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Tuple
 
 import tensorflow as tf
 
@@ -47,7 +47,7 @@ class MaxPool(AbsLayer):
         shape = tf.constant(self.__in_shape, dtype=tf.int64)
         return tf.scatter_nd(indices, updates, shape).numpy()
 
-    def output_shape(self) -> [list, tuple, None]:
+    def output_shape(self) -> Tuple[int]:
         return self.__out_shape
 
     def __str__(self):
