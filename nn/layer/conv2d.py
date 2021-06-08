@@ -20,7 +20,7 @@ class Conv2D(AbsLayer):
             Currently support "VALID" convolve only.
         :param kernel: Kernel count
         :param kernel_size: kernel size, [height, width]
-        :param strides: strikes of convolve operation, [height, width]
+        :param strides: strides of convolve operation, [height, width]
         :param activation: activation function, None indicates that this layer use linear activation.
         :param inputs: input operator. IOperator instance.
         """
