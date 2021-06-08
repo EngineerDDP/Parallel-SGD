@@ -1,6 +1,6 @@
 # Parallel SGD
 
-　　Parallel-SGD v0.86  
+　　Parallel-SGD v0.871  
 　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](./codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](./executor/README.md)）。  
 
 ## 参数说明
@@ -372,6 +372,9 @@ def parallel(self,
 ## 更新日志
 
 ### 0.8
+
+#### 0.871
+1. 紧急修复一个影响提交的BUG。
 
 #### 0.87
 1. 优化了Logger的缓存机制，将submit_test中benchmark的执行速度提升60%。
