@@ -1,3 +1,5 @@
+from typing import Tuple, Iterable
+
 import numpy as np
 from numpy import ndarray
 
@@ -7,18 +9,18 @@ from nn.operation.abstract import OperandHelper
 
 class Placeholder(OperandHelper):
 
-    def __init__(self, shape=None):
+    def __init__(self, shape: [Iterable[int], int] = None):
         super().__init__()
         self.__hold = None
         self.__gradient_attachment = None
         self.__input_shape = None
         self.set_shape(shape)
 
-    def set_shape(self, shape):
+    def set_shape(self, shape: [Iterable[int], int]):
         if isinstance(shape, list) or isinstance(shape, tuple):
-            self.__input_shape = list(shape)
+            self.__input_shape = tuple(shape)
         elif isinstance(shape, int):
-            self.__input_shape = [shape]
+            self.__input_shape = (shape)
         elif shape is None:
             self.__input_shape = None
         else:
@@ -46,19 +48,19 @@ class Placeholder(OperandHelper):
     def set_value(self, val=None) -> None:
         if val is not None:
             val = np.asarray(val)
-            assert self.__input_shape is None or list(val.shape[1:]) == self.__input_shape[1:], \
+            assert self.__input_shape is None or tuple(val.shape[1:]) == self.__input_shape[1:], \
                 "Given shape {} does't match with {}.".format(val.shape, self.output_shape())
             self.__hold = val
         else:
             self.__hold = np.random.normal(size=[1] + self.__input_shape[1:])
 
-    def get_value(self):
+    def get_value(self) -> np.ndarray:
         return self.__hold
 
-    def get_shape(self) -> list:
+    def get_shape(self) -> Tuple[int]:
         return self.__input_shape
 
-    def get_gradient(self):
+    def get_gradient(self) -> np.ndarray:
         return self.__gradient_attachment
 
     # -------- Value implementation --------
