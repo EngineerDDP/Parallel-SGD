@@ -9,7 +9,7 @@ import nn.value
 class TestOP(unittest.TestCase):
 
     def test_normal(self):
-        shape = (1, 1)
+        shape = (2, 2)
         x = nn.value.Variable(np.ones(shape=shape))
         y = nn.value.Variable(np.ones(shape=shape))
         v = nn.value.Placeholder(shape=shape)
@@ -23,7 +23,7 @@ class TestOP(unittest.TestCase):
         r = c.F()
         c.G(np.zeros(shape=shape))
 
-        self.assertEqual(r, 63)
+        self.assertEqual(r[0][0], 511)
         self.assertEqual(x.get_gradient().shape, x.get_shape())
 
     def test_unmatched_multiply(self):
