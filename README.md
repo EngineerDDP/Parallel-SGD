@@ -193,7 +193,7 @@ with req.request(nodes) as com:
 **注意**：在ASync-SGD弱一致性约束下，每个Worker给出一个有限的感知范围下最优的Evaluation报表。  
 
 
-　　详细的`parallel`方法参数定义如下：
+## 详细的`parallel`方法参数定义
 ```python
 from typing import Type, Tuple, Union, Dict, SupportsFloat, Hashable
 
