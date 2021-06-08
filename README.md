@@ -223,9 +223,9 @@ def parallel(self,
              codec_extra_parameters: Dict[Hashable, SupportsFloat] = None):
     """
         执行并行化。
-    :param ssgd_timeout_limit: Sync-SGD等待超时限制，单位为毫秒，数值为整型，控制直接相连的Worker之间的最大执行速度差距。
-                            如果两个Worker没有直接通讯，则不做限制。例如：连在同一个参数服务器下的两个Worker，由于没有
-                            直接通信，则不会限制他们之间的执行速度差异。
+    :param ssgd_timeout_limit: Sync-SGD等待超时限制，单位为毫秒，数值为整型，控制直接相连的Worker之间的最大
+                            执行速度差距。如果两个Worker没有直接通讯，则不做限制。例如：连在同一个参数服务器
+                            下的两个Worker，由于没有直接通信，则不会限制他们之间的执行速度差异。
 
     :param network_bandwidth: 可用的网络带宽，用作计算预估传输时间，设置 pre_commit 超时计时器。
 
@@ -235,16 +235,16 @@ def parallel(self,
                             参数服务器的节点编号由 utils.constant.Parameter_Server 指定，其余工作节点的id
                             从 0 开始依次递增（为整数型）。
 
-    :param block_size:      节点粒度的 Batch 大小，由 codec 控制具体的更新策略，块大小与批次大小并没有具体对应关系。
-                            若 codec 在每个 Block 后给出结果，则实践意义上 Block size 和 Batch size 是等价的，例如：
-                            异步随机梯度下降算法。
-                            若 codec 总是等待所有 Block 的训练完成后再同步结果，则实践意义上 Batch size 等于 Block size
-                            乘以 Block 总数，例如：Ring AllReduce SGD。
+    :param block_size:      节点粒度的 Batch 大小，由 codec 控制具体的更新策略，块大小与批次大小并没有具体
+                            对应关系。若 codec 在每个 Block 后给出结果，则实践意义上 Block size 和 Batch size 
+                            是等价的，例如：异步随机梯度下降算法。
+                            若 codec 总是等待所有 Block 的训练完成后再同步结果，则实践意义上 Batch size 
+                            等于 Block size 乘以 Block 总数，例如：Ring AllReduce SGD。
 
-    :param epoch:           训练批次数，由 codec 和 sync type 共同决定 epoch 内的同步策略，当使用参数服务器时，参数服务器
-                            也参与到同步状态的维持中。
-                            若 codec 不允许异步执行，则所有节点都会在同一时刻结束 epoch，若 codec 或 sync type 允许跨批次
-                            执行，则节点会根据自己的计算能立先后结束计算。
+    :param epoch:           训练批次数，由 codec 和 sync type 共同决定 epoch 内的同步策略，当使用参数服务器
+                            时，参数服务器也参与到同步状态的维持中。
+                            若 codec 不允许异步执行，则所有节点都会在同一时刻结束 epoch，若 codec 或 sync type 
+                            允许跨批次执行，则节点会根据自己的计算能立先后结束计算。
 
     :param assignment_type: 样本分配策略，一般与冗余分配结合使用，需要实现了 profiles.ISetting 接口的类型。
                             初衷是提供冗余的数据集分配策略，现可以提供静态数据量分配。
@@ -254,12 +254,12 @@ def parallel(self,
                             同步方式下，每个 worker 在调用 get_weights() 获取权重时才会处理接收数据。
                             异步方式下，每个 Worker 收到数据就处理并更新结果集。
                             具体的数据处理流程和结果集更新策略都由 codec 定义。
-                                主要指定一个内容：Worker之间的连接是同步的还是异步的，是否会存在某个worker在运行时突然接收到
-                                外部数据。
+                                主要指定一个内容：Worker之间的连接是同步的还是异步的，是否会存在某个worker
+                                在运行时突然接收到外部数据。
 
     :param gd_type:         梯度处理策略类型，实现了 nn.IOptimizer 接口的类型。
-                            这里定义了梯度与迭代增量的关系，我们一般不会使用计算出的梯度直接执行反向传播算法，而是对计算出的
-                            梯度进行一些处理之后再进行迭代。
+                            这里定义了梯度与迭代增量的关系，我们一般不会使用计算出的梯度直接执行反向传播算法，
+                            而是对计算出的梯度进行一些处理之后再进行迭代。
                                 内置的范式：Adam、RMSProp、AdaDelta、GradientDecay、SGD。
                                 主要指定一个内容：如何处理原始梯度，使其更满足模型的需求。
 
@@ -293,7 +293,7 @@ def parallel(self,
     pass
 ```
 
-### 任务提交 (已弃用)
+## 任务提交 (已弃用)
 　　提交任务到集群时，使用 job_submit.py 脚本，脚本参数声明如下：
 ```shell script
 usage: job_submit.py [-h] [--non-iid] -m MODEL_FILE [-n N] [-b B] [-r R]
@@ -427,7 +427,7 @@ worker.json格式如下：
 * *--network-bandwidth*  
 给出当前环境下的网络传输带宽估计值，用于设置Worker在Commit阶段的超时计时器。  
 
-### 提交流程
+## 提交流程
 
 　　训练任务的提交过程遵循分布式系统的三阶段提交规范。包含canCommit、preCommit和doCommit三个阶段。
 * canCommit阶段：Coordinator会逐个访问worker.json中的每个Worker，检查Worker是否处于可提交阶段。  
@@ -440,31 +440,16 @@ worker.json格式如下：
     - 每个完成preCommit阶段的Worker都会在收到Ready标志后回复Ready_Type，当所有Worker都进入Ready状态后，提交完成。
     - 当超时未收到指定数目的Ready回复后，所有的Worker回退到初始状态并重置连接状态，Coordinator检查连接断开后报告任务提交失败。
     
-### 一致性约束
+![Submit](./.readme/submit.png)
+    
+## 一致性约束
 
-　　在 Sync-SGD Type 约束下，网络权重参数满足一致性（Consistency）和分区容错性（Partition Tolerance），不满足可用性（Availability）。
-详细的资源CAP状况如下表。
- 
-|资源|Consistency|Availability|Partition Tolerance|
-|----|----|----|----|
-|初始化资源|√|√|×|
-|训练日志|√|√|×|
-|评估日志|√|×|√|
-|网络权重|√|×|√|
-
-　　在 ASync-SGD Type 约束下，网络权重参数满足分区容错性（Partition Tolerance）和可用性（Availability），不满足一致性（Consistency）。
-详细的资源CAP状况如下表。
-
-|资源|Consistency|Availability|Partition Tolerance|
-|----|----|----|----|
-|初始化资源|√|√|×|
-|训练日志|√|√|×|
-|评估日志|×|√|√|
-|网络权重|×|√|√|
+　　框架已经不再支持分布式存储，仅保留Codec的只读配置支持。基于目前并行框架的分布式存储 `Executor` 已在构建，在文件夹 `./executor/parallel` 中。
 
 ## 框架结构
 
-　　To be constructed.
+　　P-SGD的组件关系图如下所示：
+![Structure](./.readme/structure.png)
 
 
 ## 更新日志
