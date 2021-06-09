@@ -48,7 +48,7 @@ class Placeholder(OperandHelper):
     def set_value(self, val=None) -> None:
         if val is not None:
             val = np.asarray(val)
-            assert self.__input_shape is None or tuple(val.shape[1:]) == self.__input_shape[1:], \
+            assert self.__input_shape is None or tuple(val.shape[1:]) == tuple(self.__input_shape[1:]), \
                 "Given shape {} does't match with {}.".format(val.shape, self.output_shape())
             self.__hold = val
         else:
