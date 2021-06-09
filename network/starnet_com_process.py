@@ -9,7 +9,7 @@ from network.agreements import *
 from network.interfaces import IWorker_Register, AbsCommunicationProcess, IPromoter, NodeAssignment
 from network.serialization import BufferReader, BufferWriter
 
-STAR_NET_WORKING_PORTS = 15387
+STAR_NET_WORKING_PORTS = constants.Network_Working_Ports
 
 
 class WorkerRegisterList:

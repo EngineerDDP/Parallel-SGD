@@ -1,11 +1,10 @@
 import time
 
+import constants
+import executor
+import models
+import network
 import utils.log
-from constants import Initialization_Server, Init_Job_Submission_Timeout_Limit_Sec, VERSION
-from executor.abstract import AbsExecutor
-from executor.interface import IExecutor
-from models import *
-from network import ICommunication_Controller, Serve
 from network.communications import get_repr
 
 
@@ -14,15 +13,15 @@ class Worker:
     def __init__(self, logger: utils.log.IPrinter = None):
         if logger is None:
             self.__client_logger = utils.log.Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
-        self.__client_logger.log_message('Worker version: {}.'.format(VERSION))
-        self.__job_executor: [IExecutor] = None
+        self.__client_logger.log_message('Worker version: {}.'.format(constants.VERSION))
+        self.__job_executor: [executor.IExecutor] = None
 
     def slave_forever(self):
         # set up listening port
-        listener = Serve(net_type='fcnet')
+        listener = network.Serve(net_type='fcnet')
         try:
             while True:
-                self.__client_logger.log_message('Worker started with network type \'FCNet\'.')
+                self.__client_logger.log_message('Worker started on port: {}'.format(constants.Network_Working_Ports))
                 try:
                     with listener.acquire() as com:
                         self.__client_logger.log_message(
@@ -43,7 +42,7 @@ class Worker:
             listener.close()
 
     @staticmethod
-    def __recv_pack(com: ICommunication_Controller, timeout: int = 100):
+    def __recv_pack(com: network.ICommunication_Controller, timeout: int = 100):
         data = None
         id_from = None
         time_out_end = time.time() + timeout
@@ -52,11 +51,11 @@ class Worker:
             id_from, data = com.get_one(blocking=False)
             time.sleep(0.01)
             # Assertion, this node count as one
-            assert Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
+            assert constants.Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
             assert time.time() < time_out_end, "Maximum waiting time exceed."
         return id_from, data
 
-    def dispatch(self, com: ICommunication_Controller):
+    def dispatch(self, com: network.ICommunication_Controller):
         """
             Get first package and find out what to do.
             All exceptions will be handled here, and trace back information will
@@ -69,17 +68,17 @@ class Worker:
         try:
             id_from = com.Node_Id
             req = None
-            while id_from != Initialization_Server:
-                id_from, req = Worker.__recv_pack(com, Init_Job_Submission_Timeout_Limit_Sec)
+            while id_from != constants.Initialization_Server:
+                id_from, req = Worker.__recv_pack(com, constants.Init_Job_Submission_Timeout_Limit_Sec)
 
-            if isinstance(req, SubmitJob):
+            if isinstance(req, models.SubmitJob):
                 # Report Version
-                com.send_one(Initialization_Server, Version(node_id=com.Node_Id))
+                com.send_one(constants.Initialization_Server, models.Version(node_id=com.Node_Id))
                 self.__client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
                     results = self.do_training(com)
 
-            if isinstance(req, RequestWorkingLog):
+            if isinstance(req, models.RequestWorkingLog):
                 self.__client_logger.log_message('ACK logfile reclaim.')
 
         except Exception as e:
@@ -94,7 +93,7 @@ class Worker:
 
         self.post_log(com, results)
 
-    def post_log(self, com: ICommunication_Controller, other_contents: object):
+    def post_log(self, com: network.ICommunication_Controller, other_contents: object):
         """
             Post worker log file to coordinator.
         :param other_contents: other content can be attached
@@ -104,14 +103,14 @@ class Worker:
         posting_files = []
         if self.__client_logger.ToFile:
             posting_files.append(self.__client_logger.File_Name)
-        if isinstance(self.__job_executor, AbsExecutor):
+        if isinstance(self.__job_executor, executor.abstract.AbsExecutor):
             for filename in self.__job_executor.trace_files():
                 posting_files.append(filename)
 
         # Post files
-        com.send_one(Initialization_Server, DoneType(com.Node_Id, posting_files, other_contents))
+        com.send_one(constants.Initialization_Server, models.DoneType(com.Node_Id, posting_files, other_contents))
 
-    def initialize(self, com: ICommunication_Controller, job_info: SubmitJob) -> bool:
+    def initialize(self, com: network.ICommunication_Controller, job_info: models.SubmitJob) -> bool:
         """
             Initialize execution environment
         :param com: Communication process
@@ -125,14 +124,14 @@ class Worker:
         total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
-        self.__job_executor: AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
+        self.__job_executor: executor.abstract.AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
 
         # Acknowledge requests
         requests = self.__job_executor.requests()
         replies = []
         # Ask for replies
         for req in requests:
-            com.send_one(Initialization_Server, RequestPackage(req))
+            com.send_one(constants.Initialization_Server, models.RequestPackage(req))
 
         req_format = "\tRequests List:\n\t\t--> {}".format("\n\t\t--> ".join([str(req) for req in requests]))
         self.__client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
@@ -144,20 +143,20 @@ class Worker:
 
             self.__client_logger.log_message('Ack package, type: ({})'.format(data.__class__.__name__))
             # restoring data
-            if isinstance(data, IReplyPackage):
+            if isinstance(data, models.IReplyPackage):
                 data.restore()
                 replies.append(data)
 
                 if len(replies) == len(requests):
                     requests = self.__job_executor.satisfy(replies)
                     for req in requests:
-                        com.send_one(Initialization_Server, RequestPackage(req))
+                        com.send_one(constants.Initialization_Server, models.RequestPackage(req))
                     self.__client_logger.log_message('Request data: ({}).'.format(requests))
                     self.__client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
                     replies.clear()
 
             # pass to sync
-            elif isinstance(data, ReadyType):
+            elif isinstance(data, models.ReadyType):
                 ready_state = ready_state | data.current_ready()
 
         self.__client_logger.log_message('Submit stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
@@ -170,7 +169,7 @@ class Worker:
         return True
 
     @staticmethod
-    def synchronize(com: ICommunication_Controller, ready_state: set, total_nodes: set, timeout: int):
+    def synchronize(com: network.ICommunication_Controller, ready_state: set, total_nodes: set, timeout: int):
         """
             Synchronize timeline with cluster.
             Make sure all nodes exits this method with same time.
@@ -184,7 +183,7 @@ class Worker:
 
         ready_state.add(com.Node_Id)
         for id in com.available_clients:
-            com.send_one(id, ReadyType(ready_state))
+            com.send_one(id, models.ReadyType(ready_state))
 
         while ready_state & total_nodes != total_nodes:
             assert time.time() < dead_line, "Maximum waiting time exceed."
@@ -197,10 +196,10 @@ class Worker:
 
             # check ready state
             id_from, data = com.get_one(blocking=False)
-            if isinstance(data, ReadyType):
+            if isinstance(data, models.ReadyType):
                 ready_state = ready_state | data.current_ready()
 
-    def do_training(self, com: ICommunication_Controller) -> object:
+    def do_training(self, com: network.ICommunication_Controller) -> object:
         """
             Execute job.
         """

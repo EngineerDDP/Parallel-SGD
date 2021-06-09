@@ -1,6 +1,6 @@
 # Parallel SGD
 
-　　Parallel-SGD v0.871  
+　　Parallel-SGD v0.872  
 　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](./codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](./executor/README.md)）。  
 
 ## 参数说明
@@ -12,7 +12,7 @@
 python worker.py 
 ```
 
-**注意**：每个worker所在的计算机都需要允许15387端口的TCP传入。  
+**注意**：每个worker所在的计算机都需要允许15387端口的TCP传入，可以在`constants.py`中更改这个配置。  
 **注意**：Worker启动后就进入无人值守状态，可以反复提交任务无需重启。  
 
 ## 快速上手
@@ -375,6 +375,7 @@ def parallel(self,
 
 #### 0.872
 1. 兼容来自v0.761的任务提交。
+2. 支持从 `constants.py` 自定义工作端口。
 
 #### 0.871
 1. 紧急修复一个影响提交的BUG。
