@@ -257,13 +257,13 @@ def parallel(self,
                                 主要指定一个内容：Worker之间的连接是同步的还是异步的，是否会存在某个worker
                                 在运行时突然接收到外部数据。
 
-    :param gd_type:         梯度处理策略类型，实现了 nn.IOptimizer 接口的类型。
+    :param gd_type:         梯度生成策略，实现了 nn.gradient_descent.IGradientDescent 接口的类型。
                             这里定义了梯度与迭代增量的关系，我们一般不会使用计算出的梯度直接执行反向传播算法，
                             而是对计算出的梯度进行一些处理之后再进行迭代。
                                 内置的范式：Adam、RMSProp、AdaDelta、GradientDecay、SGD。
                                 主要指定一个内容：如何处理原始梯度，使其更满足模型的需求。
 
-    :param op_type:         梯度生成策略，实现了 nn.gradient_descent.IGradientDescent 接口的类型。
+    :param op_type:         梯度处理策略类型，实现了 nn.IOptimizer 接口的类型。
                             这里定义了模型如何对待获取到的更新增量。
                                 内置的范式：梯度上升、梯度下降、梯度平均化、并行双重缓冲、参数平均化，联邦学习。
                                 主要指定两个内容：1.模型是如何处理更新量\delta w 的，2.模型是如何执行反向传播的。
