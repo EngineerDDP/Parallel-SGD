@@ -14,13 +14,19 @@ class Conv2D(AbsLayer):
         Convolve 2D layer.
     """
 
-    def __init__(self, kernel: int, kernel_size: Sequence[int], strides: Optional[Sequence[int]] = None,
-                 activation: IActivation = None, inputs: IOperator = None):
+    def __init__(self,
+                 kernel: int,
+                 kernel_size: Sequence[int],
+                 strides: Optional[Sequence[int]] = None,
+                 padding: str = None,
+                 activation: IActivation = None,
+                 inputs: IOperator = None):
         """
             Currently support "VALID" convolve only.
         :param kernel: Kernel count
         :param kernel_size: kernel size, [height, width]
         :param strides: strides of convolve operation, [height, width]
+        :param padding: padding for input x
         :param activation: activation function, None indicates that this layer use linear activation.
         :param inputs: input operator. IOperator instance.
         """
@@ -32,8 +38,12 @@ class Conv2D(AbsLayer):
         else:
             self.__strides = strides
         # make valid padding
-        if True:
-            self.__padding: str = "VALID"
+        if padding is None or padding == 'VALID':
+            self.__padding = 'VALID'
+        elif padding == 'SAME':
+            self.__padding = 'SAME'
+        else:
+            raise AssertionError("Padding can only be \'VALID\' or \'SAME\', but {} were given.".format(padding))
         # make weights
         self.__kernel = Weights()
         self.__bias = Weights()
@@ -47,21 +57,25 @@ class Conv2D(AbsLayer):
         self.__shape_output: Optional[Sequence[int]] = None
         # get input if possible
         if inputs and inputs.output_shape():
-            self.__get_shape(inputs.output_shape())
+            self.__get_shape_output(inputs.output_shape())
 
     @property
     def variables(self) -> tuple:
         return self.__kernel, self.__bias
 
-    def __get_shape(self, input_shape: Sequence[int]):
-        out_h = 1 + (input_shape[1] - self.__size_kernel[0]) // self.__strides[0]
-        out_w = 1 + (input_shape[2] - self.__size_kernel[1]) // self.__strides[1]
+    def __get_shape_output(self, input_shape: Sequence[int]):
+        if self.__padding == 'VALID':
+            out_h = 1 + (input_shape[1] - self.__size_kernel[0]) // self.__strides[0]
+            out_w = 1 + (input_shape[2] - self.__size_kernel[1]) // self.__strides[1]
+        else:
+            out_h = input_shape[1]
+            out_w = input_shape[2]
         self.__shape_output = (-1, out_h, out_w, self.__count_kernel)
         self.__count_input = input_shape[3]
 
     def initialize_parameters(self, x: np.ndarray) -> None:
         # update current shape
-        self.__get_shape(x.shape)
+        self.__get_shape_output(x.shape)
         shape_kernel = (*self.__size_kernel, self.__count_input, self.__shape_output[3])
         nk = self.__size_kernel[0] * self.__size_kernel[1] * self.__count_input
         nk_1 = self.__size_kernel[0] * self.__size_kernel[1] * self.__count_kernel
