@@ -20,7 +20,7 @@ class Placeholder(OperandHelper):
         if isinstance(shape, list) or isinstance(shape, tuple):
             self.__input_shape = tuple(shape)
         elif isinstance(shape, int):
-            self.__input_shape = (shape)
+            self.__input_shape = (shape,)
         elif shape is None:
             self.__input_shape = None
         else:
@@ -32,7 +32,7 @@ class Placeholder(OperandHelper):
     def output_ref(self):
         return self.get_value()
 
-    def output_shape(self) -> [list, tuple, None]:
+    def output_shape(self) -> Tuple[int]:
         return self.get_shape() if self.get_shape() else None
 
     def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
@@ -58,7 +58,7 @@ class Placeholder(OperandHelper):
         return self.__hold
 
     def get_shape(self) -> Tuple[int]:
-        return self.__input_shape
+        return tuple(self.__input_shape)
 
     def get_gradient(self) -> np.ndarray:
         return self.__gradient_attachment
