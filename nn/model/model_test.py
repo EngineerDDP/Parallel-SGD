@@ -10,18 +10,18 @@ import nn
 os.chdir("../../")
 
 
-class TestSequentialModel(unittest.TestCase):
+class TestModel(unittest.TestCase):
 
     def test_cifarnet(self):
         model = nn.model.SequentialModel(input_shape=[-1, 32, 32, 3])
-        model.add(
-            nn.layer.Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
-        model.add(
-            nn.layer.Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
-        model.add(
-            nn.layer.Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
-        model.add(
-            nn.layer.Conv2D(kernel=64, kernel_size=[5, 5], activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+        model.add(nn.layer.Conv2D(kernel=64, kernel_size=[5, 5],
+                                  activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+        model.add(nn.layer.Conv2D(kernel=64, kernel_size=[5, 5],
+                                  activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+        model.add(nn.layer.Conv2D(kernel=64, kernel_size=[5, 5],
+                                  activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
+        model.add(nn.layer.Conv2D(kernel=64, kernel_size=[5, 5],
+                                  activation=nn.activation.LeakReLU(leak_coefficient=0.2)))
         model.add(nn.layer.Flatten())
         model.add(nn.layer.Dropout())
         model.add(nn.layer.Dense(units=128, activation=nn.activation.Tanh()))
@@ -86,6 +86,34 @@ class TestSequentialModel(unittest.TestCase):
 
         res = model.evaluate(x, y)
         self.assertGreater(res['MSE'], 0.90)
+
+    def test_alexnet(self):
+        model = nn.model.SequentialModel(input_shape=[-1, 227, 227, 3])
+        model.add(nn.layer.Conv2D(strides=[4, 4], padding="VALID", kernel_size=[11, 11],
+                                  kernel=96, activation=nn.activation.ReLU()))
+        model.add(nn.layer.MaxPool(strides=[2, 2], padding="VALID", size=[3, 3]))
+        model.add(nn.layer.Conv2D(strides=[1, 1], padding="SAME", kernel_size=[5, 5],
+                                  kernel=256, activation=nn.activation.ReLU()))
+        model.add(nn.layer.MaxPool(strides=[2, 2], padding="VALID", size=[3, 3]))
+        model.add(nn.layer.Conv2D(strides=[1, 1], padding="SAME", kernel_size=[3, 3],
+                                  kernel=384, activation=nn.activation.ReLU()))
+        model.add(nn.layer.Conv2D(strides=[1, 1], padding="SAME", kernel_size=[3, 3],
+                                  kernel=384, activation=nn.activation.ReLU()))
+        model.add(nn.layer.Conv2D(strides=[1, 1], padding="SAME", kernel_size=[3, 3],
+                                  kernel=256, activation=nn.activation.ReLU()))
+        model.add(nn.layer.MaxPool(strides=[2, 2], padding="VALID", size=[3, 3]))
+        model.add(nn.layer.Flatten())
+        model.add(nn.layer.Dense(units=4096, activation=nn.activation.ReLU()))
+        model.add(nn.layer.Dense(units=4096, activation=nn.activation.ReLU()))
+        model.add(nn.layer.Dense(units=1000, activation=nn.activation.ReLU()))
+        model.add(nn.layer.Dense(units=10, activation=nn.activation.Softmax()))
+
+        model.setup(nn.loss.Cross_Entropy_With_Softmax(), nn.metric.CategoricalAccuracy())
+        model.compile(nn.gradient_descent.ADAMOptimizer())
+        model.save("AlexNet.test_model")
+
+        self.assertTrue(os.path.exists("AlexNet.test_model"))
+        os.remove("AlexNet.test_model")
 
 
 if __name__ == '__main__':

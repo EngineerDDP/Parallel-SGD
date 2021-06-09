@@ -33,7 +33,7 @@ class Placeholder(OperandHelper):
         return self.get_value()
 
     def output_shape(self) -> Tuple[int]:
-        return self.get_shape() if self.get_shape() else None
+        return tuple(self.get_shape()) if self.get_shape() else None
 
     def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
         return self.__hold
@@ -58,7 +58,7 @@ class Placeholder(OperandHelper):
         return self.__hold
 
     def get_shape(self) -> Tuple[int]:
-        return tuple(self.__input_shape)
+        return self.__input_shape
 
     def get_gradient(self) -> np.ndarray:
         return self.__gradient_attachment
