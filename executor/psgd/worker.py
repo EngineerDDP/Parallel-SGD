@@ -15,8 +15,7 @@ class PSGDWorkerExecutor(AbsExecutor):
 
     def __init__(self, node_id, offset):
         super().__init__(node_id, offset)
-        self.__log = Logger('Fit-{}'.format(node_id), log_to_file=True)
-        self.__trace_filename = [self.__log.File_Name]
+        self.__trace_filename: List[str] = []
         # waiting for those
         self.__model: [Model] = None
         self.__optimizer: [IPSGDOpContainer] = None
@@ -98,10 +97,12 @@ class PSGDWorkerExecutor(AbsExecutor):
 
     def start(self, com: ICommunication_Controller) -> None:
         state, report = self.__check()
-        self.__log.log_message("Ready:{} \n\t Check List:\n\t\t--> {}".format(state, "\n\t\t--> ".join(report)))
+        __log = Logger('Fit-{}'.format(self.node_id), log_to_file=True)
+        self.__trace_filename.append(__log.File_Name)
+        __log.log_message("Ready:{} \n\t Check List:\n\t\t--> {}".format(state, "\n\t\t--> ".join(report)))
         # get dataset
         train_x, train_y, test_x, test_y = self.__data.load()
-        self.__log.log_message('Dataset is ready, type: ({})'.format(self.__data))
+        __log.log_message('Dataset is ready, type: ({})'.format(self.__data))
         # build data feeder
         block_ids = GlobalSettings.get_default().node_2_block[com.Node_Id]
         feeder = PSGDBlockDataFeeder(train_x, train_y, batch_iter=self.__batch_iter, block_ids=block_ids)
@@ -111,14 +112,14 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__model.compile(self.__optimizer)
         # summary
         summary = self.__model.summary()
-        self.__log.log_message(summary)
+        __log.log_message(summary)
         trace_head = '{}-N({})'.format(self.__misc.mission_title, self.node_id)
-        self.__log.log_message('Model set to ready.')
+        __log.log_message('Model set to ready.')
 
-        log_head = self.__log.Title
+        log_head = __log.Title
         # start !
-        GlobalSettings.deprecated_global_logger = self.__log
-        self.__trans.start_transfer(com, group_offset=list(self.group)[0], printer=self.__log)
+        GlobalSettings.deprecated_global_logger = __log
+        self.__trans.start_transfer(com, group_offset=list(self.group)[0], printer=__log)
         # record data
         time_start = time.time()
         data_send_start = com.Com.bytes_sent
@@ -130,13 +131,13 @@ class PSGDWorkerExecutor(AbsExecutor):
         # do until reach the target accuracy
         for i in range(self.__misc.epoch):
             # change title
-            self.__log.Title = log_head + "-Epo-{}".format(i + 1)
-            history = self.__model.fit(feeder, epoch=1, printer=self.__log)
+            __log.Title = log_head + "-Epo-{}".format(i + 1)
+            history = self.__model.fit(feeder, epoch=1, printer=__log)
             # do tests
             r = self.__model.evaluate(test_x, test_y)
             title = r.keys()
             row = r.values()
-            self.__log.log_message('Evaluate result: {}'.format(r))
+            __log.log_message('Evaluate result: {}'.format(r))
             evaluation_history.append(row)
 
             if self.__misc.target_acc is not None:
@@ -168,15 +169,21 @@ class PSGDWorkerExecutor(AbsExecutor):
         self.__trace_filename.append(evaluation_name)
         self.__trace_filename.append(model_name)
 
-        self.__log.log_message('Execution complete, time: {}.'.format(time_end - time_start))
-        self.__log.log_message('Execution complete, Total bytes sent: {}.'.format(data_sent_end - data_send_start))
-        self.__log.log_message('Execution complete, Total bytes read: {}.'.format(data_recv_end - data_recv_start))
-        self.__log.log_message('Trace file has been saved to {}.'.format(trace_head))
+        __log.log_message('Execution complete, time: {}.'.format(time_end - time_start))
+        __log.log_message('Execution complete, Total bytes sent: {}.'.format(data_sent_end - data_send_start))
+        __log.log_message('Execution complete, Total bytes read: {}.'.format(data_recv_end - data_recv_start))
+        __log.log_message('Trace file has been saved to {}.'.format(trace_head))
 
         # set marker
         self.__done = True
         # dispose
         self.__model.clear()
+        self.__model = None
+        self.__data = None
+        self.__optimizer = None
+        self.__batch_iter = None
+        self.__trans = None
+        GlobalSettings.deprecated_global_logger = None
         del train_x, train_y, test_x, test_y
 
         # return last evaluation result
