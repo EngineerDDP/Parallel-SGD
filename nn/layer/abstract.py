@@ -16,7 +16,7 @@ class AbsLayer(IOperator, ILazyInitialization):
     """
     # Used for parallel execution.
     __layer_bp_executor: concurrent.futures.Executor = concurrent.futures.ThreadPoolExecutor(
-        max_workers=60,
+        max_workers=60,  # TODO: 如果训练的神经网络总层数大于max_worker，则会导致潜在的死锁问题
         thread_name_prefix="BP T")
 
     def __init__(self, inputs: IOperator = None, activation: IActivation = None):
