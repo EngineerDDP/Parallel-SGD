@@ -37,20 +37,26 @@ class Conv2D(AbsLayer):
             self.__strides: Sequence[int] = (1, 1)
         else:
             self.__strides = strides
+        # record count, 4th dimension of output
+        self.__count_kernel: int = kernel
+        # record size
+        self.__size_kernel: Sequence[int] = kernel_size
         # make valid padding
         if padding is None or padding == 'VALID':
             self.__padding = 'VALID'
+            # back prop padding
+            self.__back_prop_padding: Sequence[Sequence[int]] = ((0, 0), (0, 0), (0, 0), (0, 0))
         elif padding == 'SAME':
             self.__padding = 'SAME'
+            # valid for BP
+            padding_h = (self.__size_kernel[0] * self.__strides[0]) // 2
+            padding_w = (self.__size_kernel[1] * self.__strides[1]) // 2
+            self.__back_prop_padding = ((0, 0), (padding_h, padding_h), (padding_w, padding_w), (0, 0))
         else:
             raise AssertionError("Padding can only be \'VALID\' or \'SAME\', but {} were given.".format(padding))
         # make weights
         self.__kernel = Weights()
         self.__bias = Weights()
-        # record count, 4th dimension of output
-        self.__count_kernel: int = kernel
-        # record size
-        self.__size_kernel: Sequence[int] = kernel_size
         # 4th dimension of input
         self.__count_input: Optional[int] = None
         # output shape
@@ -103,7 +109,8 @@ class Conv2D(AbsLayer):
         # rearrange gradient, 38% of time consumed here
         tf_grad = tf.transpose(tf.constant(grad, dtype=tf.float32), perm=[1, 2, 0, 3])  # magic number, dont change
         # get output
-        tf_out = tf.transpose(tf.nn.conv2d(tf_input, tf_grad, self.__strides, self.__padding), perm=[1, 2, 0, 3])
+        tf_conv = tf.nn.conv2d(tf_input, tf_grad, self.__strides, self.__back_prop_padding)
+        tf_out = tf.transpose(tf_conv, perm=[1, 2, 0, 3])
         out = tf_out.numpy()
         self.__kernel.adjust(out)
         self.__bias.adjust(grad)
