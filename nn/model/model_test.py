@@ -115,40 +115,6 @@ class TestModel(unittest.TestCase):
         self.assertTrue(os.path.exists("AlexNet.test_model"))
         os.remove("AlexNet.test_model")
 
-    def test_lenet5(self):
-        from dataset import MNIST
-        from dataset.transforms import ImageCls, Shuffle
-
-        # lenet-5
-        model = nn.model.SequentialModel()
-        model.add(nn.layer.Reshape(shape=[-1, 28, 28, 1]))
-        model.add(nn.layer.Conv2D(kernel=6, kernel_size=[5, 5], strides=[1, 1], padding='SAME',
-                                  activation=nn.activation.ReLU()))
-        model.add(nn.layer.MaxPool(strides=[2, 2], size=[2, 2], padding='VALID'))
-
-        model.add(nn.layer.Conv2D(kernel=16, kernel_size=[5, 5], strides=[1, 1], padding='VALID'
-                                  , activation=nn.activation.ReLU()))
-        model.add(nn.layer.MaxPool(strides=[2, 2], size=[2, 2], padding='VALID'))
-
-        model.add(nn.layer.Conv2D(kernel=120, kernel_size=[5, 5], strides=[1, 1], padding='VALID'))
-
-        model.add(nn.layer.Reshape(shape=[-1, 120]))
-        model.add(nn.layer.Dense(84, activation=nn.activation.ReLU()))
-        model.add(nn.layer.Dense(10, activation=nn.activation.Softmax()))
-
-        model.setup(nn.loss.Cross_Entropy_With_Softmax(), nn.metric.CategoricalAccuracy())
-        model.compile(optimizer=nn.gradient_descent.SGDOptimizer(learn_rate=0.01))
-
-        data = MNIST()  # 使用MNIST数据集
-        trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
-
-        train_x, train_y, test_x, test_y = trans(*data.load())
-        model.fit(x=train_x, label=train_y, epoch=20, batch_size=64)
-        # job = parallel.ParallelSGD(model, data, trans)
-        # nodes = parallel.parse_worker(worker_cnt=1)
-        #
-        # job.parallel(nodes, codec=Plain, epoch=10)
-
 
 if __name__ == '__main__':
     unittest.main()
