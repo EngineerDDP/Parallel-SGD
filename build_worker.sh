@@ -4,28 +4,49 @@ if [ $# -ne 1 ]; then
   echo -e "\t ./build_worker.sh {target directory}"
   exit 1
 fi
-if [ ! -f "./worker.py" ] ||
-  [ ! -f "./constants.py" ] ||
-  [ ! -f "./codec/interfaces.py" ] ||
-  [ ! -f "./codec/__init__.py" ] ||
-  [ ! -f "./codec/essential.py" ] ||
-  [ ! -f "./dataset/interfaces.py" ] ||
-  [ ! -f "./executor/psgd/net_package.py" ] ||
-  [ ! -f "./executor/__init__.py" ] ||
-  [ ! -f "./executor/abstract.py" ] ||
-  [ ! -f "./executor/interface.py" ] ||
-  [ ! -d "./dataset/transforms" ] ||
-  [ ! -d "./models" ] ||
-  [ ! -d "./network" ] ||
-  [ ! -d "./nn" ] ||
-  [ ! -d "./utils" ] ||
-  [ ! -d "./psgd" ] ||
-  [ ! -d "./roles" ] ||
-  [ ! -d "./profiles" ]; then
-  echo "Files not found."
-  echo "This script can only be run inside project directory."
-  exit 2
-fi
+
+src_files=(
+  "./worker.py"
+  "./constants.py"
+  "./codec/interfaces.py"
+  "./codec/__init__.py"
+  "./codec/essential.py"
+  "./dataset/interfaces.py"
+  "./executor/psgd/net_package.py"
+  "./executor/__init__.py"
+  "./executor/abstract.py"
+  "./executor/interface.py"
+)
+src_dirs=(
+  "./dataset/transforms"
+  "./models"
+  "./network"
+  "./nn"
+  "./utils"
+  "./psgd"
+  "./roles"
+  "./profiles"
+)
+
+for file in "${src_files[@]}"; do
+  {
+    if [ ! -f "$file" ]; then
+      echo "$file not found."
+      echo "This script can only be run inside project directory."
+      exit 2
+    fi
+  }
+done
+
+for dir in "${src_dirs[@]}"; do
+  {
+    if [ ! -d "$dir" ]; then
+      echo "$dir not found."
+      echo "This script can only be run inside project directory."
+      exit 2
+    fi
+  }
+done
 
 worker=$1
 
@@ -53,23 +74,17 @@ fi
 
 echo "Override files..."
 
-cp ./codec/interfaces.py "$worker"/codec/
-cp ./codec/__init__.py "$worker"/codec/
-cp ./codec/essential.py "$worker"/codec/
-cp -r ./dataset/transforms "$worker"/dataset/
-cp ./dataset/interfaces.py "$worker"/dataset/
-cp ./executor/psgd/net_package.py "$worker"/executor/psgd/
-cp ./executor/__init__.py "$worker"/executor/
-cp ./executor/abstract.py "$worker"/executor/
-cp ./executor/interface.py "$worker"/executor/
-cp -r ./models "$worker"/
-cp -r ./network "$worker"/
-cp -r ./nn "$worker"/
-cp -r ./utils "$worker"/
-cp -r ./psgd "$worker"/
-cp -r ./roles "$worker"/
-cp ./worker.py "$worker"/
-cp ./constants.py "$worker"/
-cp -r ./profiles "$worker"/
+for dir in "${src_dirs[@]}"; do
+  {
+    cp -r $dir "$worker"/"$dir"
+    echo "Copy directory: $dir"
+  }
+done
+for file in "${src_files[@]}"; do
+  {
+    cp $file "$worker"/"$file"
+    echo "Copy file: $file"
+  }
+done
 
 python3 -m compileall "$worker"/
