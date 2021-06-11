@@ -1,8 +1,8 @@
 import numpy as np
 
+from nn.activation.interface import IActivation
 from nn.interface import IOperator
 from nn.layer.abstract import AbsLayer
-from nn.activation.interface import IActivation
 
 
 class BatchNorm(AbsLayer):
@@ -26,12 +26,11 @@ class BatchNorm(AbsLayer):
         self.__shape = x.shape
 
     def do_forward_predict(self, x):
-        self.__mu = self.__momentum * self.__mu + (1 - self.__momentum) * x.mean(axis=0)
-        self.__sigma = self.__momentum * self.__sigma + (1 - self.__momentum) * x .var(axis=0)
-        print(self.__sigma)
         return (x - self.__mu) / np.sqrt(self.__sigma + self.__eps)
 
     def do_forward_train(self, x):
+        self.__mu = self.__momentum * self.__mu + (1 - self.__momentum) * x.mean(axis=0)
+        self.__sigma = self.__momentum * self.__sigma + (1 - self.__momentum) * x.var(axis=0)
         return self.do_forward_predict(x)
 
     def backward_adjust(self, grad) -> None:
