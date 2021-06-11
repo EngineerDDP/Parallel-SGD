@@ -4,6 +4,28 @@ if [ $# -ne 1 ]; then
   echo -e "\t ./build_worker.sh {target directory}"
   exit 1
 fi
+if [ ! -f "./worker.py" ] || \
+   [ ! -f "./constants.py" ] || \
+   [ ! -f "./codec/interfaces.py" ] || \
+   [ ! -f "./codec/__init__.py" ] || \
+   [ ! -f "./codec/essential.py" ] || \
+   [ ! -f "./dataset/interfaces.py" ] || \
+   [ ! -f "./executor/psgd/net_package.py" ] || \
+   [ ! -f "./executor/__init__.py" ] || \
+   [ ! -f "./executor/abstract.py" ] || \
+   [ ! -f "./executor/interface.py" ] || \
+   [ ! -d "./dataset/transforms" ] || \
+   [ ! -d "./models" ] || \
+   [ ! -d "./network" ] || \
+   [ ! -d "./nn" ] || \
+   [ ! -d "./utils" ] || \
+   [ ! -d "./psgd" ] || \
+   [ ! -d "./roles" ] || \
+   [ ! -d "./profiles" ]; then
+  echo "Files not found."
+  echo "This script can only be run inside project directory."
+  exit 2
+fi
 
 worker=$1
 
