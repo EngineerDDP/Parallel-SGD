@@ -17,7 +17,7 @@ python worker.py
 
 ## 快速上手
 
-　　下面演示一个快速上手执行P-SGD的例程。  
+　　下面演示一个快速上手执行P-SGD的例程。[完整代码](./tutorial_psgd.py)  
 
 ### 模型构建
 
