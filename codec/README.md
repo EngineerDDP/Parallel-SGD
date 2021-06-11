@@ -201,10 +201,10 @@ python worker.py
 　　记录这些Worker在同一网段内的ip地址，写入一个worker.json。假设我们的ip配置如下：
 ```json
 {
-  "PS": "192.168.128.1",
+  "PS": "192.168.1.1",
   "Worker": [
-    "192.168.128.121",
-    "192.168.1.159"
+    "192.168.1.2",
+    "192.168.1.3"
   ]
 }
 ```
@@ -252,8 +252,6 @@ INFO User Submit@16:54:48 : Restoring data (./tmp_log/Training log @ node-0_16-5
 INFO User Submit@16:54:49 : Restoring data (T-N(2)-R(1)-ID(1)-CODEC(mmmmmm).csv) from 1.
 INFO User Submit@16:54:49 : Restoring data (E-N(2)-R(1)-ID(1)-CODEC(mmmmmm).csv) from 1.
 INFO User Submit@16:54:49 : Restoring data (./tmp_log/Training log @ node-1_16-53-37.log) from 1.
-Connection with worker (id: 0, address: ('192.168.1.2', 15387)) has been lost.
-Connection with worker (id: 1, address: ('192.168.1.3', 15387)) has been lost. 
 ```
 ### API
 
