@@ -43,16 +43,11 @@ class Worker:
 
     @staticmethod
     def __recv_pack(com: network.ICommunication_Controller, timeout: int = 100):
-        data = None
-        id_from = None
-        time_out_end = time.time() + timeout
         # requests with timeout check
-        while data is None:
-            id_from, data = com.get_one(blocking=False)
-            time.sleep(0.01)
-            # Assertion, this node count as one
-            assert constants.Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
-            assert time.time() < time_out_end, "Maximum waiting time exceed."
+        id_from, data = com.get_one(blocking=True, timeout=timeout)
+        # Assertion, this node count as one
+        assert constants.Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
+        assert data is not None, "Maximum waiting time exceed."
         return id_from, data
 
     def dispatch(self, com: network.ICommunication_Controller):

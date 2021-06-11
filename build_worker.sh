@@ -1,9 +1,35 @@
+if [ $# -ne 1 ]; then
+  echo "Target Worker dir must be provided as parameter."
+  echo "Usage:"
+  echo -e "\t ./build_worker.sh {target directory}"
+  exit 1
+fi
+
 worker=$1
 
-mkdir "$worker"
-mkdir "$worker"/codec
-mkdir "$worker"/dataset
-mkdir -p "$worker"/executor/psgd
+if [ ! -d "$worker" ]; then
+  mkdir "$worker"
+else
+  echo "Target directory exists, override ? (yes)"
+  read input
+  if [ ! $input = "yes" ]; then
+    exit 0
+  else
+    rm -rf "${worker:?}/"*
+  fi
+fi
+
+if [ ! -d "$worker"/codec ]; then
+  mkdir "$worker"/codec
+fi
+if [ ! -d "$worker"/dataset ]; then
+  mkdir "$worker"/dataset
+fi
+if [ ! -d "$worker"/executor/psgd ]; then
+  mkdir -p "$worker"/executor/psgd
+fi
+
+echo "Override files..."
 
 cp ./codec/interfaces.py "$worker"/codec/
 cp ./codec/__init__.py "$worker"/codec/
