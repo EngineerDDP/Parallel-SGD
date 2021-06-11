@@ -27,13 +27,13 @@ src_dirs=(
   "./roles"
   "./profiles"
 )
+files_and_dir_check=1
 
 for file in "${src_files[@]}"; do
   {
     if [ ! -f "$file" ]; then
-      echo "$file not found."
-      echo "This script can only be run inside project directory."
-      exit 2
+      echo -e "File not found:\t\t$file"
+      files_and_dir_check=0
     fi
   }
 done
@@ -41,12 +41,18 @@ done
 for dir in "${src_dirs[@]}"; do
   {
     if [ ! -d "$dir" ]; then
-      echo "$dir not found."
-      echo "This script can only be run inside project directory."
-      exit 2
+      echo -e "Directory not found:\t$dir"
+      files_and_dir_check=0
     fi
   }
 done
+
+# Exit if some files are missing
+if [ $files_and_dir_check -eq 0 ]; then
+  echo "Error:"
+  echo "This script can only be run inside project directory."
+  exit 2
+fi
 
 worker=$1
 
