@@ -104,7 +104,7 @@ class Coordinator:
 
                 results[id_from] = data.result
 
-        self.__log.log_message("All task is complete.")
+        self.__log.log_message("All the tasks are done.")
         return results
 
     def submit_group(self, worker_executor: Type[IExecutor], working_group: Iterable[int] = None, package_size: int = 1e9):
