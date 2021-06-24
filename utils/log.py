@@ -25,6 +25,7 @@ class Logger(IPrinter):
         self.ToFile = log_to_file
         self.Folder = './tmp_log/'
         self.File_Name = self.Folder + '{} {}.log'.format(title_info, datetime.datetime.now().strftime('%Y-%m-%d %H%M'))
+        self.__file = None
 
         self.__buffer = ''
         self.__buffered_msg_count = 0
@@ -56,6 +57,12 @@ class Logger(IPrinter):
 
     def __del__(self):
         self.flush()
+        self.__file.close()
+
+    def __open_or_create(self):
+        if not os.path.exists(self.Folder):
+            os.mkdir(self.Folder)
+        self.__file = open(self.File_Name, "a+")
 
     def __log_to_file(self, msg):
         # Use buffer
@@ -64,12 +71,11 @@ class Logger(IPrinter):
             self.__buffer += msg + '\n'
             return
 
-        if not os.path.exists(self.Folder):
-            os.mkdir(self.Folder)
-
         if self.ToFile:
-            with open(self.File_Name, 'a+') as file:
-                file.write(self.__buffer)
+            if self.__file is None:
+                self.__open_or_create()
+            self.__file.write(self.__buffer)
+            self.__file.flush()
 
         self.__buffer = ''
         self.__buffered_msg_count = 0
