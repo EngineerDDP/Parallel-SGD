@@ -207,5 +207,6 @@ class Worker:
         self.__client_logger.log_message('Execution stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
         self.__client_logger.log_message('Execution stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
         self.__client_logger.log_message('Execution process exited.')
+        self.__client_logger.flush()
 
         return result
