@@ -1,4 +1,5 @@
 import threading
+import time
 import unittest
 
 import network
@@ -36,8 +37,11 @@ class TestCase(unittest.TestCase):
 
         com = request.request(node)
         com.establish_communication()
-        for i in range(TestCase.TEST_ROUND):
+        for i in range(TestCase.TEST_ROUND - 1):
             com.send_one(0, TestCase.TEST_DATA)
+        time.sleep(1)
+        # last round
+        com.send_one(0, TestCase.TEST_DATA)
         com.close(force=False, timeout=100)
 
     def test_something(self):
@@ -51,7 +55,7 @@ class TestCase(unittest.TestCase):
         t_serve.join()
         t_request.join()
 
-        self.assertEqual(self.__count, TestCase.TEST_ROUND)
+        self.assertEqual(TestCase.TEST_ROUND, self.__count)
 
 
 if __name__ == '__main__':
