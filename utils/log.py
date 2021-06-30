@@ -35,19 +35,21 @@ class Logger(IPrinter):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
-        str = 'INFO {}@{} : {}'.format(self.Title, time_str, msg)
+        str_highlighted = "\033[0;32;mINFO\033[0m \033[1;36;m{}\033[0;32;m@\033[1;32;m{}\033[0m: {}".format(self.Title, time_str, msg)
+        str_save = "INFO {}@{}: {}".format(self.Title, time_str, msg)
 
-        print(str)
-        self.__log_to_file(str)
+        print(str_highlighted)
+        self.__log_to_file(str_save)
 
     def log_error(self, error):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
-        str = 'ERROR {}@{} : {}'.format(self.Title, time_str, error)
+        str_highlighted = "\033[1;31;mERROR\033[0m \033[1;36;m{}\033[0;32;m@\033[1;32;m{}\033[0m: {}".format(self.Title, time_str, error)
+        str_save = "ERROR {}@{}: {}".format(self.Title, time_str, error)
 
-        print(str)
-        self.__log_to_file(str)
+        print(str_highlighted)
+        self.__log_to_file(str_save)
 
     def flush(self):
         # flush all
