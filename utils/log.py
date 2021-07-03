@@ -87,6 +87,7 @@ class Logger(IPrinter):
     # 2021-07-02 修正:
     # 为了保障基于多进程的集成测试能够正常完成。
     def __getstate__(self):
+        self.close()
         return self.Title, self.ToFile
 
     def __setstate__(self, state):
