@@ -35,7 +35,8 @@ class Logger(IPrinter):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
-        str_highlighted = "\033[0;32;mINFO\033[0m \033[1;36;m{}\033[0;32;m@\033[1;32;m{}\033[0m: {}".format(self.Title, time_str, msg)
+        str_highlighted = "\033[0;32;1mINFO\033[0m \033[1;36;1m{}\033[0;32;1m@\033[1;32;1m{}\033[0m: {}".format(
+            self.Title, time_str, msg)
         str_save = "INFO {}@{}: {}".format(self.Title, time_str, msg)
 
         print(str_highlighted)
@@ -45,7 +46,8 @@ class Logger(IPrinter):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
-        str_highlighted = "\033[1;31;mERROR\033[0m \033[1;36;m{}\033[0;32;m@\033[1;32;m{}\033[0m: {}".format(self.Title, time_str, error)
+        str_highlighted = "\033[1;31;1mERROR\033[0m \033[1;36;1m{}\033[0;32;1m@\033[1;32;1m{}\033[0m: {}".format(
+            self.Title, time_str, error)
         str_save = "ERROR {}@{}: {}".format(self.Title, time_str, error)
 
         print(str_highlighted)
