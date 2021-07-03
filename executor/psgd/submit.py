@@ -166,6 +166,7 @@ class ParallelSGD:
 
             coordinator.resources_dispatch(lambda _id, x: replies[x])
             res = coordinator.join()
+            self.__log.close()
 
         # 获取每个节点的返回值
         ret: Dict[str, float] = {}

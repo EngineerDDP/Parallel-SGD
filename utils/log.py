@@ -57,10 +57,13 @@ class Logger(IPrinter):
         self.__log_to_file('')
         self.__buffered_msg_max = BUFFERED_MESSAGE_MAX
 
-    def __del__(self):
+    def close(self):
         self.flush()
         if self.__file is not None:
             self.__file.close()
+
+    def __del__(self):
+        self.close()
 
     def __open_or_create(self):
         if not os.path.exists(self.Folder):
@@ -80,6 +83,15 @@ class Logger(IPrinter):
 
         self.__buffer = ''
         self.__buffered_msg_count = 0
+
+    # 2021-07-02 修正:
+    # 为了保障基于多进程的集成测试能够正常完成。
+    def __getstate__(self):
+        return self.Title, self.ToFile
+
+    def __setstate__(self, state):
+        self.__init__(*state)
+    # -------------------------------------
 
 
 class MutePrinter(IPrinter):
