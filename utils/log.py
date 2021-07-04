@@ -35,7 +35,7 @@ class Logger(IPrinter):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
-        str_highlighted = "\033[0;32;1mINFO\033[0m \033[1;36;1m{}\033[0;32;1m@\033[1;32;1m{}\033[0m: {}".format(
+        str_highlighted = "\033[0;32;1mINFO\033[0m \033[1;36;1m{}\033[0;35;1m@\033[1;32;1m{}\033[0m: {}".format(
             self.Title, time_str, msg)
         str_save = "INFO {}@{}: {}".format(self.Title, time_str, msg)
 
@@ -46,7 +46,7 @@ class Logger(IPrinter):
 
         time = datetime.datetime.now()
         time_str = time.strftime('%H:%M:%S')
-        str_highlighted = "\033[1;31;1mERROR\033[0m \033[1;36;1m{}\033[0;32;1m@\033[1;32;1m{}\033[0m: {}".format(
+        str_highlighted = "\033[1;31;1mERROR\033[0m \033[1;36;1m{}\033[0;35;1m@\033[1;32;1m{}\033[0m: {}".format(
             self.Title, time_str, error)
         str_save = "ERROR {}@{}: {}".format(self.Title, time_str, error)
 
@@ -89,7 +89,6 @@ class Logger(IPrinter):
     # 2021-07-02 修正:
     # 为了保障基于多进程的集成测试能够正常完成。
     def __getstate__(self):
-        self.close()
         return self.Title, self.ToFile
 
     def __setstate__(self, state):
