@@ -2,7 +2,7 @@ import queue
 import select
 import socket
 from time import sleep
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 from network.agreements import *
 from network.interfaces import IWorker_Register, AbsCommunicationProcess, ICommunication_Controller
@@ -126,7 +126,7 @@ class Communication_Controller(ICommunication_Controller):
                     raise ConnectionAbortedError("Connection has already been closed, and no data available.")
         return None, None
 
-    def send_one(self, target: [int, list], obj: object, timeout: int = None) -> bool:
+    def send_one(self, target: Union[int, list], obj: object, timeout: int = None) -> bool:
         if not isinstance(target, list):
             target = [target]
         try:

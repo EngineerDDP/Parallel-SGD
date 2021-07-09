@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 # from multiprocessing import Queue
-from typing import Sequence, Tuple, Optional
+from typing import Sequence, Tuple, Optional, Union
 from uuid import uuid4
 
 
@@ -110,7 +110,7 @@ class AbsCommunicationProcess(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def put(self, target: [Sequence[int], int], obj: object, blocking: bool, timeout: int):
+    def put(self, target: Union[Sequence[int], int], obj: object, blocking: bool, timeout: int):
         """
         Put a object
 

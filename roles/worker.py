@@ -14,7 +14,7 @@ class Worker:
         if logger is None:
             self.__client_logger = utils.log.Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
         self.__client_logger.log_message('Worker version: {}.'.format(constants.VERSION))
-        self.__job_executor: [executor.IExecutor] = None
+        self.__job_executor: executor.IExecutor = None
 
     def slave_forever(self):
         # set up listening port

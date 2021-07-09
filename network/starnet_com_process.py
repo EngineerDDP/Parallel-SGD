@@ -2,7 +2,7 @@ import queue
 import select
 import socket
 import threading
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Union
 
 import constants
 from network.agreements import *
@@ -79,7 +79,7 @@ class WorkerRegisterList:
         self.__worker_id_to_cons[id] = con
         self.__fd_to_workers[con] = id
 
-    def rm(self, id: [int, None], con: [socket.socket, None]):
+    def rm(self, id: Union[int, None], con: Union[socket.socket, None]):
         """
             remove a connection
         :param id: worker id, None or str
@@ -96,7 +96,7 @@ class WorkerRegisterList:
             del self.__fd_to_workers[con]
             del self.__worker_id_to_cons[id]
 
-    def find(self, id: [int, socket.socket]):
+    def find(self, id: Union[int, socket.socket]):
         """
             find a connection file descriptor
         :param id: integer id, to search for specified fd.
@@ -274,7 +274,7 @@ class CommunicationProcess(AbsCommunicationProcess):
     def flush_data_and_quit(self):
         self.__exit_mark = True
 
-    def put(self, target: [Sequence[int], int], obj: object, blocking: bool, timeout: int):
+    def put(self, target: Union[Sequence[int], int], obj: object, blocking: bool, timeout: int):
         # valid target, safe guard
         if isinstance(target, list):
             for item in target:
