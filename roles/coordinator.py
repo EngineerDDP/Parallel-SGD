@@ -1,15 +1,15 @@
 from typing import Iterable, Callable, Dict, Type
 
-from constants import VERSION, Initialization_Server
-from executor.interface import IExecutor
-from models import *
-from network.interfaces import ICommunication_Controller
-from utils.log import IPrinter, Logger
+import constants
+import executor.interface
+import models
+import network
+import utils.log
 
 
 class Coordinator:
 
-    def __init__(self, com: ICommunication_Controller, estimate_bandwidth: int = 10, logger: IPrinter = None):
+    def __init__(self, com: network.ICommunication_Controller, estimate_bandwidth: int = 10, logger: utils.log.IPrinter = None):
         """
             Coordinator
         :param com: Communication Thread
@@ -18,19 +18,19 @@ class Coordinator:
         """
         self.__com = com
         if logger is None:
-            self.__log = Logger(title_info='Coordinator', log_to_file=True)
+            self.__log = utils.log.Logger(title_info='Coordinator', log_to_file=True)
         else:
             self.__log = logger
         self.__estimate_bandwidth = estimate_bandwidth
         self.__group_allocated = set()
         self.__global_allocated = set()
-        self.__log.log_message("Coordinator version: {}.".format(VERSION))
+        self.__log.log_message("Coordinator version: {}.".format(constants.VERSION))
 
     @property
     def allocated_nodes(self):
         return self.__global_allocated | self.__group_allocated
 
-    def resources_dispatch(self, dispatch_map: Callable[[int, object], IReplyPackage]):
+    def resources_dispatch(self, dispatch_map: Callable[[int, object], models.IReplyPackage]):
         """
             Reply to worker's requirements, prepare for the job
         :param dispatch_map: Callable object, receive a IRequestPackage instance and returns IReplyPackage instance
@@ -46,14 +46,14 @@ class Coordinator:
                 id_from, data = self.__com.get_one()
                 reply = None
 
-                if isinstance(data, IRequestPackage):
+                if isinstance(data, models.IRequestPackage):
                     reply = dispatch_map(id_from, data.content())
 
                     self.__log.log_message(
                         'Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
 
-                elif isinstance(data, ReadyType):
-                    reply = ReadyType(node_ready)
+                elif isinstance(data, models.ReadyType):
+                    reply = models.ReadyType(node_ready)
 
                     if id_from in node_ready:
                         continue
@@ -61,8 +61,8 @@ class Coordinator:
                     node_ready.add(id_from)
                     self.__log.log_message('Node({}) is ready, {} is ready.'.format(id_from, node_ready))
 
-                elif isinstance(data, Version):
-                    reply = Version(Initialization_Server)
+                elif isinstance(data, models.Version):
+                    reply = models.Version(constants.Initialization_Server)
 
                     self.__log.log_message("{}".format(data))
 
@@ -91,11 +91,11 @@ class Coordinator:
 
             id_from, data = self.__com.get_one()
 
-            if isinstance(data, IReplyPackage):
+            if isinstance(data, models.IReplyPackage):
                 data.restore()
                 self.__log.log_message('Restoring data ({}) from {}.'.format(data, id_from))
 
-            if isinstance(data, DoneType):
+            if isinstance(data, models.DoneType):
                 file_format = "\n\t\t--> ".join([filename for filename in data.file_list])
                 self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
 
@@ -104,13 +104,13 @@ class Coordinator:
 
                 results[id_from] = data.result
 
-            if isinstance(data, Version):
+            if isinstance(data, models.Version):
                 self.__log.log_message("{}".format(data))
 
         self.__log.log_message("All the tasks are done.")
         return results
 
-    def submit_group(self, worker_executor: Type[IExecutor], working_group: Iterable[int] = None, package_size: int = 1e9):
+    def submit_group(self, worker_executor: Type[executor.interface.IExecutor], working_group: Iterable[int] = None, package_size: int = 1e9):
         """
             Submit a job to a specified worker group.
             Nodes inside this group will wait for each other and synchronize start time.
@@ -131,12 +131,12 @@ class Coordinator:
         dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth + 1
         # send request
         for _id in working_group:
-            self.__com.send_one(_id, SubmitJob(working_group | self.__global_allocated, dataset_ett, worker_executor))
+            self.__com.send_one(_id, models.SubmitJob(working_group | self.__global_allocated, dataset_ett, worker_executor))
 
         self.__group_allocated = self.__group_allocated | working_group
         self.__log.log_message("Group submission complete ({}).".format(working_group))
 
-    def submit_single(self, worker_executor: Type[IExecutor], worker_id: int, package_size: int = 1e9):
+    def submit_single(self, worker_executor: Type[executor.interface.IExecutor], worker_id: int, package_size: int = 1e9):
         """
             Submit a job to a specified node.
             This global node will start execution immediately when itself was ready.
@@ -150,7 +150,7 @@ class Coordinator:
         # calculate data size
         dataset_ett = self.__com.available_clients_count * package_size / self.__estimate_bandwidth + 0.6
         # send request
-        self.__com.send_one(worker_id, SubmitJob({worker_id}, dataset_ett, worker_executor))
+        self.__com.send_one(worker_id, models.SubmitJob({worker_id}, dataset_ett, worker_executor))
 
         self.__global_allocated.add(worker_id)
         self.__log.log_message("Single node submission complete.")
@@ -158,10 +158,10 @@ class Coordinator:
 
 class Reclaimer:
 
-    def __init__(self, com: ICommunication_Controller, logger: Logger = None):
+    def __init__(self, com: network.ICommunication_Controller, logger: utils.log.Logger = None):
         self.__com = com
         if logger is None:
-            self.__log = Logger(title_info='Retrieve', log_to_file=True)
+            self.__log = utils.log.Logger(title_info='Retrieve', log_to_file=True)
         else:
             self.__log = logger
 
@@ -172,7 +172,7 @@ class Reclaimer:
         """
         # send request
         for id in self.__com.available_clients:
-            self.__com.send_one(id, RequestWorkingLog())
+            self.__com.send_one(id, models.RequestWorkingLog())
             self.__log.log_message('Acquire log file from worker({}).'.format(id))
 
         try:
@@ -182,7 +182,7 @@ class Reclaimer:
 
                 id_from, log = self.__com.get_one()
 
-                if isinstance(log, DoneType):
+                if isinstance(log, models.DoneType):
                     log.restore()
                     file_format = "\n\t\t--> ".join([filename for filename in log.file_list])
                     self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
