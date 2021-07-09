@@ -57,7 +57,8 @@ class Logger(IPrinter):
 
     def __del__(self):
         self.flush()
-        self.__file.close()
+        if self.__file is not None:
+            self.__file.close()
 
     def __open_or_create(self):
         if not os.path.exists(self.Folder):
