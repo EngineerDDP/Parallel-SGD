@@ -1,5 +1,5 @@
 import sys
-import importlib
+import importlib.util
 
 from typing import TypeVar, Generic, Type
 
