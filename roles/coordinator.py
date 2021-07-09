@@ -104,6 +104,9 @@ class Coordinator:
 
                 results[id_from] = data.result
 
+            if isinstance(data, Version):
+                self.__log.log_message("{}".format(data))
+
         self.__log.log_message("All the tasks are done.")
         return results
 
