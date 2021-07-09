@@ -173,10 +173,15 @@ class Communication_Controller(ICommunication_Controller):
 
 
 def get_repr():
-    dns, hosts, addrs = socket.gethostbyname_ex(socket.gethostname())
+    try:
+        dns, hosts, addrs = socket.gethostbyname_ex(socket.gethostname())
+    except socket.gaierror as err:
+        print(err)
+        addrs = []
     for addr in addrs:
         if addr not in {"127.0.0.1", "127.0.1.1"}:
             return addr
+    return "[Host Unknow]"
 
 # ----------------------------------------
 # Fix 2020年10月21日
@@ -184,4 +189,9 @@ def get_repr():
 # 现添加阻断机制和循环判断，当send_que 满时能够正确检查 connection 的状态并给出错误信息。
 # BUG表现，大量发送的时候，send_que 很快灌满，且阻塞，无法判断连接是否失效，阻塞无法退出，
 # 且不在托管状态无法使用断点调试。
+# ----------------------------------------
+# ----------------------------------------
+# Fix 2021年06月29日
+# 为 get_repr() 方法增加错误处理
+# socket.gaierror: [Errno 8] nodename nor servname provided, or not known
 # ----------------------------------------
