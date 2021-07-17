@@ -94,7 +94,7 @@ import executor.psgd as parallel
 from codec.plain import Plain
 
 nodes = parallel.parse_worker(worker_cnt=1)
-res = job.parallel(nodes, codec=Plain, epoch=10)
+res = job.parallel(nodes, codec=Plain, epoch=2)
 print(res)
 ```
 
@@ -154,7 +154,7 @@ trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数
 job = parallel.ParallelSGD(model, data, trans)
 nodes = parallel.parse_worker(worker_cnt=1)
 
-res = job.parallel(nodes, codec=Plain, epoch=10)
+res = job.parallel(nodes, codec=Plain, epoch=2)
 print(res)
 ```
 
