@@ -171,7 +171,7 @@ class ParallelSGD:
         # 获取每个节点的返回值
         ret: Dict[str, float] = {}
         for node in res:
-            if isinstance(res, Dict):
+            if isinstance(res, Dict) and isinstance(res[node], Dict):
                 for key in res[node]:
                     ret[key] = ret.get(key, 0) + res[node][key]
 

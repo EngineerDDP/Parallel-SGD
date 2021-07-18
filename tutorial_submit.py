@@ -1,9 +1,10 @@
 # 导入节点分配容器
 # 导入自定义执行器基类
 from executor.abstract import AbsSimpleExecutor
+from executor.communication import Communication
 # 导入网络通信模型
 from models import ReplyPackage
-from network import NodeAssignment, ICommunication_Controller
+from network import NodeAssignment
 # 导入请求处理
 from network import Request
 
@@ -56,7 +57,7 @@ class WordCount(AbsSimpleExecutor):
         """
         return self.__data is not None
 
-    def run(self, com: ICommunication_Controller) -> object:
+    def run(self, com: Communication) -> object:
         """
             具体任务的执行流程。
         :param com: 任务开始执行时，ICommunication_Controller 的控制权会被转交，所有

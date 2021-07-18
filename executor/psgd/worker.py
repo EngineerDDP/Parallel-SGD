@@ -2,16 +2,17 @@ import time
 
 import pandas as pd
 
+import codec
+import executor.abstract as abstract
+import executor.communication as communication
 import nn
-from codec import GlobalSettings
-from executor.abstract import AbsExecutor
 from executor.psgd.net_package import *
 from nn.data import PSGDBlockDataFeeder
 from nn.model import Model
 from utils.log import Logger
 
 
-class PSGDWorkerExecutor(AbsExecutor):
+class PSGDWorkerExecutor(abstract.AbsExecutor):
 
     def __init__(self, node_id: int, working_group: set, initializer_id: int = -1):
         super().__init__(node_id, working_group, initializer_id)
@@ -43,10 +44,10 @@ class PSGDWorkerExecutor(AbsExecutor):
         for obj in reply:
 
             if isinstance(obj, net_setting):
-                GlobalSettings.deprecated_default_settings = obj.setting()
+                codec.GlobalSettings.deprecated_default_settings = obj.setting()
 
             if isinstance(obj, extra_package):
-                GlobalSettings.global_parameters = obj.acquire()  # Extra package 作为 transfer 的前置条件
+                codec.GlobalSettings.global_parameters = obj.acquire()  # Extra package 作为 transfer 的前置条件
                 unsatisfied.append(Req.Transfer)
 
             if isinstance(obj, net_model):
@@ -87,23 +88,23 @@ class PSGDWorkerExecutor(AbsExecutor):
         status.append("Transfer:{}".format("OK" if s5 else "ABSENT"))
         s6 = isinstance(self.__batch_iter, IBatchIter)
         status.append("Batch Iterator:{}".format("OK" if s6 else "ABSENT"))
-        s7 = isinstance(GlobalSettings.deprecated_default_settings, ISetting)
+        s7 = isinstance(codec.GlobalSettings.deprecated_default_settings, ISetting)
         status.append("Settings:{}".format("OK" if s7 else "ABSENT"))
-        s8 = isinstance(GlobalSettings.global_parameters, dict)
+        s8 = isinstance(codec.GlobalSettings.global_parameters, dict)
         status.append("Extra Parameters:{}".format("OK" if s8 else "ABSENT"))
         return s1 and s2 and s3 and s4 and s5 and s6 and s7 and s8, status
 
     def done(self) -> bool:
         return self.__done
 
-    def start(self, com: ICommunication_Controller) -> None:
+    def start(self, com: communication.Communication) -> None:
         state, report = self.__check()
         self.__log.log_message("Ready:{} \n\t Check List:\n\t\t--> {}".format(state, "\n\t\t--> ".join(report)))
         # get dataset
         train_x, train_y, test_x, test_y = self.__data.load()
         self.__log.log_message('Dataset is ready, type: ({})'.format(self.__data))
         # build data feeder
-        block_ids = GlobalSettings.get_default().node_2_block[com.Node_Id]
+        block_ids = codec.GlobalSettings.get_default().node_2_block[self.node_id]
         feeder = PSGDBlockDataFeeder(train_x, train_y, batch_iter=self.__batch_iter, block_ids=block_ids)
         # assemble optimizer
         self.__optimizer.assemble(transfer=self.__trans, block_mgr=feeder)
@@ -117,16 +118,18 @@ class PSGDWorkerExecutor(AbsExecutor):
 
         log_head = self.__log.Title
         # start !
-        GlobalSettings.deprecated_global_logger = self.__log
-        self.__trans.start_transfer(com, group_offset=list(self.group)[0], printer=self.__log)
+        codec.GlobalSettings.deprecated_global_logger = self.__log
+        self.__trans.start_transfer(com, group_offset=list(self.group)[0], printer=self.__log, node_id=self.node_id)
         # record data
         time_start = time.time()
-        data_send_start = com.Com.bytes_sent
-        data_recv_start = com.Com.bytes_read
+        data_send_start = com.bytes_sent
+        data_recv_start = com.bytes_read
 
         evaluation_history = []
         title = []
         r = {}
+        # this message will start the progress reporting
+        com.report_progress(0)
         # do until reach the target accuracy
         for i in range(self.__misc.epoch):
             # change title
@@ -146,10 +149,13 @@ class PSGDWorkerExecutor(AbsExecutor):
                 if r[1] > self.__misc.target_acc:
                     break
 
+            # report progress
+            com.report_progress(int(100 * ((i + 1) / self.__misc.epoch)))
+
         # record data
         time_end = time.time()
-        data_sent_end = com.Com.bytes_sent
-        data_recv_end = com.Com.bytes_read
+        data_sent_end = com.bytes_sent
+        data_recv_end = com.bytes_read
 
         training_history = self.__model.fit_history()
         # save training history data

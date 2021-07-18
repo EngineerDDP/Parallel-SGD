@@ -1,11 +1,11 @@
 import time
 from typing import List, Iterable, Dict
 
+from executor.communication import Communication
 from executor.interface import IExecutor
 from executor.parallel.constants import Commands, Drop
 from executor.parallel.map import MapOperator
 from executor.parallel.reduce import ReduceOperator
-from network import ICommunication_Controller
 
 
 class RDDNode(IExecutor):
@@ -25,7 +25,7 @@ class RDDNode(IExecutor):
     def satisfy(self, reply: List[Iterable[object]]) -> List[object]:
         return []
 
-    def __recv_pack(self, com: ICommunication_Controller):
+    def __recv_pack(self, com: Communication):
         data = None
         id_from = None
         # requests with timeout check
@@ -35,7 +35,7 @@ class RDDNode(IExecutor):
             # Assertion, this node count as one
         return id_from, data
 
-    def start(self, com: ICommunication_Controller):
+    def start(self, com: Communication):
         """
             Start maintaining RDD
         :param com:

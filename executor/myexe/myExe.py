@@ -1,5 +1,5 @@
 from executor.abstract import AbsSimpleExecutor
-from network.interfaces import ICommunication_Controller
+from executor.communication import Communication
 
 
 # 继承自 AbsSimpleExecutor
@@ -18,7 +18,7 @@ class myExecutor(AbsSimpleExecutor):
         # 计算结果以文件的形式记录
         self.__my_output_file = "./Done({})".format(self.node_id)
 
-    def run(self, com: ICommunication_Controller) -> None:
+    def run(self, com: Communication) -> None:
         """
             获取 ICommunication_Controller 控制权，开始执行任务。
         """

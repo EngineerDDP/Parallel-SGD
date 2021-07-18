@@ -4,11 +4,11 @@ from typing import List, Type, Union, Dict, Tuple
 
 from numpy import ndarray
 
+import executor.communication
 from codec.interfaces import Codec
 from dataset.interfaces import AbsDataset, IDataset
 from dataset.transforms.interface import ITransformer
 from models import IReplyPackage, ClassSerializer, BinaryFilePackage
-from network import ICommunication_Controller
 from nn import IModel, IOptimizer, ITrainable
 from nn.data.block_data_feeder import IPSGDBlockMgr
 from nn.gradient_descent.interface import IGradientDescent
@@ -144,13 +144,14 @@ class net_transfer(ITransfer, IReplyPackage):
         for t in self.__type_2_name:
             t.restore()
 
-    def start_transfer(self, com: ICommunication_Controller, group_offset: int, printer: IPrinter) -> None:
-        weight_ctrl = {var_id: sgd(codec(node_id=com.Node_Id)) for var_id, (sgd, codec) in self.__vars.items()}
+    def start_transfer(self, com: executor.communication.Communication, group_offset: int, printer: IPrinter,
+                       node_id: int) -> None:
+        weight_ctrl = {var_id: sgd(codec(node_id=node_id)) for var_id, (sgd, codec) in self.__vars.items()}
         self.__trans = NTransfer(weight_ctrl)
         # redirect function
         self.put_weights = self.__trans.put_weights
         self.get_weights = self.__trans.get_weights
-        self.__trans.start_transfer(com, group_offset, printer)
+        self.__trans.start_transfer(com, group_offset, printer, node_id)
 
     def put_weights(self, content: ndarray, var_id: int, batch_no: int, block_id: int) -> None:
         pass

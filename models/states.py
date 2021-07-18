@@ -13,6 +13,26 @@ class ReadyType:
         return self.__nodes_ready
 
 
+class Progress:
+
+    def __init__(self, progress: int):
+        self.__progress = progress
+
+    def progress(self) -> int:
+        """
+            Get the progress value
+            between 0 and 100
+        :return: int
+        """
+        return self.__progress
+
+
+class Kill:
+
+    def __init__(self):
+        pass
+
+
 class DoneType(IReplyPackage):
 
     def __init__(self, node_id: int, posted_files: List[str], returns: object = None, exps: [Exception] = None):

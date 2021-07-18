@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 from numpy import ndarray
 
-from network import ICommunication_Controller
+from executor.communication import Communication
 from utils.log import IPrinter
 
 
@@ -31,10 +31,14 @@ class ITransfer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def start_transfer(self, com: ICommunication_Controller, group_offset: int, printer: IPrinter) -> None:
+    def start_transfer(self, com: Communication, group_offset: int, printer: IPrinter, node_id: int) -> None:
         """
             Start transferring data between working process and
             network communication process.
-        :return: None
+        :param com: communication of executor
+        :param group_offset: id offset of this group, means the first id in this working group.
+        :param printer: logger
+        :param node_id: id of this worker
+        :return:
         """
         pass

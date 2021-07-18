@@ -1,7 +1,9 @@
 from threading import Thread
 from typing import Dict, Sequence
+
 from numpy import ndarray
-from network import ICommunication_Controller
+
+from executor.communication import Communication
 from psgd.interface import ITransfer
 from psgd.sync.interface import ReadTimeOut, IParallelSGD
 from utils.log import IPrinter
@@ -27,7 +29,7 @@ class NTransfer(ITransfer):
 
         # formatted as weights_initial
         self.__type_weights_controller: Dict[int, IParallelSGD] = weights_ctrl
-        self.__communication_process: [ICommunication_Controller] = None
+        self.__communication_process: [Communication] = None
 
         self.__group_offset: int = 0
         self.__log: [IPrinter] = None
@@ -70,7 +72,7 @@ class NTransfer(ITransfer):
         except ReadTimeOut:
             raise TimeoutError('Time out while get weights.')
 
-    def start_transfer(self, com: ICommunication_Controller,  group_offset: int, printer: IPrinter):
+    def start_transfer(self, com: Communication, group_offset: int, printer: IPrinter, node_id: int):
         """
             Start transferring data between psgd controller and communication process.
             reference call (IParallelSGD.accept_data()) without sync check, is not thread safe call.
@@ -82,7 +84,7 @@ class NTransfer(ITransfer):
         self.__communication_process = com
         self.__log = printer
         self.__group_offset = group_offset
-        working_thread = Thread(name="Transfer({})".format(com.Node_Id), target=self.__run, daemon=True)
+        working_thread = Thread(name="Transfer thread", target=self.__run, daemon=True)
         working_thread.start()
 
     def __send(self, target: Sequence[int], dic: dict, layer_no: int):

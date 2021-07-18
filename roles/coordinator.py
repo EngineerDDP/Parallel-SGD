@@ -85,6 +85,8 @@ class Coordinator:
         node_ready = set()
         # Collect result.
         results: Dict[int, object] = {}
+        # Collect progress
+        progress: Dict[int, int] = {i: 0 for i in self.allocated_nodes}
 
         self.__log.log_message("Waiting for ({}) ...".format(self.allocated_nodes))
 
@@ -94,9 +96,11 @@ class Coordinator:
 
             if isinstance(data, models.IReplyPackage):
                 data.restore()
-                self.__log.log_message('Restoring data ({}) from {}.'.format(data, id_from))
+                # deprecated message
+                # self.__log.log_message('Restoring data ({}) from {}.'.format(data, id_from))
 
             if isinstance(data, models.DoneType):
+                print("")
                 file_format = "\n\t\t--> ".join([filename for filename in data.file_list])
                 self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
 
@@ -111,10 +115,30 @@ class Coordinator:
             if isinstance(data, models.Version):
                 self.__log.log_message("{}".format(data))
 
+            if isinstance(data, models.Progress):
+                progress[id_from] = data.progress()
+                import sys
+                progress_str = ",".join(
+                    "Worker(\033[1;34;1m{}\033[0m):\033[1;93;1m{}\033[0m%".format(node_id, progress[node_id]) for
+                    node_id in progress)
+                sys.stdout.write("\rCurrent progress: {} | Running".format(progress_str))
+                sys.stdout.flush()
+
         self.__log.log_message("All the tasks are done.")
         return results
 
-    def submit_group(self, worker_executor: Type[executor.interface.IExecutor], working_group: Iterable[int] = None, package_size: int = 1e9):
+    def stop_executing(self):
+        """
+            Stop the execution process, abort mission
+        :return: None
+        """
+        for _id in self.allocated_nodes:
+            self.__com.send_one(_id, models.Kill())
+        self.__log.log_error("Job shutdown by user.")
+        self.__log.log_error("Killing process on {}".format(self.allocated_nodes))
+
+    def submit_group(self, worker_executor: Type[executor.interface.IExecutor], working_group: Iterable[int] = None,
+                     package_size: int = 1e9):
         """
             Submit a job to a specified worker group.
             Nodes inside this group will wait for each other and synchronize start time.

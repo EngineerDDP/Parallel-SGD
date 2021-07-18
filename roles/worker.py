@@ -206,9 +206,10 @@ class Worker:
         """
             Execute job.
         """
+        _sub_level_com = executor.communication.Communication(com, self.__initializer_id)
         self.__client_logger.log_message('Execution process started.')
         begin = time.time()
-        result = self.__job_executor.start(com)
+        result = self.__job_executor.start(_sub_level_com)
         end = time.time()
 
         self.__client_logger.log_message('Execution complete, time:{}'.format(end - begin))

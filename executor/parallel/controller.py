@@ -1,16 +1,16 @@
 from typing import Sequence, Type
 from uuid import uuid4
 
+from executor.communication import Communication
 from executor.parallel.constants import Drop
 from executor.parallel.interface import IController, IMap
 from executor.parallel.map import MapOperator
 from executor.parallel.reduce import ReduceOperator
-from network import ICommunication_Controller
 
 
 class RDDController(IController):
 
-    def __init__(self, com: ICommunication_Controller):
+    def __init__(self, com: Communication):
         self.__com = com
         self.__rdd_register = set()
 
