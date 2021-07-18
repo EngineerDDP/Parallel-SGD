@@ -18,7 +18,8 @@ python worker.py
 
 ## 快速上手
 
-下面演示一个快速上手执行P-SGD的例程。[完整代码](./tutorial_psgd.py)
+下面演示一个快速上手执行P-SGD的例程。[完整代码](./tutorial_psgd.py)  
+并行计算框架的使用可以参考这个Hello World例程：[HelloWorld](./tutorial.py)  
 
 ### 模型构建
 
@@ -50,11 +51,14 @@ nn.model.Model.load("dnn.model")  # 使用load加载
 使用内置的数据集，获取数据集和数据集处理方案。
 
 ```python
-from nn.dataset import MNIST
-from nn.dataset.transforms import ImageCls, Shuffle
+import nn
 
-data = MNIST()  # 使用MNIST数据集
-trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
+data = nn.dataset.MNIST()  # 使用MNIST数据集
+```
+```python
+import nn.dataset.transforms as transforms
+
+trans = transforms.Shuffle().add(transforms.ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
 ```
 
 ### 并行化方案
@@ -62,9 +66,9 @@ trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数
 创建并行化方案。
 
 ```python
-import parallel_sgd as parallel
+import parallel_sgd
 
-job = parallel.ParallelSGD(model, data, trans)
+job = parallel_sgd.ParallelSGD(model, data, trans)
 ```
 
 配置 *worker.json* 如下，并在当前计算机运行一个Worker。
@@ -80,18 +84,17 @@ job = parallel.ParallelSGD(model, data, trans)
 Worker启动后，正常情况下应显示如下内容：
 
 ```shell script
-INFO Worker-127.0.0.1@16:01:01 : Working started and ready for job submission.
-INFO Worker-127.0.0.1@16:01:02 : Worker started with network type 'FCNet'.
+INFO Worker-10.41.93.145@23:22:09: Worker version: 0.90.
+INFO Worker-10.41.93.145@23:22:09: Worker started on port: 15387
 ```
 
 选取并行规模，使用特定的Codec执行并行化训练。
 
 ```python
-import parallel_sgd as parallel
+import parallel_sgd
+from parallel_sgd.codec.plain import Plain
 
-from parallel_sgd.codec import Plain
-
-nodes = parallel.parse_worker(worker_cnt=1)
+nodes = parallel_sgd.parse_worker(worker_cnt=1)
 res = job.parallel(nodes, codec=Plain, epoch=2)
 print(res)
 ```
@@ -100,44 +103,43 @@ print(res)
 控制台输出应当如下所示：
 
 ```shell script
-INFO P-SGD Submit@20:53:02: Start job.
-INFO P-SGD Submit@20:53:02: Workers: (1) nodes has been assigned:
+INFO P-SGD Submit@23:23:13: Start job.
+INFO P-SGD Submit@23:23:13: Workers: (1) nodes has been assigned:
 		-->ID:   0		Address:  127.0.0.1
-INFO P-SGD Submit@20:53:04: Coordinator version: 0.87.
-INFO P-SGD Submit@20:53:04: Group submission complete ({0}).
-INFO P-SGD Submit@20:53:04: Worker: (0) in Version: (0.87).
-INFO P-SGD Submit@20:53:06: Reply requirements to node(0), type(net_setting).
-INFO P-SGD Submit@20:53:06: Reply requirements to node(0), type(net_model).
-INFO P-SGD Submit@20:53:06: Reply requirements to node(0), type(net_optimizer).
-INFO P-SGD Submit@20:53:06: Reply requirements to node(0), type(data_package).
-INFO P-SGD Submit@20:53:06: Reply requirements to node(0), type(misc_package).
-INFO P-SGD Submit@20:53:06: Reply requirements to node(0), type(extra_package).
-INFO P-SGD Submit@20:53:06: Reply requirements to node(0), type(net_transfer).
-INFO P-SGD Submit@20:53:06: Node(0) is ready, {0} is ready.
-INFO P-SGD Submit@20:53:06: Dispatch complete.
-INFO P-SGD Submit@20:53:06: Waiting for ({0}) ...
-INFO P-SGD Submit@20:53:15: Restoring data (<Node(0) Reply: All Task is Completed.>) from 0.
-INFO P-SGD Submit@20:53:15: Save file for 0.
+INFO P-SGD Submit@23:23:15: Coordinator version: 0.90.
+INFO P-SGD Submit@23:23:15: Group submission complete ({0}).
+INFO P-SGD Submit@23:23:15: Worker: (0) in Version: (0.90).
+INFO P-SGD Submit@23:23:16: Reply requirements to node(0), type(net_setting).
+INFO P-SGD Submit@23:23:16: Reply requirements to node(0), type(net_model).
+INFO P-SGD Submit@23:23:16: Reply requirements to node(0), type(net_optimizer).
+INFO P-SGD Submit@23:23:16: Reply requirements to node(0), type(data_package).
+INFO P-SGD Submit@23:23:16: Reply requirements to node(0), type(misc_package).
+INFO P-SGD Submit@23:23:16: Reply requirements to node(0), type(extra_package).
+INFO P-SGD Submit@23:23:17: Reply requirements to node(0), type(net_transfer).
+INFO P-SGD Submit@23:23:17: Node(0) is ready, {0} is ready.
+INFO P-SGD Submit@23:23:17: Dispatch complete.
+INFO P-SGD Submit@23:23:17: Waiting for ({0}) ...
+Current progress: Worker(0):100% | Running
+INFO P-SGD Submit@23:23:26: Save file for 0.
 	List:
-		--> ./Node-0-Retrieve/./tmp_log/Worker-10.41.93.146 2021-07-17 2052.log
-		--> ./Node-0-Retrieve/./tmp_log/Fit-0 2021-07-17 2053.log
+		--> ./Node-0-Retrieve/./tmp_log/Worker-10.41.93.145 2021-07-18 2322.log
+		--> ./Node-0-Retrieve/./tmp_log/Fit-0 2021-07-18 2323.log
 		--> ./Node-0-Retrieve/TR-P-SGD-N(0).csv
 		--> ./Node-0-Retrieve/EV-P-SGD-N(0).csv
 		--> ./Node-0-Retrieve/MODEL-P-SGD-N(0).model
-INFO P-SGD Submit@20:53:15: Node(0) is done, {0} is done.
-INFO P-SGD Submit@20:53:15: All the tasks are done.
-{'Loss': 0.22697747383696387, 'accuracy': 0.9619999999999994}
+INFO P-SGD Submit@23:23:26: Node(0) is done, {0} is done.
+INFO P-SGD Submit@23:23:26: All the tasks are done.
+{'Loss': 0.23704540779329264, 'accuracy': 0.9576}
 ```
 
 完整代码如下：
 
 ```python
+import parallel_sgd
 import nn
-import parallel_sgd as parallel
+import nn.dataset.transforms as transforms
 
-from parallel_sgd.codec import Plain
-from nn.dataset import MNIST
-from nn.dataset.transforms import ImageCls, Shuffle
+from parallel_sgd.codec.plain import Plain
 
 model = nn.model.SequentialModel(input_shape=[-1, 784])
 model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
@@ -146,14 +148,14 @@ model.add(nn.layer.Dense(10, activation=nn.activation.Softmax()))
 
 model.setup(nn.loss.Cross_Entropy_With_Softmax(), nn.metric.CategoricalAccuracy())
 
-data = MNIST()  # 使用MNIST数据集
-trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
+data = nn.dataset.MNIST()  # 使用MNIST数据集
+trans = transforms.Shuffle().add(transforms.ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
 
-job = parallel.ParallelSGD(model, data, trans)
-nodes = parallel.parse_worker(worker_cnt=1)
+job = parallel_sgd.ParallelSGD(model, data, trans)
+nodes = parallel_sgd.parse_worker(worker_cnt=1)
 
-res = job.parallel(nodes, codec=Plain, epoch=2)
-print(res)
+# 两轮训练后，大约可以给出 'Loss': 0.262, 'accuracy': 0.954 的结果
+print(job.parallel(nodes, codec=Plain, epoch=2))
 ```
 
 ### 工作与等待
@@ -182,16 +184,15 @@ INFO P-SGD Submit@08:37:52 : Waiting for ({0, 1, 2, 3, 4, 5, 6, 7, -2}) ...
 当进入Waiting状态时，您可以选择退出Submit进程，当结果计算完成后，使用如下代码便可以取回训练数据。
 
 ```python
-import parallel_sgd as parallel
-import roles
+import parallel_sgd
+import executor
 import network
 
-nodes = parallel.parse_worker(worker_cnt=9, ps=True)
+nodes = parallel_sgd.parse_worker(worker_cnt=9, ps=True)
 req = network.Request()
 
 with req.request(nodes) as com:
-  roles.Reclaimer(com).require_client_log()
-
+  executor.Reclaimer(com).require_client_log()
 ```
 
 **注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。  
@@ -203,36 +204,35 @@ with req.request(nodes) as com:
 ## 详细的`parallel`方法参数定义
 
 ```python
-from typing import Type, Tuple, Union, Dict, SupportsFloat, Hashable
+from typing import Hashable, SupportsFloat, Type, Union, Dict, Tuple
 
-import parallel_sgd.codec.interfaces
-import network
-import nn
-from parallel_sgd import batch_sync
-import parallel_sgd.batch_sync.sync.interface
-import parallel_sgd.profiles.blockassignment
-import parallel_sgd.profiles.blockassignment.abstract
+from network import NodeAssignment
+from nn.gradient_descent import ADAMOptimizer
+from nn.gradient_descent.interface import IGradientDescent
+from nn.optimizer.parallel_sgd import PSGDOptimizer, IOptimizer
+from parallel_sgd.batch_sync import SynchronizedSGD
+from parallel_sgd.batch_sync.sync.interface import ISyncType
+from parallel_sgd.codec.interfaces import Codec
+from parallel_sgd.profiles import IIDBlockAssignment
+from parallel_sgd.profiles.blockassignment.abstract import AbsBlockAssignment
 
 
 def parallel(self,
-             nodes: network.NodeAssignment,
+             nodes: NodeAssignment,
              redundancy: int = 1,
              block_size: int = 64,
              epoch: int = 10,
-             assignment_type: Type[
-               parallel_sgd.profiles.blockassignment.abstract.AbsBlockAssignment] = profiles.blockassignment.IIDBlockAssignment,
-             sync_type: Type[parallel_sgd.psgd.sync.interface.ISyncType] = batch_sync.sync.SynchronizedSGD,
-             op_type: Type[nn.optimizer.IOptimizer] = nn.optimizer.PSGDOptimizer,
-             gd_type: Type[nn.gradient_descent.IGradientDescent] = nn.gradient_descent.ADAMOptimizer,
-             codec: Union[
-               Dict[int, Type[parallel_sgd.codec.interfaces.Codec]], Type[parallel_sgd.codec.interfaces.Codec]] = None,
+             assignment_type: Type[AbsBlockAssignment] = IIDBlockAssignment,
+             sync_type: Type[ISyncType] = SynchronizedSGD,
+             op_type: Type[IOptimizer] = PSGDOptimizer,
+             gd_type: Type[IGradientDescent] = ADAMOptimizer,
+             codec: Union[Dict[int, Type[Codec]], Type[Codec]] = None,
              gd_params: Tuple[object] = (),
-             ps_codec: Union[Dict[int, Type[parallel_sgd.codec.interfaces.Codec]], Type[
-               parallel_sgd.codec.interfaces.Codec], None] = None,
+             ps_codec: Union[Dict[int, Type[Codec]], Type[Codec], None] = None,
              network_bandwidth: int = 1048576,
              mission_title: str = "P-SGD",
              ssgd_timeout_limit: int = 10000,
-             codec_extra_parameters: Dict[Hashable, SupportsFloat] = None):
+             codec_extra_parameters: Dict[Hashable, SupportsFloat] = None) -> Dict[str, SupportsFloat]:
   """
       执行并行化。
   :param ssgd_timeout_limit: Sync-SGD等待超时限制，单位为毫秒，数值为整型，控制直接相连的Worker之间的最大
