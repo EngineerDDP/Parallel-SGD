@@ -9,7 +9,7 @@ from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.model.model_history import FitResultHelper
 from nn.optimizer import IOpContainer
-from utils.log import IPrinter
+from log import IPrinter
 
 
 class IModel(metaclass=ABCMeta):

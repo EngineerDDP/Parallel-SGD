@@ -1,7 +1,7 @@
 # Parallel SGD
 
-Parallel-SGD v0.88  
-　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](./codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](./tutorial_submit.py)）。
+Parallel-SGD v0.9  
+　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](parallel_sgd/codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](./tutorial_submit.py)）。
 
 ## 参数说明
 
@@ -50,8 +50,8 @@ nn.model.Model.load("dnn.model")  # 使用load加载
 使用内置的数据集，获取数据集和数据集处理方案。
 
 ```python
-from dataset import MNIST
-from dataset.transforms import ImageCls, Shuffle
+from nn.dataset import MNIST
+from nn.dataset.transforms import ImageCls, Shuffle
 
 data = MNIST()  # 使用MNIST数据集
 trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数据集进行像素分类处理
@@ -62,7 +62,7 @@ trans = Shuffle().add(ImageCls())  # 先对数据集做Shuffle操作，再对数
 创建并行化方案。
 
 ```python
-import executor.psgd as parallel
+import parallel_sgd as parallel
 
 job = parallel.ParallelSGD(model, data, trans)
 ```
@@ -87,9 +87,9 @@ INFO Worker-127.0.0.1@16:01:02 : Worker started with network type 'FCNet'.
 选取并行规模，使用特定的Codec执行并行化训练。
 
 ```python
-import executor.psgd as parallel
+import parallel_sgd as parallel
 
-from codec.plain import Plain
+from parallel_sgd.codec import Plain
 
 nodes = parallel.parse_worker(worker_cnt=1)
 res = job.parallel(nodes, codec=Plain, epoch=2)
@@ -133,11 +133,11 @@ INFO P-SGD Submit@20:53:15: All the tasks are done.
 
 ```python
 import nn
-import executor.psgd as parallel
+import parallel_sgd as parallel
 
-from codec.plain import Plain
-from dataset import MNIST
-from dataset.transforms import ImageCls, Shuffle
+from parallel_sgd.codec import Plain
+from nn.dataset import MNIST
+from nn.dataset.transforms import ImageCls, Shuffle
 
 model = nn.model.SequentialModel(input_shape=[-1, 784])
 model.add(nn.layer.Dense(128, activation=nn.activation.Tanh()))
@@ -182,7 +182,7 @@ INFO P-SGD Submit@08:37:52 : Waiting for ({0, 1, 2, 3, 4, 5, 6, 7, -2}) ...
 当进入Waiting状态时，您可以选择退出Submit进程，当结果计算完成后，使用如下代码便可以取回训练数据。
 
 ```python
-import executor.psgd as parallel
+import parallel_sgd as parallel
 import roles
 import network
 
@@ -201,29 +201,34 @@ with req.request(nodes) as com:
 
 
 ## 详细的`parallel`方法参数定义
+
 ```python
 from typing import Type, Tuple, Union, Dict, SupportsFloat, Hashable
 
-import codec.interfaces
+import parallel_sgd.codec.interfaces
 import network
 import nn
-import psgd.sync
-import psgd.sync.interface
-import profiles.blockassignment
-import profiles.blockassignment.abstract
+from parallel_sgd import batch_sync
+import parallel_sgd.batch_sync.sync.interface
+import parallel_sgd.profiles.blockassignment
+import parallel_sgd.profiles.blockassignment.abstract
+
 
 def parallel(self,
              nodes: network.NodeAssignment,
              redundancy: int = 1,
              block_size: int = 64,
              epoch: int = 10,
-             assignment_type: Type[profiles.blockassignment.abstract.AbsBlockAssignment] = profiles.blockassignment.IIDBlockAssignment,
-             sync_type: Type[psgd.sync.interface.IParallelSGD] = psgd.sync.SynchronizedSGD,
+             assignment_type: Type[
+               parallel_sgd.profiles.blockassignment.abstract.AbsBlockAssignment] = profiles.blockassignment.IIDBlockAssignment,
+             sync_type: Type[parallel_sgd.psgd.sync.interface.ISyncType] = batch_sync.sync.SynchronizedSGD,
              op_type: Type[nn.optimizer.IOptimizer] = nn.optimizer.PSGDOptimizer,
              gd_type: Type[nn.gradient_descent.IGradientDescent] = nn.gradient_descent.ADAMOptimizer,
-             codec: Union[Dict[int, Type[codec.interfaces.Codec]], Type[codec.interfaces.Codec]] = None,
+             codec: Union[
+               Dict[int, Type[parallel_sgd.codec.interfaces.Codec]], Type[parallel_sgd.codec.interfaces.Codec]] = None,
              gd_params: Tuple[object] = (),
-             ps_codec: Union[Dict[int, Type[codec.interfaces.Codec]], Type[codec.interfaces.Codec], None] = None,
+             ps_codec: Union[Dict[int, Type[parallel_sgd.codec.interfaces.Codec]], Type[
+               parallel_sgd.codec.interfaces.Codec], None] = None,
              network_bandwidth: int = 1048576,
              mission_title: str = "P-SGD",
              ssgd_timeout_limit: int = 10000,
@@ -257,7 +262,7 @@ def parallel(self,
                           初衷是提供冗余的数据集分配策略，现可以提供静态数据量分配。
                               主要指定一个内容：数据集是如何划分到每个节点上的。
 
-  :param sync_type:       同步方式。分同步和异步两种，需要实现了 psgd.sync.IParallelSGD 接口的类型。
+  :param sync_type:       同步方式。分同步和异步两种，需要实现了 parallel_sgd.sync.IParallelSGD 接口的类型。
                           同步方式下，每个 worker 在调用 get_weights() 获取权重时才会处理接收数据。
                           异步方式下，每个 Worker 收到数据就处理并更新结果集。
                           具体的数据处理流程和结果集更新策略都由 codec 定义。
@@ -313,7 +318,7 @@ def parallel(self,
 **注意**：如果编码器引用了外部类或其他依赖，保证这些依赖对每个Worker都是可用的。  
 **注意**：第一个编码器参数对应第一个层，以此类推。  
 **注意**：当需要引入参数服务器时，确保给定的编码器能与参数服务器正常交互。  
-（关于编码器设计的详情，请参阅 [编码控制器教程](./codec/README.md) ）
+（关于编码器设计的详情，请参阅 [编码控制器教程](parallel_sgd/codec/README.md) ）
 
 * 选用并行梯度下降优化器以实现并行计算。
   - **Parallel-SGD**  并行梯度下降，Worker之间通过传输梯度来决定迭代方向。
@@ -339,7 +344,7 @@ def parallel(self,
 
 * 本项目的样本被划分为训练集与测试集，样本是固定的。训练集又被划分为多个batch，每个batch被均分为多个block，并发送到 block_assignment
   指定的节点上。需要划分为多少个block，以及每个block复制多少份发送给多少节点由block_assignment决定。  
-  （关于分配策略的详情，请参阅 [分配策略](./profiles/blockassignment/README.md) ）
+  （关于分配策略的详情，请参阅 [分配策略](parallel_sgd/profiles/blockassignment/README.md) ）
 
 * 工作节点列表默认为 worker.json，在提交任务到集群上之前，需要设置worker.json，标明当前集群的节点列表。worker.json格式如下：
 ```json

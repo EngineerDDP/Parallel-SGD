@@ -1,15 +1,12 @@
-# 导入节点分配容器
-# 导入自定义执行器基类
-from executor.abstract import AbsSimpleExecutor
-from executor.communication import Communication
-# 导入网络通信模型
-from models import ReplyPackage
-from network import NodeAssignment
-# 导入请求处理
-from network import Request
+# 导入并行调度模块
+import random
+
+import executor
+# 导入Object Stream模块
+import network
 
 
-class WordCount(AbsSimpleExecutor):
+class Sum(executor.AbsSimpleExecutor):
 
     def __init__(self, node_id: int, working_group: set, initializer_id):
         """
@@ -31,7 +28,7 @@ class WordCount(AbsSimpleExecutor):
             什么数据。
         :return: List[object] 类型。用于标志 Worker 需要什么数据。
         """
-        return ["Words"]
+        return ["Numbers"]
 
     def satisfy(self, reply: list) -> list:
         """
@@ -57,77 +54,86 @@ class WordCount(AbsSimpleExecutor):
         """
         return self.__data is not None
 
-    def run(self, com: Communication) -> object:
+    def run(self, com: executor.Communication) -> object:
         """
             具体任务的执行流程。
-        :param com: 任务开始执行时，ICommunication_Controller 的控制权会被转交，所有
-                    来自 Coordinator 的信息会被屏蔽，直到该流程退出。
+        :param com: executor 提供的内核调度机制，可以控制进度和切换调度线程，或者处理
+                    来自Coordinator的调度信号，终止执行流程。
         :return: 返回任意类型，如果该节点不需要报告结果，返回None。
                     该返回值可以使用 Coordinator 中的 join 方法接收。
         """
         # 建字典
-        cnt = dict()
+        sum = 0
         # 逐行检查
-        for line in self.__data:
-            # 去重
-            cnt[line] = cnt.get(line, 0) + 1
+        for number in self.__data:
+            sum += number
         # 返回不重复的单词数目
-        return len(cnt)
+        return sum
 
 
 if __name__ == '__main__':
-
     # 添加一个ip作为Worker
-    nodes = NodeAssignment()
+    nodes = network.NodeAssignment()
     # 分配 Worker 的 ID 和 IP 地址
-    # ID 为整型，不可重复
-    nodes.add(101, '127.0.0.1')
+    # ID 为整型，不可重复，不可占用内部ID
+    # 这里添加了一个ID为0的Worker，地址为127.0.0.1
+    nodes.add(0, '127.0.0.1')
+    # 可以添加更多的Worker
     # 请求类
-    net = Request()
+    net = network.Request()
 
-    # 增加协调者角色
-    from roles import Coordinator
-
-    # 加载数据集
-    with open("wordcnt.txt", 'r') as file:
-        lines = file.readlines()
+    # 生成一千个随机数
+    rnd = random.Random()
+    numbers = [rnd.random() for i in range(1000)]
+    # 获取当前已经添加的Node数目
+    node_cnt = len(nodes)
+    # 算一下每个节点能分到多少数据
+    numbers_per_node = len(numbers) // node_cnt
 
     # 配置数据集分发逻辑
-    def dispatch(node_id: int, request: object) -> ReplyPackage:
+    # dispatch_map 参数接收一个 Callable Object，
+    # 满足参数类型为 (int, object) 返回值为 (IReplyPackage)
+    # resource_dispatch 部分为强类型约束的，需要对类型进行声明。
+    # 关于 Python3 的类型约束
+    # 参考 pep-0484 : https://www.python.org/dev/peps/pep-0484/
+    def dispatch(node_id: int, request: object) -> executor.ReplyPackage:
         """
-            Dispatch 函数，本函数为最简单的实现，暂不关注Worker ID，为每个 Worker 分配
-            一样的数据，进而执行一样的操作。
+            Dispatch 函数
         :param node_id: 忽略掉了 node_id 参数。该参数为节点 id 信息，为 int 型。
-        :param request: 请求的类型，即 Executor 中 requests 的返回值。
+        :param request: 请求的类型，即 Sum 类中 requests 的返回值。
                         注意：这里 request 不是一个列表，是逐条确认的。
-        :return: 返回 IReplyPackage 类型，将有 Coordinator 回复给 Worker 并确认。
+        :return: 返回 IReplyPackage 类型，将由 Coordinator 回复给 Worker 并确认。
+                # 可以自定义返回值类型，返回值需要实现 IReplyPackage 接口。
+                # 这里我们没有用自定义类型，而是使用默认的 ReplyPackage 来包装我们的数据，
+                # 使用自定义类型可以实现一些预操作，但是意义不大。
         """
-        # 如果需要 "Words" 则返回
-        if request == "Words":
-            # 返回值需要匹配 IReplyPackage 接口，可以自定义类型。在自定义类型时，
-            # 定义放在 .py 文件的其他声明的之前，实现 IReplyPackage 接口。
-            # 不需要自定义类型时，可以使用默认的 ReplyPackage 类，该类实现了
-            # IReplyPackage 接口。
-            return ReplyPackage(lines)
-        # 如果请求其他数据，没有
+        if request == "Numbers":
+            numbers_for_this_node = numbers[node_id * numbers_per_node: (node_id + 1) * numbers_per_node]
+            return executor.ReplyPackage(numbers_for_this_node)
         else:
-            return ReplyPackage(None)
+            return executor.ReplyPackage(None)
 
     # 发起一个请求
     # 如果客户端已经启动了，则可以直接提交，无需将代码更新至客户端。
     with net.request(nodes) as req:
         # 在请求的集群上创建一个协调者
-        master = Coordinator(req)
+        master = executor.Coordinator(req)
         # 提交任务
-        master.submit_group(WordCount, package_size=18000)
-        # 分发数据，dispatch_map 参数接收一个 Callable Object，
-        # 满足参数类型为 (int, object) 返回值为 (IReplyPackage)
-        # resource_dispatch 部分为强类型约束的，需要对类型进行声明。
-        # 关于 Python3 的类型约束
-        # 参考 pep-0484 : https://www.python.org/dev/peps/pep-0484/
+        master.submit_group(Sum, package_size=18000)
+        # 注册数据分发函数
         master.resources_dispatch(dispatch_map=dispatch)
         # 等待执行完成
-        cnt = master.join()
+        # 返回值为两个，第一个元素是执行结果，第二个元素代表执行过程中是否报错
         # 返回每个Worker上的最终执行结果，Worker不区分主从，全部按照id排序。
         # 以dict()形式组织：Key为Worker id，Value为返回值。
-        print(cnt)
+        res, err = master.join()
+
+        if not err:
+            # 汇总结果
+            reduce = 0
+            for node_id in res:
+                reduce += res[node_id]
+
+            print("We have the result:\t{}.".format(reduce))
+        else:
+            print("Ops, there was an error during execution.")

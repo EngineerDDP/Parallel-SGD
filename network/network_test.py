@@ -18,7 +18,7 @@ class TestCase(unittest.TestCase):
         count = 0
 
         with serve.acquire() as com:
-            com: network.ICommunication_Controller
+            com: network.ICommunicationController
             try:
                 while not com.is_closed():
                     _, data = com.get_one(blocking=True, timeout=1)

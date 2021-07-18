@@ -1,7 +1,5 @@
 from abc import ABCMeta, abstractmethod
 from nn import ITrainable
-from nn.data.block_data_feeder import IPSGDBlockMgr
-from psgd.interface import ITransfer
 
 
 class IOpContainer(metaclass=ABCMeta):

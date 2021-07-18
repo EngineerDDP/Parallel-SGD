@@ -4,7 +4,7 @@ from typing import List
 from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
-from profiles.interface import IBatchIter
+from parallel_sgd.profiles.interface import IBatchIter
 
 
 class IPSGDBlockMgr(metaclass=ABCMeta):

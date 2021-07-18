@@ -75,8 +75,8 @@ fi
 if [ ! -d "$worker"/dataset ]; then
   mkdir "$worker"/dataset
 fi
-if [ ! -d "$worker"/executor/psgd ]; then
-  mkdir -p "$worker"/executor/psgd
+if [ ! -d "$worker"/executor/parallel_sgd ]; then
+  mkdir -p "$worker"/executor/parallel_sgd
 fi
 
 echo "Override files..."

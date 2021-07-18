@@ -1,7 +1,7 @@
 from nn import IOptimizer, ITrainable
 from nn.data.block_data_feeder import IPSGDBlockMgr
 from nn.gradient_descent.interface import IGradientDescent
-from psgd.interface import ITransfer
+from parallel_sgd.batch_sync.interface import ITransfer
 
 
 class PSGDOptimizer(IOptimizer):

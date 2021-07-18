@@ -36,7 +36,7 @@ class AbsLayer(IOperator, ILazyInitialization):
           --==
             --==
     """
-    # Used for parallel execution.
+    # Used for parallel_computing execution.
     __layer_bp_executor: concurrent.futures.Executor = concurrent.futures.ThreadPoolExecutor(
         max_workers=constants.Layer_Executor_Count,
         thread_name_prefix="BP T")

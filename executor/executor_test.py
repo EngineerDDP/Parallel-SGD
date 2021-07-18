@@ -23,7 +23,7 @@ class DeadLoop(AbsSimpleExecutor):
 class TestExecutor(unittest.TestCase):
 
     def test_shutdown(self):
-        worker = multiprocessing.Process(target=roles.Worker().slave_forever)
+        worker = multiprocessing.Process(target=roles.Cohort().slave_forever)
         worker.start()
 
         nodes = NodeAssignment()

@@ -1,12 +1,12 @@
 from typing import Tuple
 
-import models
+import executor.models as models
 import network
 
 
 class Communication:
 
-    def __init__(self, com: network.ICommunication_Controller, initializer_id: int):
+    def __init__(self, com: network.ICommunicationController, initializer_id: int):
         self.__com = com
         self.__initializer_id = initializer_id
         self.__interruptions: bool = False

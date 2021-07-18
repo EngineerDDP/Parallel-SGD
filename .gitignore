@@ -8,5 +8,5 @@ tmp_log/
 /venv/
 .idea/
 .git/
-/codec/toy_codec.py
-/codec/pdd.py
+/parallel_sgd/codec/toy_codec.py
+/parallel_sgd/codec/pdd.py

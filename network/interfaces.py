@@ -39,7 +39,7 @@ class NodeAssignment:
         return self.__repr__()
 
 
-class IWorker_Register(metaclass=ABCMeta):
+class INodeRegister(metaclass=ABCMeta):
 
     @abstractmethod
     def __iter__(self):
@@ -173,13 +173,13 @@ class AbsCommunicationProcess(metaclass=ABCMeta):
         pass
 
 
-class ICommunication_Controller(metaclass=ABCMeta):
+class ICommunicationController(metaclass=ABCMeta):
 
     def __init__(self):
         pass
 
     @abstractmethod
-    def __enter__(self) -> "ICommunication_Controller":
+    def __enter__(self) -> "ICommunicationController":
         pass
 
     @abstractmethod

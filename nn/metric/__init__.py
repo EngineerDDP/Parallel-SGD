@@ -1,4 +1,4 @@
-from utils.metrichelper import *
+from nn.metric.metrichelper import *
 from nn.metric.interface import IMetric
 
 

@@ -5,21 +5,21 @@ from time import sleep
 from typing import Optional, Tuple, Union
 
 from network.agreements import *
-from network.interfaces import IWorker_Register, AbsCommunicationProcess, ICommunication_Controller
+from network.interfaces import INodeRegister, AbsCommunicationProcess, ICommunicationController
 from network.serialization import BufferReader
 
 
-class Worker_Communication_Constructor:
+class WorkerCommunicationConstructor:
     """
         Communication constructor
         Factory class for build class Com
     """
 
-    def __init__(self, worker_register: IWorker_Register, server='0.0.0.0'):
+    def __init__(self, node_register: INodeRegister, server='0.0.0.0'):
         """
             Typo server address
         """
-        self.__id_register = worker_register
+        self.__id_register = node_register
         self.__server_addr = server
 
     def build_communication(self):
@@ -77,7 +77,7 @@ class Worker_Communication_Constructor:
         self.__bind_listener.close()
 
 
-class Communication_Controller(ICommunication_Controller):
+class CommunicationController(ICommunicationController):
 
     def __init__(self, com: AbsCommunicationProcess):
         """
@@ -89,7 +89,7 @@ class Communication_Controller(ICommunication_Controller):
         self.__com = com
         self.__is_started = False
 
-    def __enter__(self) -> ICommunication_Controller:
+    def __enter__(self) -> ICommunicationController:
         self.establish_communication()
         return self
 

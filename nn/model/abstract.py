@@ -16,7 +16,7 @@ from nn.model.interface import IModel
 from nn.model.model_history import FitResultHelper
 from nn.optimizer import IOpContainer, OpContainer, GDOptimizer
 from nn.value.placeholder import Placeholder
-from utils.log import IPrinter
+from log import IPrinter
 
 
 class Model(IModel):

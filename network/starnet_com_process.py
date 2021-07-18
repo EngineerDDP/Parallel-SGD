@@ -6,7 +6,7 @@ from typing import Sequence, Tuple, Union
 
 import constants
 from network.agreements import *
-from network.interfaces import IWorker_Register, AbsCommunicationProcess, IPromoter, NodeAssignment
+from network.interfaces import INodeRegister, AbsCommunicationProcess, IPromoter, NodeAssignment
 from network.serialization import BufferReader, BufferWriter
 
 STAR_NET_WORKING_PORTS = constants.Network_Working_Ports
@@ -117,7 +117,7 @@ class WorkerRegisterList:
         return list(self.__fd_to_workers.values())
 
 
-class WorkerRegister(IWorker_Register):
+class NodeRegister(INodeRegister):
 
     def __init__(self):
         super().__init__()
@@ -211,7 +211,7 @@ class CommunicationProcess(AbsCommunicationProcess):
         Operated with dictionary, serialized using numpy save
     """
 
-    def __init__(self, id_register: WorkerRegister):
+    def __init__(self, id_register: NodeRegister):
         """
             Initialize a communication control process.
         :param id_register: Network registration for identifying distributed nodes.
@@ -483,7 +483,7 @@ class CommunicationProcess(AbsCommunicationProcess):
 class Promoter(IPromoter):
 
     def __call__(self, nodes: NodeAssignment) -> AbsCommunicationProcess:
-        worker_register = WorkerRegister()
+        worker_register = NodeRegister()
         # register
         worker_register.register(constants.Promoter_ID, nodes)
         data = {

@@ -7,4 +7,4 @@ Trace_History_Folder = "./model_trace"  # model evaluation history
 Layer_Executor_Count = 1
 Network_Queue_Size = 128
 Network_Working_Ports = 15387
-VERSION = "0.88"
+VERSION = "0.90"

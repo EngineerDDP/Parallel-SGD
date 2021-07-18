@@ -1,7 +1,6 @@
 import time
 
 import network
-import roles
 import executor
 
 
@@ -20,7 +19,7 @@ if __name__ == '__main__':
     nodes.add(1, "127.0.0.1")
 
     with network.Request().request(nodes) as com:
-        master = roles.Coordinator(com)
+        master = executor.Coordinator(com)
         master.submit_group(Hello)
-        res = master.join()
+        res, err = master.join()
         print(res)
