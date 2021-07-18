@@ -3,7 +3,7 @@
 Parallel-SGD v0.88  
 本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*
 Codec&Transfer*](./codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考
-executor 说明（[*Executor&Submit*](./executor/README.md)）。
+executor 说明（[*Executor&Submit*](./tutorial_submit.py)）。
 
 ## 参数说明
 
