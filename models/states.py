@@ -15,11 +15,12 @@ class ReadyType:
 
 class DoneType(IReplyPackage):
 
-    def __init__(self, node_id: int, posted_files: List[str], returns: object = None):
+    def __init__(self, node_id: int, posted_files: List[str], returns: object = None, exps: [Exception] = None):
         self.__node_id = node_id
         self.__header = "./Node-{}-Retrieve/".format(node_id)
         self.__contents = [BinaryFilePackage(f) for f in posted_files]
         self.__returns = returns
+        self.__exceptions = exps
 
     def restore(self) -> None:
         for bf in self.__contents:
@@ -29,6 +30,10 @@ class DoneType(IReplyPackage):
     @property
     def result(self):
         return self.__returns
+
+    @property
+    def exception(self):
+        return self.__exceptions
 
     @property
     def file_list(self):

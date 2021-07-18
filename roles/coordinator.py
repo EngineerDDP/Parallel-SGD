@@ -105,6 +105,9 @@ class Coordinator:
 
                 results[id_from] = data.result
 
+                if data.exception is not None:
+                    self.__log.log_error("Worker with ID({}) reports an error: {}".format(id_from, data.exception))
+
             if isinstance(data, models.Version):
                 self.__log.log_message("{}".format(data))
 

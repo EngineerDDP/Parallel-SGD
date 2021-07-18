@@ -63,22 +63,23 @@ class Worker:
         """
         results = None
         try:
-            id_from = com.Node_Id
-            req = None
-            while not isinstance(req, models.SubmitJob):
+
+            while True:
                 id_from, req = Worker.__recv_pack(com, constants.Init_Job_Submission_Timeout_Limit_Sec)
-            # Save the dynamically assigned id
-            self.__initializer_id = id_from
+                # Save the dynamically assigned id
+                self.__initializer_id = id_from
 
-            if isinstance(req, models.SubmitJob):
-                # Report Version
-                com.send_one(self.__initializer_id, models.Version(node_id=com.Node_Id))
-                self.__client_logger.log_message('ACK job submission.')
-                if self.initialize(com, req):
-                    results = self.do_training(com)
+                if isinstance(req, models.SubmitJob):
+                    # Report Version
+                    com.send_one(self.__initializer_id, models.Version(node_id=com.Node_Id))
+                    self.__client_logger.log_message('ACK job submission.')
+                    if self.initialize(com, req):
+                        results = self.do_training(com)
+                    break
 
-            if isinstance(req, models.RequestWorkingLog):
-                self.__client_logger.log_message('ACK logfile reclaim.')
+                elif isinstance(req, models.RequestWorkingLog):
+                    self.__client_logger.log_message('ACK logfile reclaim.')
+                    break
 
         except Exception as e:
             # print DEBUG message
@@ -89,10 +90,12 @@ class Worker:
             exc_format = "".join(exc_tb)
             self.__client_logger.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
             # print DEBUG message
+            # post result with exception
+            self.post_log(com, results, e)
+        # post result
+        self.post_log(com, results, None)
 
-        self.post_log(com, results)
-
-    def post_log(self, com: network.ICommunication_Controller, other_contents: object):
+    def post_log(self, com: network.ICommunication_Controller, other_contents: object, exceptions: [Exception]):
         """
             Post worker log file to coordinator.
         :param other_contents: other content can be attached
@@ -107,7 +110,7 @@ class Worker:
                 posting_files.append(filename)
 
         # Post files
-        com.send_one(self.__initializer_id, models.DoneType(com.Node_Id, posting_files, other_contents))
+        com.send_one(self.__initializer_id, models.DoneType(com.Node_Id, posting_files, other_contents, exceptions))
 
     def initialize(self, com: network.ICommunication_Controller, job_info: models.SubmitJob) -> bool:
         """
