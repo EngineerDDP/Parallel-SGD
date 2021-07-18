@@ -21,6 +21,7 @@ class Coordinator:
             self.__log = utils.log.Logger(title_info='Coordinator', log_to_file=True)
         else:
             self.__log = logger
+        self.__initializer_id = self.__com.Node_Id
         self.__estimate_bandwidth = estimate_bandwidth
         self.__group_allocated = set()
         self.__global_allocated = set()
@@ -62,7 +63,7 @@ class Coordinator:
                     self.__log.log_message('Node({}) is ready, {} is ready.'.format(id_from, node_ready))
 
                 elif isinstance(data, models.Version):
-                    reply = models.Version(constants.Initialization_Server)
+                    reply = models.Version(self.__initializer_id)
 
                     self.__log.log_message("{}".format(data))
 

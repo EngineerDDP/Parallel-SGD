@@ -143,7 +143,7 @@ class WorkerRegister(IWorker_Register):
         """
         self.__id = id_self
         if con_from is not None:
-            self.__workers.put(constants.Initialization_Server, con_from)
+            self.__workers.put(constants.Promoter_ID, con_from)
 
         self_uuid = None
         uuid = content_package.uuid
@@ -485,10 +485,10 @@ class Promoter(IPromoter):
     def __call__(self, nodes: NodeAssignment) -> AbsCommunicationProcess:
         worker_register = WorkerRegister()
         # register
-        worker_register.register(constants.Initialization_Server, nodes)
+        worker_register.register(constants.Promoter_ID, nodes)
         data = {
             Key.Type: Type_Val.Submission,
-            Key.From: constants.Initialization_Server,
+            Key.From: constants.Promoter_ID,
             Key.To: -1,
             Key.Content: nodes
         }

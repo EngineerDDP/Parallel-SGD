@@ -1,24 +1,25 @@
 # 导入节点分配容器
-from network import NodeAssignment, ICommunication_Controller
-# 导入请求处理
-from network import Request
 # 导入自定义执行器基类
 from executor.abstract import AbsSimpleExecutor
 # 导入网络通信模型
 from models import ReplyPackage
+from network import NodeAssignment, ICommunication_Controller
+# 导入请求处理
+from network import Request
 
 
 class WordCount(AbsSimpleExecutor):
 
-    def __init__(self, node_id: int, working_group: set):
+    def __init__(self, node_id: int, working_group: set, initializer_id):
         """
             构造函数接收的参数是固定的，无法增加新的参数，所需的其他数据要依赖 requests
             方法在构造后请求。
         :param node_id: 指示当前 Executor 在哪个 Worker 上
         :param working_group: 指示当前 Executor 从属于哪个工作组，集合内包含了本组
                             所有节点的id。
+        :param initializer_id: 指示当前发起任务的 Coordinator 的ID
         """
-        super().__init__(node_id, working_group)
+        super().__init__(node_id, working_group, initializer_id)
         # 预留 data 变量
         self.__data = None
 

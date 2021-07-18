@@ -15,6 +15,7 @@ class Worker:
             self.__client_logger = utils.log.Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=True)
         self.__client_logger.log_message('Worker version: {}.'.format(constants.VERSION))
         self.__job_executor: executor.IExecutor = None
+        self.__initializer_id: int = -1
 
     def slave_forever(self):
         # set up listening port
@@ -42,11 +43,12 @@ class Worker:
             listener.close()
 
     @staticmethod
-    def __recv_pack(com: network.ICommunication_Controller, timeout: int = 100):
+    def __recv_pack(com: network.ICommunication_Controller, timeout: int = 7):
         # requests with timeout check
         id_from, data = com.get_one(blocking=True, timeout=timeout)
         # Assertion, this node count as one
-        assert constants.Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
+        # Initialization Server now gets dynamic identification
+        # assert constants.Initialization_Server in com.available_clients, "Initialization server exited without finishing the initialization."
         assert data is not None, "Maximum waiting time exceed."
         return id_from, data
 
@@ -63,12 +65,14 @@ class Worker:
         try:
             id_from = com.Node_Id
             req = None
-            while id_from != constants.Initialization_Server:
+            while not isinstance(req, models.SubmitJob):
                 id_from, req = Worker.__recv_pack(com, constants.Init_Job_Submission_Timeout_Limit_Sec)
+            # Save the dynamically assigned id
+            self.__initializer_id = id_from
 
             if isinstance(req, models.SubmitJob):
                 # Report Version
-                com.send_one(constants.Initialization_Server, models.Version(node_id=com.Node_Id))
+                com.send_one(self.__initializer_id, models.Version(node_id=com.Node_Id))
                 self.__client_logger.log_message('ACK job submission.')
                 if self.initialize(com, req):
                     results = self.do_training(com)
@@ -103,7 +107,7 @@ class Worker:
                 posting_files.append(filename)
 
         # Post files
-        com.send_one(constants.Initialization_Server, models.DoneType(com.Node_Id, posting_files, other_contents))
+        com.send_one(self.__initializer_id, models.DoneType(com.Node_Id, posting_files, other_contents))
 
     def initialize(self, com: network.ICommunication_Controller, job_info: models.SubmitJob) -> bool:
         """
@@ -119,14 +123,15 @@ class Worker:
         total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
-        self.__job_executor: executor.abstract.AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group)
+        self.__job_executor: executor.abstract.AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group,
+                                                                                  self.__initializer_id)
 
         # Acknowledge requests
         requests = self.__job_executor.requests()
         replies = []
         # Ask for replies
         for req in requests:
-            com.send_one(constants.Initialization_Server, models.RequestPackage(req))
+            com.send_one(self.__initializer_id, models.RequestPackage(req))
 
         req_format = "\tRequests List:\n\t\t--> {}".format("\n\t\t--> ".join([str(req) for req in requests]))
         self.__client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
@@ -145,7 +150,7 @@ class Worker:
                 if len(replies) == len(requests):
                     requests = self.__job_executor.satisfy(replies)
                     for req in requests:
-                        com.send_one(constants.Initialization_Server, models.RequestPackage(req))
+                        com.send_one(self.__initializer_id, models.RequestPackage(req))
                     self.__client_logger.log_message('Request data: ({}).'.format(requests))
                     self.__client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
                     replies.clear()

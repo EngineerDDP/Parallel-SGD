@@ -13,8 +13,8 @@ from utils.log import Logger
 
 class PSGDWorkerExecutor(AbsExecutor):
 
-    def __init__(self, node_id, offset):
-        super().__init__(node_id, offset)
+    def __init__(self, node_id: int, working_group: set, initializer_id: int = -1):
+        super().__init__(node_id, working_group, initializer_id)
         self.__log = Logger('Fit-{}'.format(node_id), log_to_file=True)
         self.__trace_filename = [self.__log.File_Name]
         # waiting for those

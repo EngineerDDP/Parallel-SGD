@@ -10,8 +10,8 @@ from utils.log import Logger
 
 class PSGDPSExecutor(AbsExecutor):
 
-    def __init__(self, node_id, offset):
-        super().__init__(node_id, offset)
+    def __init__(self, node_id: int, working_group: set, initializer_id: int = -1):
+        super().__init__(node_id, working_group, initializer_id)
         # wait
         self.__log = Logger('ParaServer'.format(node_id), log_to_file=True)
         self.__done: [bool] = False
@@ -20,7 +20,7 @@ class PSGDPSExecutor(AbsExecutor):
     def requests(self):
         return [Req.Setting, Req.Extra_Content]
 
-    def satisfy(self, reply:list) -> list:
+    def satisfy(self, reply: list) -> list:
         unsatisfied = []
         # check list
         for obj in reply:
@@ -49,8 +49,7 @@ class PSGDPSExecutor(AbsExecutor):
         GlobalSettings.deprecated_global_logger = self.__log
         self.__transfer.start_transfer(com, printer=self.__log, group_offset=0)
 
-        from constants import Initialization_Server
-        while set(com.available_clients) - {Initialization_Server} != set():
+        while set(com.available_clients) - {self.initializer_id} != set():
             sleep(7)
 
         data_sent_end = com.Com.bytes_sent

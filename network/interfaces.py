@@ -3,6 +3,8 @@ from abc import ABCMeta, abstractmethod
 from typing import Sequence, Tuple, Optional, Union
 from uuid import uuid4
 
+import constants
+
 
 class NodeAssignment:
 
@@ -17,6 +19,7 @@ class NodeAssignment:
 
     def add(self, id, addr):
         assert id not in self.__unique, "Assigned id has been used."
+        assert id != constants.Promoter_ID, "Id ({}) is reserved for internal usage.".format(constants.Promoter_ID)
         self.__nodes.append((id, addr))
         self.__unique.add(id)
 

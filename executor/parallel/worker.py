@@ -1,7 +1,6 @@
 import time
 from typing import List, Iterable, Dict
 
-from constants import Initialization_Server
 from executor.interface import IExecutor
 from executor.parallel.constants import Commands, Drop
 from executor.parallel.map import MapOperator
@@ -11,9 +10,10 @@ from network import ICommunication_Controller
 
 class RDDNode(IExecutor):
 
-    def __init__(self, node_id: int, working_group: set):
+    def __init__(self, node_id: int, working_group: set, initializer_id: int):
         self.__node_id = node_id
         self.__working_group = working_group
+        self.__initializer_id = initializer_id
         # RDD Context
         self.__context: Dict[str, Iterable[object]] = dict()
         # RDD States
@@ -25,12 +25,11 @@ class RDDNode(IExecutor):
     def satisfy(self, reply: List[Iterable[object]]) -> List[object]:
         return []
 
-    @staticmethod
-    def __recv_pack(com: ICommunication_Controller):
+    def __recv_pack(self, com: ICommunication_Controller):
         data = None
         id_from = None
         # requests with timeout check
-        while data is None and Initialization_Server in com.available_clients:
+        while data is None and self.__initializer_id in com.available_clients:
             id_from, data = com.get_one(blocking=False)
             time.sleep(0.01)
             # Assertion, this node count as one
@@ -46,7 +45,7 @@ class RDDNode(IExecutor):
 
             id_from, ctx = RDDNode.__recv_pack(com)
 
-            if id_from != Initialization_Server:
+            if id_from != self.__initializer_id:
                 continue
 
             if isinstance(ctx, Commands):
@@ -60,7 +59,7 @@ class RDDNode(IExecutor):
                 self.__context[ctx.new_uuid()] = ctx.do(before)
 
             elif isinstance(ctx, ReduceOperator):
-                com.send_one(Initialization_Server, self.__context.get(ctx.uuid(), None))
+                com.send_one(self.__initializer_id, self.__context.get(ctx.uuid(), None))
 
             elif isinstance(ctx, Drop):
                 del self.__context[ctx.uuid]

@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 import shutil
+import time
 import unittest
 
 import codec.plain
@@ -37,7 +38,9 @@ class TestCase(unittest.TestCase):
 
             self.assertGreater(job.parallel(nodes, codec=codec.plain.Plain, epoch=2)['accuracy'], 0.95)
 
-            worker.terminate()
+            worker.kill()
+
+            time.sleep(1)
         finally:
             # clear env
             shutil.rmtree("./Node-0-Retrieve")
