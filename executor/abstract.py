@@ -1,10 +1,10 @@
 from abc import ABCMeta, abstractmethod
 
-import executor.communication as communication
-import executor.interface as interface
+import executor.communication
+import executor.interface
 
 
-class AbsExecutor(interface.IExecutor, metaclass=ABCMeta):
+class AbsExecutor(executor.interface.IExecutor, metaclass=ABCMeta):
 
     def __init__(self, node_id: int, working_group: set, initializer_id: int):
         self.__node_id = node_id
@@ -40,7 +40,7 @@ class AbsExecutor(interface.IExecutor, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def start(self, com: communication.Communication) -> object:
+    def start(self, com: executor.communication.Communication) -> object:
         """
             Do the job.
         """
@@ -86,13 +86,13 @@ class AbsSimpleExecutor(AbsExecutor):
     def done(self) -> bool:
         return self.__done
 
-    def start(self, com: communication.Communication) -> object:
+    def start(self, com: executor.communication.Communication) -> object:
         result = self.run(com)
         self.__done = True
         return result
 
     @abstractmethod
-    def run(self, com: communication.Communication) -> object:
+    def run(self, com: executor.communication.Communication) -> object:
         pass
 
     def trace_files(self) -> list:

@@ -178,6 +178,14 @@ class ICommunication_Controller(metaclass=ABCMeta):
     def __init__(self):
         pass
 
+    @abstractmethod
+    def __enter__(self) -> "ICommunication_Controller":
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
     @property
     @abstractmethod
     def Com(self) -> AbsCommunicationProcess:

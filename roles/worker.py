@@ -88,7 +88,7 @@ class Worker:
             exc_type, exc_value, exc_tb = sys.exc_info()
             exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
             exc_format = "".join(exc_tb)
-            self.__client_logger.log_error('Exception occurred: {}\n\t{}'.format(e, exc_format))
+            self.__client_logger.log_error('Exception occurred: {}\n{}'.format(e, exc_format))
             # print DEBUG message
             # post result with exception
             self.post_log(com, results, e)

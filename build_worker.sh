@@ -16,6 +16,7 @@ src_files=(
   "./executor/__init__.py"
   "./executor/abstract.py"
   "./executor/interface.py"
+  "./executor/communication.py"
 )
 src_dirs=(
   "./dataset/transforms"
