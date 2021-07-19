@@ -3,7 +3,7 @@ import shutil
 import time
 import unittest
 
-import roles
+import executor.roles
 from executor.abstract import AbsSimpleExecutor
 from executor.communication import Communication
 from network import NodeAssignment
@@ -23,15 +23,18 @@ class DeadLoop(AbsSimpleExecutor):
 class TestExecutor(unittest.TestCase):
 
     def test_shutdown(self):
-        worker = multiprocessing.Process(target=roles.Cohort().slave_forever)
+        worker = multiprocessing.Process(target=executor.roles.Cohort().slave_forever)
         worker.start()
 
         nodes = NodeAssignment()
         nodes.add(101, '127.0.0.1')
 
         net = Request()
+
+        # wait for worker to start
+        time.sleep(5)
         with net.request(nodes) as req:
-            master = roles.Coordinator(req)
+            master = executor.roles.Coordinator(req)
             master.submit_group(DeadLoop, package_size=18000)
             time.sleep(5)
             master.stop_executing()
