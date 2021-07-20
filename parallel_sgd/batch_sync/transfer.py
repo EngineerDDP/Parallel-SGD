@@ -3,7 +3,7 @@ from typing import Dict, Sequence
 
 from numpy import ndarray
 
-from executor.communication import Communication
+from rpc.communication import Communication
 from parallel_sgd.batch_sync.interface import ITransfer
 from parallel_sgd.batch_sync.sync.interface import ReadTimeOut, ISyncType
 from log import IPrinter

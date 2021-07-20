@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 from numpy import ndarray
 
-from executor.communication import Communication
+from rpc.communication import Communication
 from log import IPrinter
 
 
@@ -35,7 +35,7 @@ class ITransfer(metaclass=ABCMeta):
         """
             Start transferring data between working process and
             network communication process.
-        :param com: communication of executor
+        :param com: communication of rpc
         :param group_offset: id offset of this group, means the first id in this working group.
         :param printer: logger
         :param node_id: id of this worker

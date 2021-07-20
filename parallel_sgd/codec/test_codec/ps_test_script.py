@@ -21,7 +21,7 @@ from parallel_sgd.profiles.blockassignment import IIDBlockAssignment
 """
     ---------------DEFINE HERE---------------
 """
-from parallel_sgd.codec.quantization import QuantizedClient, QuantizedParaServer
+from examples.codecs.quantization import QuantizedClient, QuantizedParaServer
 
 # Type
 SLAVE_CODEC = QuantizedClient

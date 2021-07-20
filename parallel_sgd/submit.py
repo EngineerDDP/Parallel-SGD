@@ -23,7 +23,7 @@ from parallel_sgd.net_package import net_model, net_setting, net_transfer, net_o
 from parallel_sgd.net_package import misc_package, extra_package, data_package, data_content, Req
 
 from constants import Parameter_Server
-from executor import Coordinator
+from rpc import Coordinator
 from log import Logger
 
 

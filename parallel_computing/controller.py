@@ -1,7 +1,7 @@
 from typing import Sequence, Type
 from uuid import uuid4
 
-from executor.communication import Communication
+from rpc.communication import Communication
 from parallel_computing.constants import Drop
 from parallel_computing.interface import IController, IMap
 from parallel_computing.map import MapOperator

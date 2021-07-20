@@ -4,7 +4,7 @@ from enum import Enum
 from typing import List, Type, Union, Dict, Tuple
 from numpy import ndarray
 
-from executor.models import IReplyPackage, ClassSerializer, BinaryFilePackage
+from rpc.models import IReplyPackage, ClassSerializer, BinaryFilePackage
 
 from nn.dataset.interfaces import AbsDataset, IDataset
 from nn.dataset.transforms.interface import ITransformer
@@ -22,7 +22,7 @@ from parallel_sgd.batch_sync.transfer import NTransfer
 
 from log import IPrinter
 
-import executor.communication
+import rpc.communication
 
 
 class IPSGDOpContainer(IOpContainer):
@@ -148,7 +148,7 @@ class net_transfer(ITransfer, IReplyPackage):
         for t in self.__type_2_name:
             t.restore()
 
-    def start_transfer(self, com: executor.communication.Communication, group_offset: int, printer: IPrinter,
+    def start_transfer(self, com: rpc.communication.Communication, group_offset: int, printer: IPrinter,
                        node_id: int) -> None:
         weight_ctrl = {var_id: sgd(codec(node_id=node_id)) for var_id, (sgd, codec) in self.__vars.items()}
         self.__trans = NTransfer(weight_ctrl)

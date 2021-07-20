@@ -1,7 +1,7 @@
 from time import sleep
 
-import executor.abstract as abstract
-import executor.communication as communication
+import rpc.abstract as abstract
+import rpc.communication as communication
 
 from parallel_sgd.codec import GlobalSettings
 from parallel_sgd.net_package import Req, net_setting, extra_package
@@ -9,7 +9,7 @@ from parallel_sgd.batch_sync.interface import ITransfer
 from log import Logger
 
 
-class PSGDPSExecutor(abstract.AbsExecutor):
+class PSGDPSExecutor(abstract.AbsExecutable):
 
     def __init__(self, node_id: int, working_group: set, initializer_id: int = -1):
         super().__init__(node_id, working_group, initializer_id)
