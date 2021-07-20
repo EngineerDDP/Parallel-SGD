@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from typing import List
 
+import executor.communication as communication
+
 
 class IExecutor(metaclass=ABCMeta):
 
@@ -21,7 +23,7 @@ class IExecutor(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def start(self, com):
+    def start(self, com: communication.Communication):
         """
             Do the job.
         """

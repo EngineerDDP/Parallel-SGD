@@ -1,16 +1,15 @@
 import queue
 import select
 import socket
-from ctypes import c_int64
-from multiprocessing import Array, Value
-from queue import Empty
+import threading
+from typing import Sequence, Tuple, Union
 
+import constants
 from network.agreements import *
-from network.interfaces import IWorker_Register, AbsCommunicationProcess, IPromoter, NodeAssignment
+from network.interfaces import INodeRegister, AbsCommunicationProcess, IPromoter, NodeAssignment
 from network.serialization import BufferReader, BufferWriter
-from utils.constants import Initialization_Server
 
-STAR_NET_WORKING_PORTS = 15387
+STAR_NET_WORKING_PORTS = constants.Network_Working_Ports
 
 
 class WorkerRegisterList:
@@ -80,7 +79,7 @@ class WorkerRegisterList:
         self.__worker_id_to_cons[id] = con
         self.__fd_to_workers[con] = id
 
-    def rm(self, id: [int, None], con: [socket.socket, None]):
+    def rm(self, id: Union[int, None], con: Union[socket.socket, None]):
         """
             remove a connection
         :param id: worker id, None or str
@@ -97,7 +96,7 @@ class WorkerRegisterList:
             del self.__fd_to_workers[con]
             del self.__worker_id_to_cons[id]
 
-    def find(self, id: [int, socket.socket]):
+    def find(self, id: Union[int, socket.socket]):
         """
             find a connection file descriptor
         :param id: integer id, to search for specified fd.
@@ -118,7 +117,7 @@ class WorkerRegisterList:
         return list(self.__fd_to_workers.values())
 
 
-class WorkerRegister(IWorker_Register):
+class NodeRegister(INodeRegister):
 
     def __init__(self):
         super().__init__()
@@ -144,7 +143,7 @@ class WorkerRegister(IWorker_Register):
         """
         self.__id = id_self
         if con_from is not None:
-            self.__workers.put(Initialization_Server, con_from)
+            self.__workers.put(constants.Promoter_ID, con_from)
 
         self_uuid = None
         uuid = content_package.uuid
@@ -212,55 +211,121 @@ class CommunicationProcess(AbsCommunicationProcess):
         Operated with dictionary, serialized using numpy save
     """
 
-    def __init__(self, id_register: WorkerRegister):
+    def __init__(self, id_register: NodeRegister):
         """
             Initialize a communication control process.
-        :param socketcon: socket connection object to remote device.
-        :param nodeid: node id that has been assigned to this node.
+        :param id_register: Network registration for identifying distributed nodes.
         """
 
-        super().__init__(name='Communication thread address: {}'.format(id_register.get_id()))
-        self.Alive = True
         self.__connections = id_register
-        self.__available_nodes_count = Value('i', len(self.__connections.ids()))
-        self.__available_nodes = Array('i', self.__connections.ids())
-        self.__data_bytes_sent = Value(c_int64, 0)
-        self.__data_bytes_received = Value(c_int64, 0)
-        # do detach
+        self.__available_nodes_count: int = len(self.__connections.ids())
+        self.__available_nodes: Sequence[int] = self.__connections.ids()
+        self.__data_bytes_sent = 0
+        self.__data_bytes_received = 0
+        # do detach and set Async-IO
         for fd in self.__connections.to_list():
             fd.set_inheritable(True)
+            fd.setblocking(False)
+        # send and recv
+        self.__send_thread = threading.Thread(name="Net Send ID: {}".format(id_register.get_id()),
+                                              target=self.__send_proc,
+                                              daemon=True)
+        self.__recv_thread = threading.Thread(name="Net Recv ID: {}".format(id_register.get_id()),
+                                              target=self.__recv_proc,
+                                              daemon=True)
+        self.__send_queue = queue.Queue(maxsize=constants.Network_Queue_Size)
+        self.__recv_queue = queue.Queue(maxsize=constants.Network_Queue_Size)
+        # exit mark
+        self.__exit_mark = False
+        # true quit mark
+        self.__quit_mark = False
 
     def __report_connection_lost(self, fd, address):
-        self.__available_nodes_count.value -= 1
-        id = self.__connections.find(fd)
+        """
+        Report a connections lost.
+        :param fd:
+        :param address:
+        :return: None
+        """
+        # get fd
+        _lost_id = self.__connections.find(fd)
         self.__connections.remove(fd)
         fd.close()
-        self.__available_nodes[:self.__available_nodes_count.value] = self.__connections.ids()
-        print('Connection with worker (id: {}, address: {}) has been lost.'.format(id, address))
+        # record
+        self.__available_nodes_count -= 1
+        self.__available_nodes[:self.__available_nodes_count] = self.__connections.ids()
+        # Skip this to comfort users.
+        # print('Connection with worker (id: {}, address: {}) has been lost.'.format(id, address))
 
-    def run(self):
+    def start(self):
+        self.__send_thread.start()
+        self.__recv_thread.start()
+
+    def force_quit(self):
+        # blocking put()
+        self.flush_data_and_quit()
+        # multi-thread safe
+        while not self.__send_queue.empty():
+            try:
+                self.__send_queue.get_nowait()
+            except queue.Empty:
+                pass
+
+    def flush_data_and_quit(self):
+        self.__exit_mark = True
+
+    def put(self, target: Union[Sequence[int], int], obj: object, blocking: bool, timeout: int):
+        # valid target, safe guard
+        if isinstance(target, list):
+            for item in target:
+                if not isinstance(item, int):
+                    raise ValueError("Send targets can only be int, but {} received.".format(type(item)))  # time saving
+        else:
+            raise ValueError("Send targets can only be int, but {} received.".format(type(target)))  # time saving
+        # do real things
+        if not self.__exit_mark:
+            try:
+                self.__send_queue.put((target, obj), block=blocking, timeout=timeout)
+                return True
+            except queue.Full:
+                return False
+        else:
+            return False
+
+    def get(self, blocking: bool, timeout: int) -> Tuple[int, object]:
+        return self.__recv_queue.get(block=blocking, timeout=timeout)
+
+    def has_quit(self) -> bool:
+        return self.__quit_mark
+
+    def __request_close(self):
+        active_connections = self.__connections.to_list()
+        try:
+            while len(active_connections) != 0:
+                _, writable, _ = select.select([], active_connections, [], 1)
+                for fd in writable:
+                    active_connections.remove(fd)
+                    BufferWriter.request_close(fd)
+                    fd.close()
+        except ConnectionResetError:
+            pass
+
+    def __recv_proc(self):
         """
             Bootstrap method
             start both sending and receiving thread on target socket object
         """
-        import threading
 
         recv_buffer_list = {}
         for fd in self.__connections.to_list():
             recv_buffer_list[fd] = BufferReader()
-            fd.setblocking(False)
-
-        # handle writeable event here
-        __write_thread = threading.Thread(target=self.__run_deque, name='Communication process -> deque thread.',
-                                          daemon=True)
-        __write_thread.start()
 
         # handle readable event here
-        while not self.Exit:
+        while not self.__exit_mark:
             active_connections = self.__connections.to_list()
 
             if len(active_connections) == 0:
-                self.Exit = True
+                self.__exit_mark = True
                 break
             try:
                 readable, _, excepts = select.select(active_connections, [], active_connections, 1)
@@ -273,12 +338,12 @@ class CommunicationProcess(AbsCommunicationProcess):
                     buf.recv(fd)
                     if buf.is_done():
                         # record length
-                        self.__data_bytes_received.value += len(buf)
+                        self.__data_bytes_received += len(buf)
                         # do decode
                         data = buf.get_content()
                         _from = data[Key.From]
                         try:
-                            self.recv_que.put_nowait((_from, data[Key.Content]))
+                            self.__recv_queue.put_nowait((_from, data[Key.Content]))
                         except queue.Full:
                             pass
 
@@ -305,19 +370,13 @@ class CommunicationProcess(AbsCommunicationProcess):
 
             # sleep(ICommunication_Process.Circle_interval)
 
-        __write_thread.join()
-
-        for fd in self.__connections.to_list():
-            BufferWriter.request_close(fd)
-            fd.close()
-
-        # self.recv_que.close()
-        # self.send_que.close()
+        self.__send_thread.join()
+        self.__request_close()
 
         self.__connections.reset()
-        self.Alive = False
+        self.__quit_mark = True
 
-    def __run_deque(self):
+    def __send_proc(self):
         """
             Sending thread function.
         """
@@ -325,15 +384,16 @@ class CommunicationProcess(AbsCommunicationProcess):
         active_connections = []
         tmp_item = None
         # if not exit and workable
-        while not self.Exit or len(active_connections) != 0:
+        while not self.__exit_mark or not self.__send_queue.empty() or len(active_connections) != 0:
             # if network is idle, or queue has items
-            if len(active_connections) == 0 or self.send_que.qsize() > 0:
+            if len(active_connections) == 0 or self.__send_queue.qsize() > 0:
                 if isinstance(tmp_item, tuple):
                     target, data = tmp_item  # cond: (len(a) > 0 and buff is not valid and qsize > 0)
                     tmp_item = None
                 else:
                     try:
-                        target, data = self.send_que.get(timeout=1)  # cond: (len(a) == 0 and qsize == 0) or (qsize > 0)
+                        target, data = self.__send_queue.get(
+                            timeout=1)  # cond: (len(a) == 0 and qsize == 0) or (qsize > 0)
                     except queue.Empty:
                         continue
 
@@ -359,7 +419,7 @@ class CommunicationProcess(AbsCommunicationProcess):
                         buffer.set_content(pkg)
                         active_connections.append(fd)
                         # record length
-                        self.__data_bytes_sent.value += len(buffer)
+                        self.__data_bytes_sent += len(buffer)
                     # put it back
                     else:
                         if fd not in active_connections:
@@ -369,9 +429,9 @@ class CommunicationProcess(AbsCommunicationProcess):
                 if len(left) > 0:
                     # cond: (qfull or not qfull) and tmp_item = None
                     tmp_item = (left, data)
-                    if not self.send_que.full():
+                    if not self.__send_queue.full():
                         try:
-                            self.send_que.put_nowait(tmp_item)
+                            self.__send_queue.put_nowait(tmp_item)
                             # cond: put valid and len(left) > 0
                             tmp_item = None
                         except queue.Full:
@@ -405,30 +465,30 @@ class CommunicationProcess(AbsCommunicationProcess):
 
     @property
     def nodes(self):
-        return self.__available_nodes[:self.__available_nodes_count.value]
+        return self.__available_nodes[:self.__available_nodes_count]
 
     @property
     def available_nodes(self):
-        return self.__available_nodes_count.value
+        return self.__available_nodes_count
 
     @property
     def bytes_read(self):
-        return self.__data_bytes_received.value
+        return self.__data_bytes_received
 
     @property
     def bytes_sent(self):
-        return self.__data_bytes_sent.value
+        return self.__data_bytes_sent
 
 
 class Promoter(IPromoter):
 
     def __call__(self, nodes: NodeAssignment) -> AbsCommunicationProcess:
-        worker_register = WorkerRegister()
+        worker_register = NodeRegister()
         # register
-        worker_register.register(Initialization_Server, nodes)
+        worker_register.register(constants.Promoter_ID, nodes)
         data = {
             Key.Type: Type_Val.Submission,
-            Key.From: Initialization_Server,
+            Key.From: constants.Promoter_ID,
             Key.To: -1,
             Key.Content: nodes
         }
@@ -470,4 +530,9 @@ class Promoter(IPromoter):
 # 为 __run_deque 方法添加两个异常处理机制：
 # 1. 当正在发送的发送列表失效，使用select做exception捕捉
 # 2. 当正在发送的发送列表fd失效，使用try catch 捕捉 select 异常
+# ----------------------------------------
+# ----------------------------------------
+# Fix 2020年10月25日
+# 为主发送线程添加异常捕捉机制
+# 用于在被动退出时防止fd失效导致的崩溃
 # ----------------------------------------

@@ -1,4 +1,4 @@
-import numpy as np
+from typing import Tuple
 
 from numpy import ndarray
 
@@ -14,8 +14,8 @@ class Weights(AbsValue, ITrainable):
         self.__content_gradient = None
         self.__optimizer: [IOptimizer] = None
 
-    def get_shape(self) -> list:
-        return self.__content.shape
+    def get_shape(self) -> Tuple[int]:
+        return tuple(self.__content.shape)
 
     def get_value(self) -> ndarray:
         return self.__content

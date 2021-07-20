@@ -1,9 +1,9 @@
+import pickle
 import sys
 from abc import abstractmethod
 from typing import Tuple, List, Iterable, Union, Type, Dict
 
 import numpy as np
-import pickle
 from numpy import ndarray
 
 from nn.data.interface import IDataFeeder
@@ -13,10 +13,10 @@ from nn.interface import IOperator, IOptimizer, ITrainable, ModelState
 from nn.loss.abstract import ILoss
 from nn.metric import IMetric
 from nn.model.interface import IModel
-from nn.model.utils import FitResultHelper
+from nn.model.model_history import FitResultHelper
 from nn.optimizer import IOpContainer, OpContainer, GDOptimizer
 from nn.value.placeholder import Placeholder
-from utils.log import IPrinter
+from log import IPrinter
 
 
 class Model(IModel):
@@ -58,8 +58,7 @@ class Model(IModel):
         return self.__metrics
 
     def setup(self, loss: ILoss, *metrics: IMetric):
-        if self.__ref_output is None:
-            self.__ref_output = self.call(self.__placeholder_input)
+        self.__ref_output = self.call(self.__placeholder_input)
         # validate model
         if self.__placeholder_input.get_shape() is not None:
             self.__placeholder_input.set_value()

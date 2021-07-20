@@ -159,8 +159,9 @@ model = nn.model.Model.load('abc.model')
    数据集的处理采用了链式的处理流，方便在与本项目其他模块进行协作，现阶段处理的操作较少，只包括了打乱数据集、图片的简单处理、**数据集非独立同分布化**，数据集的处理过程如下
 
 ```python
-from dataset.transforms import ImageCls, Shuffle
-from dataset import CIFAR
+from nn.dataset.transforms import ImageCls, Shuffle
+from nn.dataset import CIFAR
+
 trans = Shuffle().add(ImageCls())
 x, y, _, _ = trans(*CIFAR().load())
 ```

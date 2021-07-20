@@ -26,7 +26,7 @@ class IOperator(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def F(self, x:[float, ndarray, tuple]=None, state:ModelState=ModelState.Training) -> [float, ndarray]:
+    def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
         """
             Forward propagation.
         :param x: input source.
@@ -38,7 +38,7 @@ class IOperator(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def G(self, grad:[float, ndarray]=None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         """
             Backward propagate and update variables.
         :param grad: gradients of backward_predict layers
@@ -72,8 +72,9 @@ class IFlexNode(metaclass=ABCMeta):
         Flexible graph nodes interface.
         Make this operation can be operated with or without previous nodes.
     """
+
     @abstractmethod
-    def set_input(self, *ops:IOperator):
+    def set_input(self, *ops: IOperator):
         pass
 
 
@@ -165,7 +166,7 @@ class IOptimizer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def set_batch_size(self, batch_size:int):
+    def set_batch_size(self, batch_size: int):
         """
             Set batch size for optimizer to optimize
         :param batch_size:

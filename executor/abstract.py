@@ -1,14 +1,15 @@
 from abc import ABCMeta, abstractmethod
 
-from executor.interface import IExecutor
-from network import ICommunication_Controller
+import executor.communication
+import executor.interface
 
 
-class AbsExecutor(IExecutor, metaclass=ABCMeta):
+class AbsExecutor(executor.interface.IExecutor, metaclass=ABCMeta):
 
-    def __init__(self, node_id: int, working_group: set):
+    def __init__(self, node_id: int, working_group: set, initializer_id: int):
         self.__node_id = node_id
         self.__working_group = working_group
+        self.__initializer_id = initializer_id
 
     @property
     def node_id(self):
@@ -17,6 +18,10 @@ class AbsExecutor(IExecutor, metaclass=ABCMeta):
     @property
     def group(self):
         return self.__working_group
+
+    @property
+    def initializer_id(self):
+        return self.__initializer_id
 
     @abstractmethod
     def requests(self) -> list:
@@ -35,7 +40,7 @@ class AbsExecutor(IExecutor, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def start(self, com: ICommunication_Controller) -> None:
+    def start(self, com: executor.communication.Communication) -> object:
         """
             Do the job.
         """
@@ -65,8 +70,8 @@ class AbsExecutor(IExecutor, metaclass=ABCMeta):
 
 class AbsSimpleExecutor(AbsExecutor):
 
-    def __init__(self, node_id: int, working_group: set):
-        super().__init__(node_id, working_group)
+    def __init__(self, node_id: int, working_group: set, initializer_id: int = -1):
+        super().__init__(node_id, working_group, initializer_id)
         self.__done = False
 
     def requests(self) -> list:
@@ -81,14 +86,14 @@ class AbsSimpleExecutor(AbsExecutor):
     def done(self) -> bool:
         return self.__done
 
-    def start(self, com: ICommunication_Controller) -> None:
-        self.run(com)
+    def start(self, com: executor.communication.Communication) -> object:
+        result = self.run(com)
         self.__done = True
+        return result
 
     @abstractmethod
-    def run(self, com: ICommunication_Controller) -> None:
+    def run(self, com: executor.communication.Communication) -> object:
         pass
 
-    @abstractmethod
     def trace_files(self) -> list:
-        pass
+        return []

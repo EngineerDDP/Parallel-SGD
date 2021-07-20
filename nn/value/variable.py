@@ -1,9 +1,11 @@
+from typing import Tuple, Sequence
+
 import numpy as np
 from numpy import ndarray
 
-from nn.value.abstract import AbsValue
 from nn.interface import IOptimizer, ITrainable, ModelState
 from nn.operation.abstract import OperandHelper
+from nn.value.abstract import AbsValue
 
 
 class Variable(AbsValue, OperandHelper, ITrainable):
@@ -22,20 +24,20 @@ class Variable(AbsValue, OperandHelper, ITrainable):
         self.__ref_gradient = None
         self.__attached_optimizer: [IOptimizer] = None
 
-    def initialize(self, shape: [list, tuple]) -> None:
+    def initialize(self, shape: Sequence[int]) -> None:
         high = np.sqrt(6 / (np.sum(shape)))
         low = -high
         self.__var = np.random.uniform(low=low, high=high, size=shape)
 
     # -------- Operator implementation --------
 
-    def output_shape(self) -> [list, tuple, None]:
+    def output_shape(self) -> Tuple[int]:
         return self.get_shape()
 
     def F(self, x: [float, ndarray, tuple] = None, state: ModelState = ModelState.Training) -> [float, ndarray]:
         return self.__var
 
-    def G(self, grad: [float, ndarray] = None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         self.__ref_gradient = grad
         if self.__attached_optimizer:
             self.__attached_optimizer.optimize(self)
@@ -55,17 +57,17 @@ class Variable(AbsValue, OperandHelper, ITrainable):
 
     # -------- Value implementation --------
 
-    def get_shape(self) -> list:
-        return list(self.__var.shape) if self.__var is not None else None
+    def get_shape(self) -> Tuple[int]:
+        return tuple(self.__var.shape) if self.__var is not None else None
 
-    def get_value(self):
+    def get_value(self) -> ndarray:
         return self.__var
 
     def set_value(self, val) -> None:
         self.__var = val
         return None
 
-    def get_gradient(self):
+    def get_gradient(self) -> ndarray:
         return self.__ref_gradient
 
     def __getstate__(self):

@@ -58,7 +58,7 @@ class AbsFlexibleBinaryNode(IBinaryNode):
             self.__ref_right = x[1]
         return self.do_forward(self.__ref_left, self.__ref_right, state == ModelState.Training)
 
-    def G(self, grad: [float, ndarray] = None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         """
             Backward propagate and update variables.
         :param grad: gradients of backward_predict layers
@@ -115,9 +115,9 @@ class AbsFlexibleUnaryNode(IUnaryNode, IFlexNode):
             self.__ref_input = self.op_child.F(x, state)
         else:
             self.__ref_input = x
-        self.do_forward(self.__ref_input, state == ModelState.Training)
+        return self.do_forward(self.__ref_input, state == ModelState.Training)
 
-    def G(self, grad: [float, ndarray] = None) -> None:
+    def G(self, grad: [float, ndarray]) -> None:
         """
             Backward propagate and update variables.
         :param grad: gradients of backward_predict layers

@@ -1,4 +1,4 @@
-from typing import Sequence, Union, Optional
+from typing import Sequence, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -12,80 +12,106 @@ from nn.value.trainable import Weights
 class Conv2D(AbsLayer):
     """
         Convolve 2D layer.
-        Base operator implemented by tensorflow.
     """
 
-    def __init__(self, kernel: int, kernel_size: Sequence[int], strides: Optional[Sequence[int]] = None,
-                 activation: IActivation = None, inputs: IOperator = None):
+    def __init__(self,
+                 kernel: int,
+                 kernel_size: Sequence[int],
+                 strides: Optional[Sequence[int]] = None,
+                 padding: str = None,
+                 activation: IActivation = None,
+                 inputs: IOperator = None):
         """
             Currently support "VALID" convolve only.
         :param kernel: Kernel count
         :param kernel_size: kernel size, [height, width]
-        :param strides: strikes of convolve operation, [height, width]
+        :param strides: strides of convolve operation, [height, width]
+        :param padding: padding for input x
         :param activation: activation function, None indicates that this layer use linear activation.
         :param inputs: input operator. IOperator instance.
         """
+        # Initialize super class
         super().__init__(inputs, activation)
+        # make default strides
         if strides is None:
-            strides = [1, 1]
+            self.__strides: Sequence[int] = (1, 1)
+        else:
+            self.__strides = strides
+        # record count, 4th dimension of output
+        self.__count_kernel: int = kernel
+        # record size
+        self.__size_kernel: Sequence[int] = kernel_size
+        # make valid padding
+        if padding is None or padding == 'VALID':
+            self.__padding = 'VALID'
+            # back prop padding
+            self.__back_prop_padding: Sequence[Sequence[int]] = ((0, 0), (0, 0), (0, 0), (0, 0))
+        elif padding == 'SAME':
+            self.__padding = 'SAME'
+            # valid for BP
+            padding_h = (self.__size_kernel[0] * self.__strides[0]) // 2
+            padding_w = (self.__size_kernel[1] * self.__strides[1]) // 2
+            self.__back_prop_padding = ((0, 0), (padding_h, padding_h), (padding_w, padding_w), (0, 0))
+        else:
+            raise AssertionError("Padding can only be \'VALID\' or \'SAME\', but {} were given.".format(padding))
+        # make weights
         self.__kernel = Weights()
         self.__bias = Weights()
-        self.__count_kernel: int = kernel
-        self.__size_kernel: Sequence[int] = kernel_size
-        self.__shape_kernel: Sequence[int] = ()
-        self.__strides: Sequence[int] = strides
-        self.__padding: Union[Sequence[int], str] = "VALID"
-        self.__shape_output: [Sequence[int]] = None
-        self.__padding_kernel: [Sequence[int]] = None
+        # 4th dimension of input
+        self.__count_input: Optional[int] = None
+        # output shape
+        self.__shape_output: Optional[Sequence[int]] = None
+        # get input if possible
         if inputs and inputs.output_shape():
-            self.__get_shape(inputs.output_shape())
+            self.__get_shape_output(inputs.output_shape())
 
     @property
     def variables(self) -> tuple:
         return self.__kernel, self.__bias
 
-    def __get_shape(self, input_shape: Sequence[int]):
-        s_h = self.__strides[0]
-        s_w = self.__strides[1]
-        k_h = self.__size_kernel[0]
-        k_w = self.__size_kernel[1]
-        x_h = input_shape[1]
-        x_w = input_shape[2]
-        out_h = 1 + (x_h - k_h) // s_h
-        out_w = 1 + (x_w - k_w) // s_w
-        pad_h = ((x_h - 1) * s_h + out_h) // 2
-        pad_w = ((x_w - 1) * s_w + out_w) // 2
+    def __get_shape_output(self, input_shape: Sequence[int]):
+        if self.__padding == 'VALID':
+            out_h = 1 + (input_shape[1] - self.__size_kernel[0]) // self.__strides[0]
+            out_w = 1 + (input_shape[2] - self.__size_kernel[1]) // self.__strides[1]
+        else:
+            out_h = input_shape[1]
+            out_w = input_shape[2]
         self.__shape_output = (-1, out_h, out_w, self.__count_kernel)
-        self.__padding_kernel = [pad_h, pad_w]
-        self.__shape_kernel = (*self.__size_kernel, input_shape[3], self.__count_kernel)
+        self.__count_input = input_shape[3]
 
     def initialize_parameters(self, x: np.ndarray) -> None:
         # update current shape
-        self.__get_shape(x.shape)
-        nk = self.__size_kernel[0] * self.__size_kernel[1] * self.__shape_kernel[2]
+        self.__get_shape_output(x.shape)
+        shape_kernel = (*self.__size_kernel, self.__count_input, self.__shape_output[3])
+        nk = self.__size_kernel[0] * self.__size_kernel[1] * self.__count_input
         nk_1 = self.__size_kernel[0] * self.__size_kernel[1] * self.__count_kernel
 
         high = np.sqrt(6 / (nk + nk_1))
         low = -high
-        self.__kernel.set_value(np.random.uniform(low=low, high=high, size=self.__shape_kernel))
+        self.__kernel.set_value(np.random.uniform(low=low, high=high, size=shape_kernel))
         self.__bias.set_value(np.zeros(shape=self.__shape_output[1:]))
 
     def do_forward_predict(self, x: np.ndarray):
-        tf_input = tf.Variable(tf.constant(x, dtype=tf.float32))
         tf_kernel = tf.Variable(tf.constant(self.__kernel.get_value(), dtype=tf.float32))
+        # get input
+        tf_input = tf.Variable(tf.constant(x, dtype=tf.float32))
+        # get output, 60% of time consumed
         tf_out = tf.nn.conv2d(tf_input, tf_kernel, self.__strides, self.__padding)
-        out = tf_out.numpy()
-        return out.astype('float64') + self.__bias.get_value()
+        out = tf_out.numpy().astype('float64')
+        return out + self.__bias.get_value()
 
     def do_forward_train(self, x):
         return self.do_forward_predict(x)
 
     def backward_adjust(self, grad) -> None:
-        tf_input = tf.constant(self.input_ref, dtype=tf.float32)
-        tf_grad = tf.constant(grad, dtype=tf.float32)
-        tf_out = tf.nn.conv2d(tf.transpose(tf_input, perm=[3, 1, 2, 0]),
-                              tf.transpose(tf_grad, perm=[1, 2, 0, 3]), self.__strides, "VALID")
-        out = tf.transpose(tf_out, perm=[1, 2, 0, 3]).numpy()
+        # rearrange input
+        tf_input = tf.transpose(tf.constant(self.input_ref, dtype=tf.float32), perm=[3, 1, 2, 0])  # magic number
+        # rearrange gradient, 38% of time consumed here
+        tf_grad = tf.transpose(tf.constant(grad, dtype=tf.float32), perm=[1, 2, 0, 3])  # magic number, dont change
+        # get output
+        tf_conv = tf.nn.conv2d(tf_input, tf_grad, self.__strides, self.__back_prop_padding)
+        tf_out = tf.transpose(tf_conv, perm=[1, 2, 0, 3])
+        out = tf_out.numpy()
         self.__kernel.adjust(out)
         self.__bias.adjust(grad)
 

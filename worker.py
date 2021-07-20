@@ -1,4 +1,5 @@
-from roles import Worker
+import executor
+
 
 if __name__ == '__main__':
-    Worker().slave_forever()
+    executor.Cohort(save_trace_log=True).slave_forever()

@@ -1,0 +1,10 @@
+Parameter_Server = -2
+Promoter_ID = -1
+Estimate_Bandwidth = 180000  # Bytes/s
+SSGD_Sync_Timeout_Limit_MSec = 10000
+Init_Job_Submission_Timeout_Limit_Sec = 7
+Trace_History_Folder = "./model_trace"  # model evaluation history
+Layer_Executor_Count = 1
+Network_Queue_Size = 128
+Network_Working_Ports = 15387
+VERSION = "0.90"

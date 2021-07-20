@@ -1,3 +1,0 @@
-from profiles.blockassignment.interface import ISetting
-from profiles.blockassignment.duplicate import DuplicateAssignment
-from profiles.blockassignment.idependent import IIDBlockAssignment
