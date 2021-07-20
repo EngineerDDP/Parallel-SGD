@@ -4,7 +4,7 @@ import shutil
 import time
 import unittest
 
-import executor
+import rpc
 
 import nn.dataset
 import nn.dataset.transforms
@@ -36,7 +36,7 @@ class TestCase(unittest.TestCase):
             nodes = network.NodeAssignment()
             nodes.add(0, '127.0.0.1')
 
-            worker = multiprocessing.Process(target=executor.Cohort().slave_forever)
+            worker = multiprocessing.Process(target=rpc.Cohort().slave_forever)
             worker.start()
 
             self.assertGreater(job.parallel(nodes, codec=parallel_sgd.codec.plain.Plain, epoch=2)['accuracy'], 0.95)

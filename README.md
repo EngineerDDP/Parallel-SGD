@@ -1,7 +1,7 @@
 # Parallel SGD
 
 Parallel-SGD v0.9  
-　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](parallel_sgd/codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](./tutorial_submit.py)）。
+　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](parallel_sgd/codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](examples/rpc/reduce_sum.py)）。
 
 ## 参数说明
 
@@ -19,7 +19,7 @@ python worker.py
 ## 快速上手
 
 下面演示一个快速上手执行P-SGD的例程。[完整代码](./tutorial_psgd.py)  
-并行计算框架的使用可以参考这个Hello World例程：[HelloWorld](./tutorial.py)  
+并行计算框架的使用可以参考这个Hello World例程：[HelloWorld](examples/rpc/helloworld.py)  
 
 ### 模型构建
 
@@ -185,14 +185,14 @@ INFO P-SGD Submit@08:37:52 : Waiting for ({0, 1, 2, 3, 4, 5, 6, 7, -2}) ...
 
 ```python
 import parallel_sgd
-import executor
+import rpc
 import network
 
 nodes = parallel_sgd.parse_worker(worker_cnt=9, ps=True)
 req = network.Request()
 
 with req.request(nodes) as com:
-  executor.Reclaimer(com).require_client_log()
+  rpc.Reclaimer(com).require_client_log()
 ```
 
 **注意**：.log 文件在训练阶段就可以给出，.csv 报表要在全部训练过程结束之后才能给出。预估您任务的执行时间，来获得完整的数据。  

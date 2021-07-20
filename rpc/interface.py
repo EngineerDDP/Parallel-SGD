@@ -1,10 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from typing import List
 
-import executor.communication as communication
+import rpc.communication as communication
 
 
-class IExecutor(metaclass=ABCMeta):
+class IExecutable(metaclass=ABCMeta):
 
     @abstractmethod
     def requests(self) -> List[object]:
@@ -32,7 +32,7 @@ class IExecutor(metaclass=ABCMeta):
     @abstractmethod
     def ready(self) -> bool:
         """
-            Is the executor ready for the job.
+            Is the rpc ready for the job.
         """
         pass
 

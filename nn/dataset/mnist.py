@@ -9,7 +9,7 @@ from nn.dataset.interfaces import AbsDataset
 class MNIST(AbsDataset):
 
     def __init__(self, check_sum=None):
-        self.path = './nn/dataset/mnist_data/'
+        self.path = './.data/mnist_data/'
         super().__init__(check_sum)
 
     def __repr__(self):

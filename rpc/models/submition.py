@@ -1,7 +1,7 @@
 from typing import Set
 
-from executor.models.dynamic_modules import ClassSerializer
-from executor.models.interface import IReplyPackage
+from rpc.models.dynamic_modules import ClassSerializer
+from rpc.models.interface import IReplyPackage
 
 
 class SubmitJob(IReplyPackage):

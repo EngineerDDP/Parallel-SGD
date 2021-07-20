@@ -1,12 +1,12 @@
 import time
 
 import network
-import executor
+import rpc
 
 
-class Hello(executor.AbsSimpleExecutor):
+class Hello(rpc.AbsSimpleExecutor):
 
-    def run(self, com: executor.communication.Communication) -> object:
+    def run(self, com: rpc.communication.Communication) -> object:
         for i in range(101):
             time.sleep(0.1)
             # Executor可以这样报告状态
@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     # 创建执行环境
     with network.Request().request(nodes) as com:
-        master = executor.Coordinator(com)
+        master = rpc.Coordinator(com)
         master.submit_group(Hello)
         res, err = master.join()
         # 打印结果

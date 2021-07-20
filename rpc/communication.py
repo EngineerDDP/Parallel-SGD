@@ -1,6 +1,6 @@
 from typing import Tuple
 
-import executor.models as models
+import rpc.models as models
 import network
 
 

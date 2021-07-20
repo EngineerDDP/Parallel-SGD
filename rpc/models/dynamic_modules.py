@@ -3,7 +3,7 @@ import importlib.util
 
 from typing import TypeVar, Generic, Type
 
-from executor.models.interface import IReplyPackage
+from rpc.models.interface import IReplyPackage
 
 
 Dynamic_Module_Name = "dynamic_modules"
