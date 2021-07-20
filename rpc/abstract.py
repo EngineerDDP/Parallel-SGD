@@ -1,10 +1,10 @@
 from abc import ABCMeta, abstractmethod
 
-import executor.communication
-import executor.interface
+import rpc.communication
+import rpc.interface
 
 
-class AbsExecutor(executor.interface.IExecutor, metaclass=ABCMeta):
+class AbsExecutable(rpc.interface.IExecutable, metaclass=ABCMeta):
 
     def __init__(self, node_id: int, working_group: set, initializer_id: int):
         self.__node_id = node_id
@@ -40,7 +40,7 @@ class AbsExecutor(executor.interface.IExecutor, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def start(self, com: executor.communication.Communication) -> object:
+    def start(self, com: rpc.communication.Communication) -> object:
         """
             Do the job.
         """
@@ -49,7 +49,7 @@ class AbsExecutor(executor.interface.IExecutor, metaclass=ABCMeta):
     @abstractmethod
     def ready(self) -> bool:
         """
-            Is the executor ready for the job.
+            Is the rpc ready for the job.
         """
         pass
 
@@ -68,7 +68,7 @@ class AbsExecutor(executor.interface.IExecutor, metaclass=ABCMeta):
         pass
 
 
-class AbsSimpleExecutor(AbsExecutor):
+class AbsSimpleExecutor(AbsExecutable):
 
     def __init__(self, node_id: int, working_group: set, initializer_id: int = -1):
         super().__init__(node_id, working_group, initializer_id)
@@ -86,13 +86,13 @@ class AbsSimpleExecutor(AbsExecutor):
     def done(self) -> bool:
         return self.__done
 
-    def start(self, com: executor.communication.Communication) -> object:
+    def start(self, com: rpc.communication.Communication) -> object:
         result = self.run(com)
         self.__done = True
         return result
 
     @abstractmethod
-    def run(self, com: executor.communication.Communication) -> object:
+    def run(self, com: rpc.communication.Communication) -> object:
         pass
 
     def trace_files(self) -> list:

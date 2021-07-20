@@ -3,7 +3,7 @@ from typing import Iterable, Tuple, Dict, Union
 import numpy as np
 
 from parallel_sgd.codec.interfaces import netEncapsulation
-from parallel_sgd.codec.naive_ps import GradDiffPS
+from examples.codecs.naive_ps import GradDiffPS
 
 
 class DCASGDServerCodec(GradDiffPS):

@@ -1,7 +1,7 @@
 from typing import List
 
-from executor.models.binary_file import BinaryFilePackage
-from executor.models.interface import IReplyPackage
+from rpc.models.binary_file import BinaryFilePackage
+from rpc.models.interface import IReplyPackage
 
 
 class ReadyType:

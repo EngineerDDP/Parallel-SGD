@@ -1,6 +1,6 @@
 import os
 
-from executor.models.interface import IReplyPackage
+from rpc.models.interface import IReplyPackage
 
 
 class BinaryFilePackage(IReplyPackage):

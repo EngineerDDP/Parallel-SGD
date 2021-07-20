@@ -22,7 +22,7 @@ Quantization_Resolution_Client = "QC"
 
 """
     Parameters listed above should be added to GlobalSettings.global_parameters as dict type.
-    Fill the parameter "codec_extra_parameters" while calling executor.parallel_sgd.submit.ParallelSGD.parallel_computing()
+    Fill the parameter "codec_extra_parameters" while calling rpc.parallel_sgd.submit.ParallelSGD.parallel_computing()
     with this codec.
 """
 

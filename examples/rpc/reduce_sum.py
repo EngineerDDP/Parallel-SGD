@@ -1,12 +1,12 @@
 # 导入并行调度模块
 import random
 
-import executor
+import rpc
 # 导入Object Stream模块
 import network
 
 
-class Sum(executor.AbsSimpleExecutor):
+class Sum(rpc.AbsSimpleExecutor):
 
     def __init__(self, node_id: int, working_group: set, initializer_id):
         """
@@ -54,10 +54,10 @@ class Sum(executor.AbsSimpleExecutor):
         """
         return self.__data is not None
 
-    def run(self, com: executor.Communication) -> object:
+    def run(self, com: rpc.Communication) -> object:
         """
             具体任务的执行流程。
-        :param com: executor 提供的内核调度机制，可以控制进度和切换调度线程，或者处理
+        :param com: rpc 提供的内核调度机制，可以控制进度和切换调度线程，或者处理
                     来自Coordinator的调度信号，终止执行流程。
         :return: 返回任意类型，如果该节点不需要报告结果，返回None。
                     该返回值可以使用 Coordinator 中的 join 方法接收。
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # resource_dispatch 部分为强类型约束的，需要对类型进行声明。
     # 关于 Python3 的类型约束
     # 参考 pep-0484 : https://www.python.org/dev/peps/pep-0484/
-    def dispatch(node_id: int, request: object) -> executor.ReplyPackage:
+    def dispatch(node_id: int, request: object) -> rpc.ReplyPackage:
         """
             Dispatch 函数
         :param node_id: 忽略掉了 node_id 参数。该参数为节点 id 信息，为 int 型。
@@ -109,15 +109,15 @@ if __name__ == '__main__':
         """
         if request == "Numbers":
             numbers_for_this_node = numbers[node_id * numbers_per_node: (node_id + 1) * numbers_per_node]
-            return executor.ReplyPackage(numbers_for_this_node)
+            return rpc.ReplyPackage(numbers_for_this_node)
         else:
-            return executor.ReplyPackage(None)
+            return rpc.ReplyPackage(None)
 
     # 发起一个请求
     # 如果客户端已经启动了，则可以直接提交，无需将代码更新至客户端。
     with net.request(nodes) as req:
         # 在请求的集群上创建一个协调者
-        master = executor.Coordinator(req)
+        master = rpc.Coordinator(req)
         # 提交任务
         master.submit_group(Sum, package_size=18000)
         # 注册数据分发函数

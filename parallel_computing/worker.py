@@ -1,14 +1,14 @@
 import time
 from typing import List, Iterable, Dict
 
-from executor.communication import Communication
-from executor.interface import IExecutor
+from rpc.communication import Communication
+from rpc.interface import IExecutable
 from parallel_computing.constants import Commands, Drop
 from parallel_computing.map import MapOperator
 from parallel_computing.reduce import ReduceOperator
 
 
-class RDDNode(IExecutor):
+class RDDNode(IExecutable):
 
     def __init__(self, node_id: int, working_group: set, initializer_id: int):
         self.__node_id = node_id

@@ -4,8 +4,8 @@ import time
 
 import pandas as pd
 
-import executor.abstract as abstract
-import executor.communication as communication
+import rpc.abstract as abstract
+import rpc.communication as communication
 import nn
 
 from parallel_sgd.codec import GlobalSettings
@@ -25,7 +25,7 @@ from nn.gradient_descent.sgd import SGDOptimizer
 from log import Logger
 
 
-class PSGDWorkerExecutor(abstract.AbsExecutor):
+class PSGDWorkerExecutor(abstract.AbsExecutable):
 
     def __init__(self, node_id: int, working_group: set, initializer_id: int = -1):
         super().__init__(node_id, working_group, initializer_id)

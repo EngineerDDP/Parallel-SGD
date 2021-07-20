@@ -1,8 +1,8 @@
 from typing import Iterable, Callable, Dict, Type, Tuple
 
 import constants
-import executor.interface
-import executor.models as models
+import rpc.interface
+import rpc.models as models
 import network
 import log
 
@@ -79,7 +79,7 @@ class Coordinator:
     def join(self) -> Tuple[Dict[int, object], bool]:
         """
             Join all workers, wait for all task.
-            :return: Returns a dict, indicates what has been returned from executor on each worker.
+            :return: Returns a dict, indicates what has been returned from rpc on each worker.
         """
         # Join all nodes.
         node_ready = set()
@@ -140,15 +140,15 @@ class Coordinator:
         self.__log.log_error("Job shutdown by user.")
         self.__log.log_error("Killing process on {}".format(self.allocated_nodes))
 
-    def submit_group(self, worker_executor: Type[executor.interface.IExecutor], working_group: Iterable[int] = None,
+    def submit_group(self, worker_executor: Type[rpc.interface.IExecutable], working_group: Iterable[int] = None,
                      package_size: int = 1e9):
         """
             Submit a job to a specified worker group.
             Nodes inside this group will wait for each other and synchronize start time.
             Group will also wait for all single nodes were ready.
-        :param worker_executor: executor class, implementation of IExecutor
+        :param worker_executor: rpc class, implementation of IExecutable
         :param working_group: Worker group list, iterable object, contains id of each worker in the group.
-        :param package_size: Package size in transmission. Potentially required by executor, and provided by dispatch.
+        :param package_size: Package size in transmission. Potentially required by rpc, and provided by dispatch.
         :return: None
         """
         # set work group
@@ -167,13 +167,13 @@ class Coordinator:
         self.__group_allocated = self.__group_allocated | working_group
         self.__log.log_message("Group submission complete ({}).".format(working_group))
 
-    def submit_single(self, worker_executor: Type[executor.interface.IExecutor], worker_id: int, package_size: int = 1e9):
+    def submit_single(self, worker_executor: Type[rpc.interface.IExecutable], worker_id: int, package_size: int = 1e9):
         """
             Submit a job to a specified node.
             This global node will start execution immediately when itself was ready.
-        :param worker_executor: executor class, implementation of IExecutor
+        :param worker_executor: rpc class, implementation of IExecutable
         :param worker_id: Worker id.
-        :param package_size: Package size in transmission. Potentially required by executor, and provided by dispatch.
+        :param package_size: Package size in transmission. Potentially required by rpc, and provided by dispatch.
         :return:
         """
         # check for duplication

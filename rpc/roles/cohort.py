@@ -1,8 +1,8 @@
 import time
 
-import executor
-import executor.interface
-import executor.models as models
+import rpc
+import rpc.interface
+import rpc.models as models
 
 import constants
 import network
@@ -16,7 +16,7 @@ class Cohort:
     def __init__(self, save_trace_log: bool = True):
         self.__client_logger = log.Logger(title_info='Worker-{}'.format(get_repr()), log_to_file=save_trace_log)
         self.__client_logger.log_message('Worker version: {}.'.format(constants.VERSION))
-        self.__job_executor: executor.interface.IExecutor = None
+        self.__job_executor: rpc.interface.IExecutable = None
         self.__initializer_id: int = -1
 
     def slave_forever(self):
@@ -107,7 +107,7 @@ class Cohort:
         posting_files = []
         if self.__client_logger.ToFile:
             posting_files.append(self.__client_logger.File_Name)
-        if isinstance(self.__job_executor, executor.abstract.AbsExecutor):
+        if isinstance(self.__job_executor, rpc.abstract.AbsExecutable):
             for filename in self.__job_executor.trace_files():
                 posting_files.append(filename)
 
@@ -128,8 +128,8 @@ class Cohort:
         total_nodes = job_info.work_group
         eta_waiting_time = job_info.waiting_time
 
-        self.__job_executor: executor.abstract.AbsExecutor = job_info.executioner(com.Node_Id, job_info.work_group,
-                                                                                  self.__initializer_id)
+        self.__job_executor: rpc.abstract.AbsExecutable = job_info.executioner(com.Node_Id, job_info.work_group,
+                                                                               self.__initializer_id)
 
         # Acknowledge requests
         requests = self.__job_executor.requests()
@@ -141,7 +141,7 @@ class Cohort:
         req_format = "\tRequests List:\n\t\t--> {}".format("\n\t\t--> ".join([str(req) for req in requests]))
         self.__client_logger.log_message('Request data: ({})\n{}'.format(len(requests), req_format))
         self.__client_logger.log_message('ETA: ({})'.format(eta_waiting_time))
-        # Set job executor to ready state
+        # Set job rpc to ready state
         while not self.__job_executor.ready():
 
             id_from, data = Cohort.__recv_pack(com, eta_waiting_time)
@@ -208,7 +208,7 @@ class Cohort:
         """
             Execute job.
         """
-        _sub_level_com = executor.communication.Communication(com, self.__initializer_id)
+        _sub_level_com = rpc.communication.Communication(com, self.__initializer_id)
         self.__client_logger.log_message('Execution process started.')
         begin = time.time()
         result = self.__job_executor.start(_sub_level_com)

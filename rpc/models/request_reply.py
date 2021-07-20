@@ -1,4 +1,4 @@
-from executor.models.interface import IRequestPackage, IReplyPackage
+from rpc.models.interface import IRequestPackage, IReplyPackage
 
 
 class RequestPackage(IRequestPackage):
