@@ -8,28 +8,13 @@ fi
 src_files=(
   "./worker.py"
   "./constants.py"
-#  "./codec/interfaces.py"
-#  "./codec/__init__.py"
-#  "./codec/essential.py"
-#  "./dataset/interfaces.py"
-#  "./executor/psgd/net_package.py"
-#  "./executor/__init__.py"
-#  "./executor/abstract.py"
-#  "./executor/interface.py"
-#  "./executor/communication.py"
 )
 src_dirs=(
-#  "./dataset/transforms"
-#  "./models"
   "./network"
   "./nn"
   "./parallel_computing"
   "./parallel_sgd"
   "./rpc"
-#  "./utils"
-#  "./psgd"
-#  "./roles"
-#  "./profiles"
 )
 
 files_and_dir_check=1
@@ -73,15 +58,6 @@ else
   fi
 fi
 
-#if [ ! -d "$worker"/codec ]; then
-#  mkdir "$worker"/codec
-#fi
-#if [ ! -d "$worker"/dataset ]; then
-#  mkdir "$worker"/dataset
-#fi
-#if [ ! -d "$worker"/executor/parallel_sgd ]; then
-#  mkdir -p "$worker"/executor/parallel_sgd
-#fi
 
 echo "Override files..."
 
