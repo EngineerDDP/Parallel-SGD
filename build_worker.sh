@@ -8,6 +8,7 @@ fi
 src_files=(
   "./worker.py"
   "./constants.py"
+  "./log.py"
 )
 src_dirs=(
   "./network"
