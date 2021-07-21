@@ -7,7 +7,7 @@ from nn import dataset
 import nn.dataset.transforms
 import nn
 
-os.chdir("../")
+# os.chdir("../")
 
 
 class TestModel(unittest.TestCase):
