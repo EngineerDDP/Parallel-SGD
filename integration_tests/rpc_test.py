@@ -42,7 +42,7 @@ class TestExecutor(unittest.TestCase):
             del master
 
         time.sleep(1)
-        worker.kill()
+        worker.terminate()
         time.sleep(2)
         shutil.rmtree("./Node-101-Retrieve")
         shutil.rmtree("./tmp_log")
