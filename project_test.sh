@@ -14,16 +14,31 @@ test_cases=(
 
 # backup env
 env_bak=$PYTHONPATH
-# set enviroment
-export PYTHONPATH=$(pwd)
+# set environment
+PYTHONPATH=$(pwd)
+export PYTHONPATH
+
+passed_test=0
+failed_test=0
 
 # run all tests
 for test in "${test_cases[@]}"; do
   {
-    echo -e "\033[0;32;1mRunning\033[0m: $test" 
-    python3 $test_root/$test
+    echo -e "\033[0;32;1mRunning\033[0m: \033[0;93;1m$test\033[0m"
+
+    python3 -m unittest $test_root/$test > /dev/null
+
+    if [ $? -eq 0 ]; then
+      echo -e "\033[0;32;1mTest Passed\033[0m: \033[0;93;1m$test\033[0m"
+      passed_test=$[ $passed_test+1 ]
+    else
+      echo -e "\033[0;31;1mTest Failed\033[0m: \033[0;93;1m$test\033[0m"
+      failed_test=$[ $failed_test+1 ]
+    fi
   }
 done
+
+echo -e "\033[0;32;1mTest Complete\033[0m \033[0;32;1m$passed_test Passed\033[0m, \033[0;31;1m$failed_test Failed\033[0m"
 
 # recover env
 export PYTHONPATH=$env_bak
