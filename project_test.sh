@@ -38,6 +38,11 @@ for test in "${test_cases[@]}"; do
   }
 done
 
+if [ -d "tmp_log" ]; then
+  echo -e "\033[0;34;1m Clear environment.\033[0m"
+  rm -rf tmp_log
+fi
+
 echo -e "\033[0;32;1mTest Complete\033[0m \033[0;32;1m$passed_test Passed\033[0m, \033[0;31;1m$failed_test Failed\033[0m"
 
 # recover env
