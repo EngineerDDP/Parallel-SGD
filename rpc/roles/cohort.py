@@ -42,9 +42,9 @@ class Cohort:
                         self.__client_logger.log_message('Worker restarting...')
                         time.sleep(1)
                 except OSError:
-                    self.__client_logger.log_message("Initialization server exited without report.")
+                    self.__client_logger.log_error("Initialization server exited without report.")
                 except ConnectionResetError:
-                    self.__client_logger.log_message("Initialization server exited without report.")
+                    self.__client_logger.log_error("Initialization server exited without report.")
 
         except KeyboardInterrupt:
             self.__client_logger.log_error('Worker shutdown by interruption.')
