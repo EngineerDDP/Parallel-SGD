@@ -27,6 +27,12 @@ class Coordinator:
         self.__global_allocated = set()
         self.__log.log_message("Coordinator version: {}.".format(constants.VERSION))
 
+    def __str__(self):
+        return "<Coordinator at Node({})>".format(self.__initializer_id)
+
+    def __repr__(self):
+        return self.__str__()
+
     @property
     def allocated_nodes(self):
         return self.__global_allocated | self.__group_allocated

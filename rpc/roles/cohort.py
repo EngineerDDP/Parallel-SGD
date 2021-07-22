@@ -19,6 +19,12 @@ class Cohort:
         self.__job_executor: rpc.interface.IExecutable = None
         self.__initializer_id: int = -1
 
+    def __str__(self):
+        return "<Cohort at Node({})>".format(self.__initializer_id)
+
+    def __repr__(self):
+        return self.__str__()
+
     def slave_forever(self):
         # set up listening port
         listener = network.Serve(net_type='fcnet')
