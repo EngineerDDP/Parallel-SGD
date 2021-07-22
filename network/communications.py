@@ -181,7 +181,7 @@ def get_repr():
     for addr in addrs:
         if addr not in {"127.0.0.1", "127.0.1.1"}:
             return addr
-    return "[Host Unknow]"
+    return "host-unknown"
 
 # ----------------------------------------
 # Fix 2020年10月21日
