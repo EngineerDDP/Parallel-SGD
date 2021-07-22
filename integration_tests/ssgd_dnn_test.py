@@ -42,7 +42,7 @@ class TestCase(unittest.TestCase):
 
             self.assertGreater(job.parallel(nodes, codec=parallel_sgd.codec.plain.Plain, epoch=2)['accuracy'], 0.95)
 
-            worker.kill()
+            worker.terminate()
 
             time.sleep(1)
         finally:
