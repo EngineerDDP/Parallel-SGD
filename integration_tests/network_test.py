@@ -7,7 +7,7 @@ import network
 
 class TestCase(unittest.TestCase):
     TEST_ROUND = 10
-    TEST_DATA = b'a' * 1024 * 1024 * 100  # 100 MB data
+    TEST_DATA = b'a' * 1024 * 1024 * 10    # 100 MB data
 
     def __init__(self, methodName: str):
         super().__init__(methodName=methodName)
@@ -21,7 +21,7 @@ class TestCase(unittest.TestCase):
             com: network.ICommunicationController
             try:
                 while not com.is_closed():
-                    _, data = com.get_one(blocking=True, timeout=1)
+                    _, data = com.get_one(blocking=True, timeout=None)
                     if data is not None:
                         count += 1
             except ConnectionAbortedError:
@@ -42,7 +42,7 @@ class TestCase(unittest.TestCase):
         time.sleep(1)
         # last round
         com.send_one(0, TestCase.TEST_DATA)
-        com.close(force=False, timeout=100)
+        com.close(force=False, timeout=10)
 
     def test_something(self):
         print(network.communications.get_repr())

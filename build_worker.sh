@@ -8,6 +8,7 @@ fi
 src_files=(
   "./worker.py"
   "./constants.py"
+  "./log.py"
 )
 src_dirs=(
   "./network"
@@ -54,12 +55,12 @@ else
   if [ ! $input = "yes" ]; then
     exit 0
   else
+    echo "Override files..."
     rm -rf "${worker:?}/"*
   fi
 fi
 
 
-echo "Override files..."
 
 for dir in "${src_dirs[@]}"; do
   {
@@ -75,3 +76,5 @@ for file in "${src_files[@]}"; do
 done
 
 python3 -m compileall "$worker"/
+
+echo -e "\033[0;32;1mDone\033[0m"

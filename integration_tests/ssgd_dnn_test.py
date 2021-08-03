@@ -15,7 +15,7 @@ import parallel_sgd.codec.plain
 import network
 import nn
 
-os.chdir("../")
+# os.chdir("../")
 
 
 class TestCase(unittest.TestCase):
@@ -38,10 +38,11 @@ class TestCase(unittest.TestCase):
 
             worker = multiprocessing.Process(target=rpc.Cohort().slave_forever)
             worker.start()
+            time.sleep(3)
 
             self.assertGreater(job.parallel(nodes, codec=parallel_sgd.codec.plain.Plain, epoch=2)['accuracy'], 0.95)
 
-            worker.kill()
+            worker.terminate()
 
             time.sleep(1)
         finally:
