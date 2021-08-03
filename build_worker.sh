@@ -9,7 +9,6 @@ src_files=(
   "./worker.py"
   "./constants.py"
   "./log.py"
-  "./Dockerfile"
 )
 src_dirs=(
   "./network"
@@ -75,6 +74,17 @@ for file in "${src_files[@]}"; do
     echo "Copy file: $file"
   }
 done
+
+Dockerfile_check=1
+if [! -f "Dockerfile" ]; then
+  echo -e "Dockerfile not found"
+  Dockerfile_check=0
+fi
+
+if [ $Dockerfile_check -eq 1 ]; then
+  echo "Copy Dockerfile"
+  cp "Dockerfile" "$worker"/"../Dockerfile"
+fi
 
 python3 -m compileall "$worker"/
 
