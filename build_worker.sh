@@ -9,6 +9,7 @@ src_files=(
   "./worker.py"
   "./constants.py"
   "./log.py"
+  "./Dockerfile"
 )
 src_dirs=(
   "./network"
