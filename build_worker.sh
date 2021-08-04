@@ -76,7 +76,7 @@ for file in "${src_files[@]}"; do
 done
 
 Dockerfile_check=1
-if [! -f "Dockerfile" ]; then
+if [ ! -f "Dockerfile" ]; then
   echo -e "Dockerfile not found"
   Dockerfile_check=0
 fi
