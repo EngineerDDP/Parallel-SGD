@@ -75,6 +75,17 @@ for file in "${src_files[@]}"; do
   }
 done
 
+Dockerfile_check=1
+if [ ! -f "Dockerfile" ]; then
+  echo -e "Dockerfile not found"
+  Dockerfile_check=0
+fi
+
+if [ $Dockerfile_check -eq 1 ]; then
+  echo "Copy Dockerfile"
+  cp "Dockerfile" "$worker"/"../Dockerfile"
+fi
+
 python3 -m compileall "$worker"/
 
 echo -e "\033[0;32;1mDone\033[0m"

@@ -3,6 +3,30 @@
 Parallel-SGD v0.9  
 　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](parallel_sgd/codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](examples/rpc/reduce_sum.py)）。
 
+## 使用方式
+
+### 本机运行
+```bash
+  git clone https://hub.fastgit.org/EngineerDDP/Parallel-SGD.git
+  cd Parallel-SGD && ./build_worker.sh ../psgdworker
+  python3 ../psgdworker/worker.py
+```
+
+### Docker运行
+```bash
+  docker run  -it -p 15387:15387 --rm --name "psgdtest"  chenruifeng/psgd:0.2
+```
+
+### Dockerfile构建
+```bash
+# 本机运行
+  git clone https://hub.fastgit.org/EngineerDDP/Parallel-SGD.git
+  cd Parallel-SGD && ./build_worker.sh ../psgdworker
+  cd ..
+  docker build -t chenruifeng/psgd:0.2 .
+  docker run  -it -p 15387:15387 --rm --name "psgdtest"  chenruifeng/psgd:0.2
+```
+
 ## 参数说明
 
 ### 工作节点参数
