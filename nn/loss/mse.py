@@ -10,7 +10,7 @@ class MSELoss(ILoss):
         pass
 
     def __repr__(self):
-        print(self.__str__())
+        return self.__str__()
 
     def __str__(self):
         return "<Mean Square Error Loss>"

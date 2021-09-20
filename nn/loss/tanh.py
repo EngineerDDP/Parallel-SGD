@@ -9,7 +9,7 @@ class TanhLoss(ILoss):
         pass
 
     def __repr__(self):
-        print(self.__str__())
+        return self.__str__()
 
     def __str__(self):
         return "<L2 Tanh loss>"
