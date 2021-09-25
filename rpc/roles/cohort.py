@@ -193,7 +193,7 @@ class Cohort:
         dead_line = time.time() + timeout
 
         ready_state.add(com.Node_Id)
-        for id in com.available_clients:
+        for id in total_nodes:
             com.send_one(id, models.ReadyType(ready_state))
 
         while ready_state & total_nodes != total_nodes:
