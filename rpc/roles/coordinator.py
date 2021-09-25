@@ -51,7 +51,6 @@ class Coordinator:
 
             try:
                 id_from, data = self.__com.get_one()
-                reply = None
 
                 if isinstance(data, models.IRequestPackage):
                     reply = dispatch_map(id_from, data.content())
@@ -59,7 +58,7 @@ class Coordinator:
                     self.__log.log_message(
                         'Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
 
-                self.__com.send_one(id_from, reply)
+                    self.__com.send_one(id_from, reply)
 
                 if isinstance(data, models.ReadyType):
                     if id_from in node_ready:
