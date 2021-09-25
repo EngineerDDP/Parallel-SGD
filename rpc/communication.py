@@ -16,7 +16,7 @@ class Communication:
     def block_send(self, target, value, timeout):
         raise InterruptedError("This job has been aborted.")
 
-    def get_one(self, blocking, timeout) -> Tuple[int, object]:
+    def get_one(self, blocking=True, timeout: int = None) -> Tuple[int, object]:
         id_from, content = self.__com.get_one(blocking, timeout)
         if isinstance(content, models.Kill):
             self.__interruptions = True

@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from typing import List
 
-import rpc.communication
 import rpc.interface
 
 
@@ -95,5 +95,5 @@ class AbsSimpleExecutor(AbsExecutable):
     def run(self, com: rpc.communication.Communication) -> object:
         pass
 
-    def trace_files(self) -> list:
+    def trace_files(self) -> List[str]:
         return []
