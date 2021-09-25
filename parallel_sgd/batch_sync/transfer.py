@@ -107,7 +107,7 @@ class NTransfer(ITransfer):
         :return: None
         """
         try:
-            while not self.__communication_process.is_closed():
+            while True:
                 _, dic = self.__communication_process.get_one()
                 # blocking other format
                 if not isinstance(dic, dict):
