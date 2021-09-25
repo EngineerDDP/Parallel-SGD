@@ -59,21 +59,19 @@ class Coordinator:
                     self.__log.log_message(
                         'Reply requirements to node({}), type({}).'.format(id_from, reply.__class__.__name__))
 
-                elif isinstance(data, models.ReadyType):
-                    reply = models.ReadyType(node_ready)
-
-                    if id_from in node_ready:
-                        continue
-
-                    node_ready.add(id_from)
-                    self.__log.log_message('Node({}) is ready, {} is ready.'.format(id_from, node_ready))
-
                 elif isinstance(data, models.Version):
                     reply = models.Version(self.__initializer_id)
 
                     self.__log.log_message("{}".format(data))
 
                 self.__com.send_one(id_from, reply)
+
+                if isinstance(data, models.ReadyType):
+                    if id_from in node_ready:
+                        continue
+
+                    node_ready.add(id_from)
+                    self.__log.log_message('Node({}) is ready, {} is ready.'.format(id_from, node_ready))
 
             except KeyboardInterrupt:
                 if len(node_ready) < len(self.allocated_nodes):
