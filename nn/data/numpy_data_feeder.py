@@ -34,7 +34,7 @@ class NumpyDataFeeder(IDataFeeder):
             yield part_x, part_y
 
     def __repr__(self):
-        print(self.__str__())
+        return self.__str__()
 
     def __str__(self):
         return "<Numpy data iterator, current batch: {}, total: {}.>".format(self.__iter, self.__batches)
