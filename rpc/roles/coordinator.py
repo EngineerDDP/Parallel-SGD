@@ -104,17 +104,20 @@ class Coordinator:
                 # self.__log.log_message('Restoring data ({}) from {}.'.format(data, id_from))
 
             if isinstance(data, models.DoneType):
-                print("")
-                file_format = "\n\t\t--> ".join([filename for filename in data.file_list])
-                self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
+                file_names = [filename for filename in data.file_list]
+
+                # Skip if no files available
+                if len(file_names) > 0:
+                    file_format = "\n\t\t--> ".join(file_names)
+                    self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
 
                 node_ready.add(id_from)
-                self.__log.log_message('Node({}) is done, {} is done.'.format(id_from, node_ready))
+                self.__log.log_message('Node({}) is done, {} in total.'.format(id_from, node_ready))
 
                 results[id_from] = data.result
 
                 if data.exception is not None:
-                    self.__log.log_error("Worker with ID({}) reports an error: {}".format(id_from, data.exception))
+                    self.__log.log_error("Worker with ID({}), {}".format(id_from, data.exception))
                     error = True
 
             if isinstance(data, models.Version):
@@ -213,14 +216,18 @@ class Reclaimer:
             total_nodes = set(self.__com.available_clients)
             while nodes_ready != total_nodes:
 
-                id_from, log = self.__com.get_one()
+                id_from, data = self.__com.get_one()
 
-                if isinstance(log, models.DoneType):
-                    log.restore()
-                    file_format = "\n\t\t--> ".join([filename for filename in log.file_list])
-                    self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
+                if isinstance(data, models.DoneType):
+                    data.restore()
+
+                    # Skip if no files available
+                    if len(data.file_list) > 0:
+                        file_format = "\n\t\t--> ".join([filename for filename in data.file_list])
+                        self.__log.log_message('Save file for {}.\n\tList:\n\t\t--> {}'.format(id_from, file_format))
                     nodes_ready.add(id_from)
-                    self.__log.log_message('Node({}) is done, {} is done.'.format(id_from, nodes_ready))
+
+                    self.__log.log_message('Node({}) is done, {} in total.'.format(id_from, nodes_ready))
 
         except Exception as e:
             # print DEBUG message
