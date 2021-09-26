@@ -3,6 +3,7 @@ import os
 from abc import ABCMeta, abstractmethod
 
 BUFFERED_MESSAGE_MAX = 1000
+LIMITED_FILE_SIZE = 2 * 1024 * 1024   # 2MB
 
 
 class IPrinter(metaclass=ABCMeta):
@@ -85,6 +86,10 @@ class Logger(IPrinter):
             self.__buffered_msg_count += 1
             self.__buffer += msg + '\n'
             return
+
+        # truncate if overflow
+        if self.__file.tell() >= LIMITED_FILE_SIZE:
+            self.__file.truncate(0)
 
         self.__file.write(self.__buffer)
         self.__file.flush()
