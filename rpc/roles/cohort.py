@@ -96,23 +96,26 @@ class Cohort:
             exc_type, exc_value, exc_tb = sys.exc_info()
             exc_tb = traceback.format_exception(exc_type, exc_value, exc_tb)
             exc_format = "".join(exc_tb)
-            self.__client_logger.log_error('Exception occurred: {}\n{}'.format(e, exc_format))
+            exc_info = 'Exception occurred: {}\n{}'.format(e, exc_format)
+            self.__client_logger.log_error(exc_info)
             # print DEBUG message
             # post result with exception
-            self.post_log(com, results, e)
+            self.post_log(com, results, exc_info)
         # post result
         self.post_log(com, results, None)
 
-    def post_log(self, com: network.ICommunicationController, other_contents: object, exceptions: [Exception]):
+    def post_log(self, com: network.ICommunicationController, other_contents: object, exceptions: [str]):
         """
             Post worker log file to coordinator.
+        :param exceptions: exceptions during execution
         :param other_contents: other content can be attached
-        :param com:
-        :return:
+        :param com: communication object
+        :return: None
         """
         posting_files = []
-        if self.__client_logger.ToFile:
-            posting_files.append(self.__client_logger.File_Name)
+        # Skip posting worker's log
+        # if self.__client_logger.ToFile:
+        #     posting_files.append(self.__client_logger.File_Name)
         if isinstance(self.__job_executor, rpc.abstract.AbsExecutable):
             for filename in self.__job_executor.trace_files():
                 posting_files.append(filename)
@@ -222,7 +225,7 @@ class Cohort:
         result = self.__job_executor.start(_sub_level_com)
         end = time.time()
 
-        self.__client_logger.log_message('Execution complete, time:{}'.format(end - begin))
+        self.__client_logger.log_message('Execution complete, time: {:.3f} sec'.format(end - begin))
         self.__client_logger.log_message('Execution stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
         self.__client_logger.log_message('Execution stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
         self.__client_logger.log_message('Execution process exited.')
