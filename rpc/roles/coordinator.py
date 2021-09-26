@@ -104,6 +104,8 @@ class Coordinator:
                 # self.__log.log_message('Restoring data ({}) from {}.'.format(data, id_from))
 
             if isinstance(data, models.DoneType):
+                # Skip and make a new line.
+                print("")
                 file_names = [filename for filename in data.file_list]
 
                 # Skip if no files available
