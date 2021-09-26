@@ -173,6 +173,8 @@ class Cohort:
         self.__client_logger.log_message('Submit stage complete, Total bytes sent: {}'.format(com.Com.bytes_sent))
         self.__client_logger.log_message('Submit stage complete, Total bytes read: {}'.format(com.Com.bytes_read))
 
+        # synchronize with initializer first
+        com.send_one(self.__initializer_id, models.ReadyType(ready_state))
         self.__client_logger.log_message('Synchronize timeline with cluster.')
 
         Cohort.synchronize(com, ready_state, total_nodes, eta_waiting_time)
