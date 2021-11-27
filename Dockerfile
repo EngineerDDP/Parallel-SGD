@@ -3,7 +3,8 @@ MAINTAINER chenruifeng<ruifeng.chen.cn@gmail.com>
 
 COPY ./psgdworker ./worker/
 
-EXPOSE 15387
+RUN pip install pandas
 
+EXPOSE 15387
 
 CMD python ./worker/worker.py
