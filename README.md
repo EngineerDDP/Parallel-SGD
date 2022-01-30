@@ -3,6 +3,11 @@
 　　Parallel-SGD v0.761  
 　　本项目为分布式并行计算框架&简易CPU神经网络模型库。可用于联邦学习和分布式学习中的关于网络架构和通信编码部分的实验，参考ICommunication_Ctrl接口说明（[*Codec&Transfer*](./codec/README.md) ）；可用于神经网络模型分割与模型验证，参考 nn 库使用说明（[*Model&Training*](./nn/README.md)）；可用于分布式并行计算实验，参考 executor 说明（[*Executor&Submit*](./executor/README.md)）。  
 
+## 运行方式
+```bash
+  docker run  -it -p 15387:15387 --rm --name "psgdtest"  chenruifeng/psgd:0.761
+```
+
 ## 参数说明
 
 ### 工作节点参数
@@ -343,7 +348,7 @@ with req.request(nodes) as com:
 
 　　在 Sync-SGD Type 约束下，网络权重参数满足一致性（Consistency）和分区容错性（Partition Tolerance），不满足可用性（Availability）。
 详细的资源CAP状况如下表。
- 
+
 |资源|Consistency|Availability|Partition Tolerance|
 |----|----|----|----|
 |初始化资源|√|√|×|
